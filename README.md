@@ -14,6 +14,8 @@
 Written by biologists and not computer scientists so improvements and
 suggestions welcome.
 
+[API docs](http://s312569.github.io/clj-biosequence/)
+
 ## Installation
 
 `clj-biosequence` is available from [Clojars](https://clojars.org/clj-biosequence). For the current version add the following to your project.clj file:
