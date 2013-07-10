@@ -8,7 +8,9 @@
 ;; protein mass
 
 (defn aa-average-masses
-  "Returns a map hash of average amino acid masses. The optional argument c-mod specifies Cys modifications. Default is no modification and current permissable values are:
+  "Returns a map hash of average amino acid masses. The optional argument c-mod
+   specifies Cys modifications. Default is no modification and current permissable
+   values are:
    I - Iodoacetamide - 160.1608
    M - MMTS - 149.1268"
   ([] (aa-average-masses nil))
@@ -43,7 +45,8 @@
                \X 110}))))
 
 (defn aa-monoisotopic-masses
-  "Returns a map hash of amino acid masses. The optional argument c-mod specifies Cys modifications. Default is no modification and current permissable values are:
+  "Returns a map hash of amino acid masses. The optional argument c-mod specifies Cys
+   modifications. Default is no modification and current permissable values are:
    I - Iodoacetamide - 160.1608
    M - MMTS - 149.1268"
   ([] (aa-monoisotopic-masses nil))
@@ -78,7 +81,10 @@
                \X 110}))))
 
 (defn string-mass
-  "Returns the mass of a string of amino acids in single letter format. Monoisotopic or average can be specified using the 'average' argument, false or nil will give the monoisotopic values. Default is false. A Cys modification can be specified using the 'c-mod' argument. Default is no modification and current permissable values are:
+  "Returns the mass of a string of amino acids in single letter format. Monoisotopic or
+   average can be specified using the 'average' argument, false or nil will give the
+   monoisotopic values. Default is false. A Cys modification can be specified using the
+   'c-mod' argument. Default is no modification and current permissable values are:
    I - Iodoacetamide - +57.022
    M - MMTS - +45.988
    O - oxidised - +1.007947"

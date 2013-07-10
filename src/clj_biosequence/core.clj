@@ -43,26 +43,43 @@
 ; file
 
 (defprotocol biosequenceFile
-  (biosequence-seq-file [this rdr] "Returns a lazy sequence of biosequences from a biosequence file object.")
-  (file-path [this] "Returns the path of a biosequence file."))
+  (biosequence-seq-file [this rdr]
+    "Returns a lazy sequence of biosequences from a biosequence file object.")
+  (file-path [this]
+    "Returns the path of a biosequence file."))
 
 ; biosequence
 
 (defprotocol Biosequence
-  (accession [this] "Returns the accession of a biosequence.")
-  (accessions [this] "Returns a list of strings describing the accessions of a uniprot. Ordered from most recent to oldest.")
-  (def-line [this] "Returns the description of a biosequence.")
-  (sequence-string [this] "Returns the sequence of a biosequence as a string.")
-  (fasta-string [this] "Returns the biosequence as a string in fasta format.")
-  (fasta-to-stream [this wrt] "Emits biosequence in fasta format to wrt.")
-  (protein? [this] "Returns true if a protein and false otherwise.")
-  (org-scientific-name [this] "Returns the scientific name of the organism possessing the sequence as a string.")
-  (created [this] "Date sequence created.")
-  (modified [this] "Date sequence modified.")
-  (version [this] "Version of the sequence (Integer).")
-  (database [this] "Returns the database that contains the sequence.")
-  (taxonomy [this] "Returns the lineage from a uniprot as a list of strings. Strings in order from kingdom to species.")
-  (taxid [this] "Returns the taxid of a sequence (Integer)."))
+  (accession [this]
+    "Returns the accession of a biosequence.")
+  (accessions [this]
+    "Returns a list of strings describing the accessions of a uniprot. 
+     Ordered from most recent to oldest.")
+  (def-line [this]
+    "Returns the description of a biosequence.")
+  (sequence-string [this]
+    "Returns the sequence of a biosequence as a string.")
+  (fasta-string [this]
+    "Returns the biosequence as a string in fasta format.")
+  (fasta-to-stream [this wrt]
+    "Emits biosequence in fasta format to wrt.")
+  (protein? [this]
+    "Returns true if a protein and false otherwise.")
+  (org-scientific-name [this]
+    "Returns the scientific name of the organism possessing the sequence as a string.")
+  (created [this]
+    "Date sequence created.")
+  (modified [this]
+    "Date sequence modified.")
+  (version [this]
+    "Version of the sequence (Integer).")
+  (database [this]
+    "Returns the database that contains the sequence.")
+  (taxonomy [this]
+    "Returns the lineage from a uniprot as a list of strings. Strings in order from kingdom to species.")
+  (taxid [this]
+    "Returns the taxid of a sequence (Integer)."))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions
@@ -77,14 +94,16 @@
       (declob (:src (first row))))))
 
 (defn translate-biosequence
-  "Returns a fastaSequence object corresponding to the protein translation of the sequence in the specified frame."
+  "Returns a fastaSequence object corresponding to the protein translation 
+   of the sequence in the specified frame."
   ([nucleotide frame] 
      (translate-biosequence nucleotide frame (codon-tables :standard)))
   ([nucleotide frame table]
      (translate nucleotide frame table)))
 
 (defn six-frame-translation
-  "Returns a lazy list of fastaSequence objects representing translations of a nucleotide biosequence object in six frames."
+  "Returns a lazy list of fastaSequence objects representing translations of
+   a nucleotide biosequence object in six frames."
   ([nucleotide] (six-frame-translation nucleotide (codon-tables :standard)))
   ([nucleotide table]
      (map #(translate nucleotide % table)
@@ -100,7 +119,8 @@
        (apply str (line-seq rdr))))))
 
 (defn make-db-connection 
-  "Takes a file path and returns a specification for a database based on that file. Exists is a boolean and specifies whether an error is signalled if file already exists."
+  "Takes a file path and returns a specification for a database based on that file.
+   Exists is a boolean and specifies whether an error is signalled if file already exists."
   [file exists]
   {
    :classname   "org.h2.Driver"
@@ -261,7 +281,9 @@
                      (repeatedly #(read-seq rdr (:idregex this) (:descregex this)))))))
 
 (defn init-fasta-file
-  "Initialises fasta protein file. Regular expressions can be supplied for the parsing of accession and description from the fasta entry. Default regular expressions split on first space with accession being first entry and description the second."
+  "Initialises fasta protein file. Regular expressions can be supplied for the parsing 
+   of accession and description from the fasta entry. Default regular expressions split
+   on first space with accession being first entry and description the second."
   ([path type] (init-fasta-file path type #"^([^\s]+)" #"^[^\s]+\s+(.+)"))
   ([path type idregex] (init-fasta-file path type idregex #"^[^\s]+\s+(.+)"))
   ([path type idregex descregex]
@@ -315,7 +337,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn id-convert
-  "Takes either a single accession or a list of accessions and returns a hash-map mapping the accession numbers to the corresponding identification number in the specified 'to' database. 'From' database also needs to be specified. If not found returns an empty hash-map. Uses the Uniprot id mapping utility and a list of supported databases is supplied at http://www.uniprot.org/faq/28#id_mapping_examples. Some common mappings include:
+  "Takes either a single accession or a list of accessions and returns a hash-map
+   mapping the accession numbers to the corresponding identification number in the 
+   specified 'to' database. 'From' database also needs to be specified. If not 
+   found returns an empty hash-map. Uses the Uniprot id mapping utility and a list 
+   of supported databases is supplied at http://www.uniprot.org/faq/28#id_mapping_examples.
+   Some common mappings include:
    DB Name                  Abbreviation     Direction
    UniProtKB AC/ID	    ACC+ID	     from
    UniProtKB AC	            ACC              to
@@ -423,7 +450,10 @@
                        trans))))
 
 (defn codon-tables
-  "Returns a codon table suitable for use as an argument in the functions 'translate-biosequence' and 'six-frame-translation'. Takes a keyword argument to denote different codon tables. So far only provides the standard (:standard) codon table but further are planned."
+  "Returns a codon table suitable for use as an argument in the functions 
+  'translate-biosequence' and 'six-frame-translation'. Takes a keyword argument
+   to denote different codon tables. So far only provides the standard (:standard)
+   codon table but further are planned."
   [key]
   (key {:standard
         '((\T
@@ -466,7 +496,8 @@
     (apply str (map #(get-amino-acid % table) (partition-all 3 s)))))
 
 (defn revcom-dna-string
-  "Provides the reverse, complement of a string representing a DNA sequence. Converts all 'U's to 'T's and upcases the string."
+  "Provides the reverse, complement of a string representing a DNA sequence. 
+   Converts all 'U's to 'T's and upcases the string."
   [string]
   (apply str (map #(condp = %
                      \A \T

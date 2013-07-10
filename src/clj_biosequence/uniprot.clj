@@ -79,7 +79,9 @@
 ;; uniprot
 
 (defn organism-name
-  "Returns a map with keys - :scientific, :common, :full, :synonym, :abbreviation and :ncbi-taxid. Values are lists of names attributed to the organism, except :ncbi-taxid which is an integer."
+  "Returns a map with keys - :scientific, :common, :full, :synonym, :abbreviation 
+   and :ncbi-taxid. Values are lists of names attributed to the organism, except 
+   :ncbi-taxid which is an integer."
   [uniprot]
   (let [values '("scientific" "common" "full" "synonym" "abbreviation")
         s (zip/xml-zip (:src uniprot))]
@@ -101,14 +103,18 @@
   (zf/xml1-> (zip/xml-zip (:src uniprot)) :name zf/text))
 
 (defn amino-acids
-  "Returns a map with the keys - :mass, :checksum, :modified, :version, :amino-acids . All are strings except :mass, which is a long, and :version, which is an integer."
+  "Returns a map with the keys - :mass, :checksum, :modified, :version, :amino-acids.
+   All are strings except :mass, which is a long, and :version, which is an integer."
   [uniprot]
   (zf/xml1-> (zip/xml-zip (:src uniprot))
              :sequence
              process-sequence))
 
 (defn nomenclature
-  "Returns a map of descriptions. Keys - :recommended, :alternate, :submitted, :allergen. Values of each is a list of maps with keys - :fullname, :shortname and :ecnumber. All values are strings except for :recommended which is map with the keys :fullname, :shortname and :ecnumber."
+  "Returns a map of descriptions. Keys - :recommended, :alternate, :submitted, :allergen.
+   Values of each is a list of maps with keys - :fullname, :shortname and :ecnumber. All 
+   values are strings except for :recommended which is map with the keys :fullname, 
+   :shortname and :ecnumber."
   [uniprot]
   (let [s (zip/xml-zip (:src uniprot))
         rec (zf/xml-> s :protein :recommendedName prot-names)
@@ -128,7 +134,8 @@
            (if (not (empty? inn)) {:allergen inn}))))
 
 (defn gene
-  "Returns a map with gene information from a uniprot. Keys - :type and :name. Values are strings."
+  "Returns a map with gene information from a uniprot. Keys - :type and :name. Values 
+   are strings."
   [uniprot]
   (let [item (zf/xml-> (zip/xml-zip (:src uniprot)) :gene :name)]
     (map #(assoc {}
@@ -138,7 +145,8 @@
 (defn gene-location
   "Returns a map of gene location information from a uniprot."
   [uniprot]
-  (let [values '("apicoplast" "chloroplast" "organellar chromatophore" "cyanelle" "hydrogenosome" "mitochondrion" "non photosynthetic plastid" "nucleomorph" "plasmid" "plastid")]
+  (let [values '("apicoplast" "chloroplast" "organellar chromatophore" "cyanelle" "hydrogenosome"
+                 "mitochondrion" "non photosynthetic plastid" "nucleomorph" "plasmid" "plastid")]
     (zipmap (map #(keyword (string/replace % " " "-"))  values)
             (map #(zf/xml-> (zip/xml-zip (:src uniprot))
                             :geneLocation
@@ -147,14 +155,21 @@
                             zf/text) values))))
 
 (defn citation
-  "Returns a list of citations from a uniprot. Each citation is a map with the keys - :country, :last (page), :date, :pubmed, :institute, :name (journal), :first (page), :title, :city, :scope, :type, :consortium, :number, :authors, :source, :editors, :publisher, :volume, :db. All are strings, except for :scope, :editor, :strain and :author, which are lists of strings. The value of :source is a map with the keys - :tissue, :transposons, :plasmid and :strain which are all lists of strings."
+  "Returns a list of citations from a uniprot. Each citation is a map with the keys - 
+   :country, :last (page), :date, :pubmed, :institute, :name (journal), :first (page),
+   :title, :city, :scope, :type, :consortium, :number, :authors, :source, :editors, 
+   :publisher, :volume, :db. All are strings, except for :scope, :editor, :strain and 
+   :author, which are lists of strings. The value of :source is a map with the keys - 
+   :tissue, :transposons, :plasmid and :strain which are all lists of strings."
   [uniprot]
   (zf/xml-> (zip/xml-zip (:src uniprot))
             :reference
             process-cites))
 
 (defn subcellular-location
-  "Returns a list of maps specifying the sub-cellualr location of a uniprot. Eahc map has the keys - :comments, :orientation, :topology, :location and :evidence. All of which are strings."
+  "Returns a list of maps specifying the sub-cellualr location of a uniprot. Eahc map has
+   the keys - :comments, :orientation, :topology, :location and :evidence. All of which are
+   strings."
   [uniprot]
   (let [items (zf/xml-> (zip/xml-zip (:src uniprot))
                         :comment
@@ -168,7 +183,9 @@
             :comments (zf/xml1-> % :text zf/text)) items)))
 
 (defn alternative-products
-  "Returns a list of maps describing alternative products of a uniprot. Each map has the keys - :event, :isoform-id, :isoform-name and :comments. All of which are lists of strings except :comments which is a string."
+  "Returns a list of maps describing alternative products of a uniprot. Each map has the keys
+   - :event, :isoform-id, :isoform-name and :comments. All of which are lists of strings except
+   :comments which is a string."
   [uniprot]
   (let [items (zf/xml-> (zip/xml-zip (:src uniprot))
                         :comment
@@ -181,7 +198,9 @@
          items)))
 
 (defn interactions
-  "Returns a list of maps describing interactions of a uniprot. Each map has the keys - :id, :label, :interactors, :experiments, :comments. All of whcih are lists of strings, except :experiments and :comments which are strings."
+  "Returns a list of maps describing interactions of a uniprot. Each map has the keys - :id,
+  :label, :interactors, :experiments, :comments. All of whcih are lists of strings, except 
+  :experiments and :comments which are strings."
   [uniprot]
   (let [items (zf/xml-> (zip/xml-zip (:src uniprot))
                         :comment
@@ -195,7 +214,8 @@
          items)))
 
 (defn mass-spectroscopy
-  "Returns a list of maps describing the mass spectroscopy of a uniprot. Each map has the keys - :mass, :error, :method, :begin, :end and :comments. "
+  "Returns a list of maps describing the mass spectroscopy of a uniprot. Each map has the keys
+   - :mass, :error, :method, :begin, :end and :comments. "
   [uniprot]
   (let [items (zf/xml-> (zip/xml-zip (:src uniprot))
                         :comment
@@ -210,7 +230,8 @@
          items)))
 
 (defn comments
-  "Returns a map of comments describing a uniprot. Keys - :similarity and :function both of which have strings as values."
+  "Returns a map of comments describing a uniprot. Keys - :similarity and :function both of
+   which have strings as values."
   [uniprot]
   (let [s (zip/xml-zip (:src uniprot))]
     (zipmap
@@ -225,7 +246,10 @@
                zf/text))))
 
 (defn db-references
-  "Returns a list of maps describing database cross-references of a uniprot. Each map has the keys :data, which has a map as a value with a range of different keys corresponding to the xml file, :db, a string describing the database, :id, a string of the id of the cross-ref."
+  "Returns a list of maps describing database cross-references of a uniprot. Each map has
+   the keys :data, which has a map as a value with a range of different keys corresponding
+   to the xml file, :db, a string describing the database, :id, a string of the id of the 
+   cross-ref."
   [uniprot]
   (zf/xml-> (zip/xml-zip (:src uniprot))
             :dbReference
@@ -252,7 +276,8 @@
                zf/text))))
 
 (defn features
-  "A list of maps describing the features of a uniprot. Each map has the keys - :id, :description, :type, :begin, :end. All have string values except :begin and :end which are integers."
+  "A list of maps describing the features of a uniprot. Each map has the keys - :id, :description,
+  :type, :begin, :end. All have string values except :begin and :end which are integers."
   [uniprot]
   (zf/xml-> (zip/xml-zip (:src uniprot))
             :feature
@@ -311,7 +336,11 @@
 ;; web
 
 (defn wget-uniprot-sequence
-  "Takes a list of accessions and returns a 'semi-lazy' (1000 records are fetched at a time) list of sequences corresponding to the accession numbers. The type of sequence entry is specified by 'retype' and can be either :xml for a uniprotProtein object or :fasta for a fastaSequence, no other values are allowed. Uniprot requires an email address so one should be provided in the 'email' argument."
+  "Takes a list of accessions and returns a 'semi-lazy' (1000 records are fetched at a time)
+   list of sequences corresponding to the accession numbers. The type of sequence entry is
+   specified by 'retype' and can be either :xml for a uniprotProtein object or :fasta for
+   a fastaSequence, no other values are allowed. Uniprot requires an email address so one
+   should be provided in the 'email' argument."
   ([accessions retype] (wget-uniprot-sequence accessions retype ""))
   ([accessions retype email]
      (if-not (some #(= retype %)
@@ -325,7 +354,9 @@
                                 retype email))))
 
 (defn wget-uniprot-search
-  "Returns a 'semi-lazy' (in that 1000 matches are retrieved at time) list of uniprot accession numbers satisfying the search term. The search term uses the same syntax as the uniprot web interface. For example:
+  "Returns a 'semi-lazy' (in that 1000 matches are retrieved at time) list of uniprot accession
+   numbers satisfying the search term. The search term uses the same syntax as the uniprot web
+   interface. For example:
    - to get all Schistosoma mansoni proteins in the proteome reference set term would be:
      'organism:6183 AND keyword:1185'
    - get all Schistosoma mansoni proteins in the proteome set that are intrinsic to the
@@ -333,7 +364,9 @@
      'taxonomy:6183 AND keyword:1185 AND go:0031224'
    - get all reviewed human entries:
      'reviewed:yes AND organism:9606'
-And so on. Returns an empty list if no matches found. Offset refers to the start of the retrieved results and may be of use if a download fails. Uniprot requires an email so an email can be supplied using the email argument."
+   And so on. Returns an empty list if no matches found. Offset refers to the start of the
+   retrieved results and may be of use if a download fails. Uniprot requires an email so an email
+   can be supplied using the email argument."
   ([term] (wget-uniprot-search term "" 0))
   ([term email] (wget-uniprot-search term email 0))
   ([term email offset]
@@ -489,7 +522,8 @@ And so on. Returns an empty list if no matches found. Offset refers to the start
 
 
 (defn- meta-data
-  "Returns a map with uniprot meta-data. Keys - :dataset, :created, :modified and :version. All values are strings except :version, which is an integer."
+  "Returns a map with uniprot meta-data. Keys - :dataset, :created, :modified and :version. 
+   All values are strings except :version, which is an integer."
   [uniprot]
   (let [s (zip/xml-zip (:src uniprot))]
     {:dataset (zf/attr s :dataset)

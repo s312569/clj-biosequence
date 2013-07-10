@@ -51,7 +51,9 @@
     (if (= "true" c) true false)))
 
 (defn get-interval-sequence
-  "Returns a fastaSequence object containing the sequence specified in the genbankInterval from a genbankSequence. Designed for getting fastasequences by applying  genbankInterval to the sequence entry it originates from."
+  "Returns a fastaSequence object containing the sequence specified in the
+   genbankInterval from a genbankSequence. Designed for getting fastasequences
+   by applying  genbankInterval to the sequence entry it originates from."
   [gb-interval gb-sequence]
   (let [dna (bs/sequence-string gb-sequence) 
         start (start gb-interval)
@@ -76,7 +78,9 @@
              zf/text))
 
 (defn qualifier-extract
-  "Takes a genbankFeature and returns the value specified by 'element'. For instance to retrieve the organism name from a 'source' feature arguments would be the feature object and 'organism'."
+  "Takes a genbankFeature and returns the value specified by 'element'. For 
+   instance to retrieve the organism name from a 'source' feature arguments 
+   would be the feature object and 'organism'."
   [feature element]
   (let [quals (:content (some #(if (= (:tag %) :GBFeature_quals)
                                  %)
@@ -88,7 +92,10 @@
           quals)))
 
 (defn interval-seq
-  "Returns a non-lazy list of intervals in a feature. It also calculates a frame for each interval so that individual translations of a DNA interval provide the correct protein sequence. This value is accessed through the :frame keyword for each interval. These values will have no meaning if the sequence is a protein."
+  "Returns a non-lazy list of intervals in a feature. It also calculates a frame
+   for each interval so that individual translations of a DNA interval provide the
+   correct protein sequence. This value is accessed through the :frame keyword for
+   each interval. These values will have no meaning if the sequence is a protein."
   [gb-feature]
   (let [ints (map #(->genbankInterval %)
                   (:content (zip/node (zf/xml1-> (zip/xml-zip (:src gb-feature))
@@ -114,7 +121,9 @@
                  (cons (assoc (first i) :frame f) acc)))))))
 
 (defn get-feature-sequence
-  "Returns a fastaSequence object containing the sequence specified in a genbankFeature object from a genbankSequence object. Designed for applying intervals to the sequence entry they originate from."
+  "Returns a fastaSequence object containing the sequence specified in a genbankFeature
+   object from a genbankSequence object. Designed for applying intervals to the sequence
+   entry they originate from."
   [gb-feat gbseq]
   (let [intervals (interval-seq gb-feat)]
     (bs/init-fasta-sequence
@@ -264,7 +273,9 @@
 (defrecord genbankStore [file])
 
 (defn index-genbank-file
-  "Indexes a genbankFile object and returns a uniprotStore object. Duplicate primary accessions in the file will cause a 'Unique index or primary key violation'."
+  "Indexes a genbankFile object and returns a uniprotStore object. Duplicate 
+   primary accessions in the file will cause a 'Unique index or primary key 
+   violation'."
   ([genbankfile] (index-genbank-file genbankfile false))
   ([genbankfile memory]
      (let [st (init-genbank-store genbankfile memory)]
@@ -284,7 +295,12 @@
 ;; web
 
 (defn wget-genbank-sequence
-  "Returns a 'semi-lazy' (1000 sequences are fetched at a time) list of genbankSequences corresponding to the 'accessions' list argument. Accepts any identification that genbank accepts but will return an exception (status code 400) if the id is not recognised. Can return genbankSequences or fastaSequence objects depending whether the 'class' argument is :xml or :fasta respectively. The 'db' argument has the same format and allowed values as the wget-genbank-search function."
+  "Returns a 'semi-lazy' (1000 sequences are fetched at a time) list of genbankSequences
+   corresponding to the 'accessions' list argument. Accepts any identification that 
+   genbank accepts but will return an exception (status code 400) if the id is not recognised.
+   Can return genbankSequences or fastaSequence objects depending whether the 'class' argument
+   is :xml or :fasta respectively. The 'db' argument has the same format and allowed values as
+   the wget-genbank-search function."
   [accessions db rettype]
   (if (some #(= db %) '(:protein :nucleotide :nucest :nuccore :nucgss :popset))
     (if-not (some #(= rettype %)
@@ -299,7 +315,11 @@
     (throw (Throwable. (str "'" db "' " "not allowed. Only :protein, :nucleotide, :nucest, :nuccore, :nucgss and :popset are acceptable database arguments. See the documentation for 'wget-genbank-search' for an explanation of the different databases.")))))
 
 (defn wget-genbank-search
-  "Returns a 'semi-lazy' (in that it fetches 1000 results at a time) list of result ids from NCBI for a particular search term and database. Search term syntax is the same as is used at the NCBI. For example, to retreive all Schistosoma mansoni protein sequences the 'db' argument would be 'protein' and the search term 'txid6183[Organism:noexp]'. Database arguments are restricted to the following keyword arguments and any other value will cause an error:
+  "Returns a 'semi-lazy' (in that it fetches 1000 results at a time) list of result ids from 
+   NCBI for a particular search term and database. Search term syntax is the same as is used 
+   at the NCBI. For example, to retreive all Schistosoma mansoni protein sequences the 'db' 
+   argument would be 'protein' and the search term 'txid6183[Organism:noexp]'. Database arguments
+   are restricted to the following keyword arguments and any other value will cause an error:
    :protein    - a collection of sequences from several sources, including translations 
                  from annotated coding regions in GenBank, RefSeq and TPA, as well as 
                  records from SwissProt, PIR, PRF, and PDB.
@@ -315,7 +335,8 @@
                  relatedness of a population. The population could originate from different
                  members of the same species, or from organisms from different species. 
 
-Note that when retrieving popset entries multiple sequences are returned from a single accession number. Returns an empty list if no matches found."
+   Note that when retrieving popset entries multiple sequences are returned from a single accession
+   number. Returns an empty list if no matches found."
   ([term db] (wget-genbank-search term db 0 nil))
   ([term db restart key]
      (if (some #(= db %) '(:protein :nucleotide :nucest :nuccore :nucgss :popset))

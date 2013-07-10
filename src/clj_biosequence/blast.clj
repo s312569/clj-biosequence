@@ -34,7 +34,10 @@
 (defrecord blastHSP [src])
 
 (defprotocol interfaceHSP
-  (get-hsp-value [this key] "Takes a blastHSP object and returns the value corresponding to key. Keys are the keyword version of the XML nodes in the BLAST xml output. All values are returned as strings. Typical BLAST HSP values are:
+  (get-hsp-value [this key]
+    "Takes a blastHSP object and returns the value corresponding to key.
+     Keys are the keyword version of the XML nodes in the BLAST xml output. 
+    All values are returned as strings. Typical BLAST HSP values are:
     :Hsp_bit-score
     :Hsp_score
     :Hsp_evalue
@@ -57,7 +60,8 @@
     :Hsp_pattern-from
     :Hsp_pattern-to
     :Hsp_density")
-  (alignment-string [this] "Takes a blastHSP object and returns a string of its alignment."))
+  (alignment-string [this]
+    "Takes a blastHSP object and returns a string of its alignment."))
 
 (extend-protocol interfaceHSP
 
@@ -91,16 +95,29 @@
 (defrecord blastHit [src])
 
 (defprotocol interfaceHit
-  (get-hit-value [this key] "Takes a blastHit object and returns the value corresponding to key. Keys are the keyword version of the XML nodes in the BLAST xml output. All values are returned as strings. Typical BLAST Hit values are:
+  (get-hit-value [this key]
+    "Takes a blastHit object and returns the value corresponding to key. 
+     Keys are the keyword version of the XML nodes in the BLAST xml output. 
+    All values are returned as strings. Typical BLAST Hit values are:
    :Hit_id
    :Hit_len
    :Hit_accession
    :Hit_def
    :Hit_num")
-  (hsp-seq [this] "Takes a blastHit object and returns a lazy list of the blastHSP objects contained in the hit.")
-  (top-hsp [this] "Takes a blastHit object and returns the top scoring blastHSP object in the hit. Returns an empty blastHSP if blastHit was empty.")
-  (hit-bit-score [this] "Takes a blastHit object and returns the bit score of the top scoring HSP in the hit. Returns 0 if the blastHit was empty.")
-  (hit-string [this] "A convenience function that takes a blastHit object and returns a formatted summary of the top scoring HSP in the hit. Includes accession, bit score (of the top scoring hit), definition of the hit and the alignment. Returns 'No hits in search' if empty blastHit. Example output:
+  (hsp-seq [this]
+    "Takes a blastHit object and returns a lazy list of the blastHSP 
+     objects contained in the hit.")
+  (top-hsp [this]
+    "Takes a blastHit object and returns the top scoring blastHSP 
+     object in the hit. Returns an empty blastHSP if blastHit was empty.")
+  (hit-bit-score [this]
+    "Takes a blastHit object and returns the bit score of the top scoring HSP
+     in the hit. Returns 0 if the blastHit was empty.")
+  (hit-string [this]
+    "A convenience function that takes a blastHit object and returns a formatted
+     summary of the top scoring HSP in the hit. Includes accession, bit score
+     (of the top scoring hit), definition of the hit and the alignment. Returns 
+    'No hits in search' if empty blastHit. Example output:
 
    Accession: sp|Q8HY10|CLC4M_NOMCO
    Bit score: 50.0617822382917
@@ -151,9 +168,12 @@
 (defrecord blastIteration [src])
 
 (defprotocol interfaceIteration
-  (iteration-query-id [this] "Takes a blastIteration object and returns the query ID.")
-  (hit-seq [this] "Returns a (lazy) list of blastHit objects from a blastIteration object.")
-  (top-hit [this] "Returns the highest scoring blastHit object from a blastIteration object."))
+  (iteration-query-id [this]
+    "Takes a blastIteration object and returns the query ID.")
+  (hit-seq [this]
+    "Returns a (lazy) list of blastHit objects from a blastIteration object.")
+  (top-hit [this]
+    "Returns the highest scoring blastHit object from a blastIteration object."))
 
 (extend-protocol interfaceIteration
 
@@ -180,8 +200,13 @@
 (defrecord blastSearch [src])
 
 (defprotocol interfaceSearch
-  (get-iteration-by-id [this accession] "Returns the blastIteration object for the specified biosequence from a blastSearch object.")
-  (get-parameter-value [this key] "Returns the value of a blast parameter from a blastSearch object. Key denotes parameter keys used in the blast xml. All values returned as strings. Typical keys include:
+  (get-iteration-by-id [this accession]
+    "Returns the blastIteration object for the specified biosequence from
+     a blastSearch object.")
+  (get-parameter-value [this key]
+    "Returns the value of a blast parameter from a blastSearch object. Key 
+     denotes parameter keys used in the blast xml. All values returned as
+     strings. Typical keys include:
    :Parameters_matrix
    :Parameters_expect
    :Parameters_include
@@ -190,8 +215,11 @@
    :Parameters_gap-open
    :Parameters_gap-extend
    :Parameters_filter")
-  (database-searched [this] "Returns the path (as a string) of the database used in a blast search from a blastSearch object.")
-  (program-used [this] "Returns the program used in a blast search from a blastSearch object."))
+  (database-searched [this]
+    "Returns the path (as a string) of the database used in a blast search
+     from a blastSearch object.")
+  (program-used [this]
+    "Returns the program used in a blast search from a blastSearch object."))
 
 (extend-protocol interfaceSearch
 
@@ -255,7 +283,8 @@
 ;; blasting
 
 (defn blast-biosequence
-  "Blasts a biosequence object against the specified blastDatabase object and returns a blastIteration with the results of the search."
+  "Blasts a biosequence object against the specified blastDatabase object
+   and returns a blastIteration with the results of the search."
   ([bs db prog] (blast-biosequence bs db prog {}))
   ([bs db prog params]
       (let [in (fs/temp-file "seq-")
@@ -271,7 +300,8 @@
             (first l))))))
 
 (defn blast-file
-  "Blasts all sequences in a biosequence file object and returns a blastSearch containing the location of the results."
+  "Blasts all sequences in a biosequence file object and returns a blastSearch
+   containing the location of the results."
   ([file db prog] (blast-file file db prog {}))
   ([file db prog params]
      (let [out (time-stamped-file (:file file))]
@@ -293,7 +323,8 @@
          :hregex (:regex db)))))
 
 (defn blast-store
-  "Blasts all sequences in a biosequence store against a blastDatabase object and returns a blastSearch contianing the location of the results."
+  "Blasts all sequences in a biosequence store against a blastDatabase object
+   and returns a blastSearch contianing the location of the results."
   ([store db prog] (blast-store store db prog {}))
   ([store db prog params]
      (let [out (store-blast-file store)]
@@ -317,7 +348,9 @@
 ;; helpers
 
 (defn- split-hsp-align
-  "Helper function that takes a list of blast query or hit alignment strings and produces a list of strings formatted for the 'alignment-string' function. Basically it calculates the sequence numbers and sticks them on the start and end."
+  "Helper function that takes a list of blast query or hit alignment strings
+   and produces a list of strings formatted for the 'alignment-string' function.
+   Basically it calculates the sequence numbers and sticks them on the start and end."
   [string begin]
   (loop [s (partition-all 58 string)
          b begin
