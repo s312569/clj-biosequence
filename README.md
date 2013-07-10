@@ -50,8 +50,8 @@ user> (def f-file (init-fasta-file "/Users/jason/Dropbox/clj-biosequence/test-fi
 ;; type. In this case a list of fastaSequence objects is returned.
 
 user> (with-biosequences-in-file [list f-file]
-        (count list))
-#clj_biosequence.core.fastaSequence{:accession "sp|P84001|29C0_ANCSP", :description "U3-ctenitoxin-Asp1a (Fragment) OS=Ancylometes sp. PE=1 SV=1", :type :protein, :sequence "ANACTKQADCAEDECCLDNLFFKRPYCEMRYGAGKRCAAASVYKEDKDLY"}
+        (first list))
+\#clj_biosequence.core.fastaSequence{:accession "sp|P84001|29C0_ANCSP", :description "U3-ctenitoxin-Asp1a (Fragment) OS=Ancylometes sp. PE=1 SV=1", :type :protein, :sequence "ANACTKQADCAEDECCLDNLFFKRPYCEMRYGAGKRCAAASVYKEDKDLY"}
 ```
 
 This workflow is applicable for all sequence types defined in `clj-biosequence` (see below for working with Uniprot and Genbank sequences). The core library also implements a protocol that all sequences objects satisfy. The protocol provides the following functions that work on all sequence types (if only to return nil in the case of fasta sequences):
