@@ -10,4 +10,5 @@
                  [org.clojure/java.jdbc "0.2.3"]
                  [clj-http "0.7.4"]
                  [fs "1.3.2"]
-                 [org.clojars.hozumi/clj-commons-exec "1.0.6"]])
+                 [org.clojars.hozumi/clj-commons-exec "1.0.6"]]
+  :plugins [[codox "0.6.4"]])
