@@ -260,6 +260,17 @@
          (take-while (complement nil?)
                      (repeatedly #(read-seq rdr (:idregex this) (:descregex this)))))))
 
+(defn init-fasta-file
+  "Initialises fasta protein file. Regular expressions can be supplied for the parsing of accession and description from the fasta entry. Default regular expressions split on first space with accession being first entry and description the second."
+  ([path type] (init-fasta-file path type #"^([^\s]+)" #"^[^\s]+\s+(.+)"))
+  ([path type idregex] (init-fasta-file path type idregex #"^[^\s]+\s+(.+)"))
+  ([path type idregex descregex]
+     (if-not (or (= :protein type) (= :nucleotide type))
+       (throw (Throwable. "Fasta file type can be :protein or :nucleotide only."))
+       (if (fs/exists? path)
+         (->fastaFile path type idregex descregex)
+         (throw (Throwable. (str "File not found: " path)))))))
+
 (defn fasta-seq-string
   "Returns a non-lazy list of fastaSequence objects from a string."
   ([string type] (fasta-seq-string string type #"^([^\s]+)" #"^[^\s]+\s+(.+)"))
@@ -272,17 +283,6 @@
                                       (nth % 2))
                     (take-while (complement nil?)
                                 (repeatedly #(read-seq rdr idregex descregex)))))))))
-
-(defn init-fasta-file
-  "Initialises fasta protein file. Regular expressions can be supplied for the parsing of accession and description from the fasta entry. Default regular expressions split on first space with accession being first entry and description the second."
-  ([path type] (init-fasta-file path type #"^([^\s]+)" #"^[^\s]+\s+(.+)"))
-  ([path type idregex] (init-fasta-file path type idregex #"^[^\s]+\s+(.+)"))
-  ([path type idregex descregex]
-     (if-not (or (= :protein type) (= :nucleotide type))
-       (throw (Throwable. "Fasta file type can be :protein or :nucleotide only."))
-       (if (fs/exists? path)
-         (->fastaFile path type idregex descregex)
-         (throw (Throwable. (str "File not found: " path)))))))
 
 ;; persistence
 
