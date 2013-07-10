@@ -20,7 +20,7 @@ suggestions welcome.
 [clj-biosequence "0.1.2-SNAPSHOT"]
 ```
 
-To use require in your namespace:
+To use in your namespace:
 
 ```clojure
 (ns my-app.core
