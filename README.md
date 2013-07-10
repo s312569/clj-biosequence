@@ -9,7 +9,7 @@
 - Mechanisms for lazy processing of sequences from very large sequence files.
 - Interfaces for search and retrieval of sequences from online databases.
 - Translation functions for DNA and RNA sequences.
-- ID mapping functionality using the Uniprot websites ID mapping tool.
+- ID mapping functionality using the Uniprot's ID mapping tool.
 
 Written by biologists and not computer scientists so improvements and
 suggestions welcome.
@@ -110,7 +110,7 @@ All sequence objects are records so extra information can be associated with a s
 - `db-references`
 - `existence` - experimental evidence for the existence of the protein
 - `keywords`
-- `features` - objects describing the sequences features
+- `features` - records describing the sequence's features
 
 `clj-biosequence.uniprot` also provides a web interface to uniprot comprised of two functions. A search function `wget-uniprot-search`:
 
