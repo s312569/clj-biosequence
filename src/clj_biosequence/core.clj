@@ -224,25 +224,25 @@
     (pp/cl-format str "~A" (fasta-string this)))
 
   (org-scientific-name [this]
-    (throw (Throwable. "Not defined for fastaSequence.")))
+    nil)
 
   (created [this]
-    (throw (Throwable. "Not defined for fastaSequence.")))
+    nil)
 
   (modified [this]
-    (throw (Throwable. "Not defined for fastaSequence.")))
+    nil)
 
   (version [this]
-    (throw (Throwable. "Not defined for fastaSequence.")))
+    nil)
 
   (database [this]
-    (throw (Throwable. "Not defined for fastaSequence.")))
+    nil)
 
   (taxonomy [this]
-    (throw (Throwable. "Not defined for fastaSequence.")))
+    nil)
   
   (taxid [this]
-    (throw (Throwable. "Not defined for fastaSequence."))))
+    nil))
 
 ;; files
 
