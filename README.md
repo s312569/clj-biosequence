@@ -14,7 +14,7 @@
 Written by biologists and not computer scientists so improvements and
 suggestions welcome.
 
-`clj-biosequence` [API docs](http://s312569.github.io/clj-biosequence/)
+[API docs](http://s312569.github.io/clj-biosequence/)
 
 ## Installation
 
