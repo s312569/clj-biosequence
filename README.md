@@ -8,6 +8,8 @@
 - A very simple persistence mechanism.
 - Mechanisms for lazy processing of sequences from very large sequence files.
 - Interfaces for search and retrieval of sequences from online databases.
+- Translation functions for DNA and RNA sequences.
+- ID mapping functionality using the Uniprot websites ID mapping tool.
 
 Written by biologists and not computer scientists so improvements and
 suggestions welcome.
@@ -56,20 +58,20 @@ To use in your namespace:
 
 This workflow can be used for all sequence types defined in `clj-biosequence` (see below for working with Uniprot and Genbank sequences). The core library also implements a protocol that all sequences objects satisfy. The protocol provides the following functions that work on all sequence types (if only to return nil for some of them in the case of fasta sequences):
 
-- accession - the primary accession.
-- accessions - other accessions associated with the sequence.
-- sequence-string - the sequence of the string.
-- def-line - the definition line of a sequence.
-- protein? - boolean
-- fasta-string - a string of the sequence in fasta format.
-- fasta-to-stream - outputs a sequence in fasta format to a stream.
-- org-scientific-name - scientific name of the organism from which the sequence is derived
-- created - date sequence was created.
-- modified - date sequence was modified.
-- version - version of the sequence.
-- database - database the sequence is from.
-- taxonomy - returns a list containing all the taxa of the organism from which the sequence is derived.
-- taxid - the NCBI identification of the organism.
+- `accession` - the primary accession.
+- `accessions` - other accessions associated with the sequence.
+- `sequence-string` - the sequence of the string.
+- `def-line` - the definition line of a sequence.
+- `protein?` - boolean
+- `fasta-string` - a string of the sequence in fasta format.
+- `fasta-to-stream` - outputs a sequence in fasta format to a stream.
+- `org-scientific-name` - scientific name of the organism from which the sequence is derived
+- `created` - date sequence was created.
+- `modified` - date sequence was modified.
+- `version` - version of the sequence.
+- `database` - database the sequence is from.
+- `taxonomy` - returns a list containing all the taxa of the organism from which the sequence is derived.
+- `taxid` - the NCBI identification of the organism.
 
 All sequence objects are records so extra information can be associated with a sequence, for example BLAST results, using 'assoc'. This can be handy when using the presistence capabilities described below.
 
