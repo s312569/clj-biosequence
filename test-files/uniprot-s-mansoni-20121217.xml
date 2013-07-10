@@ -1,0 +1,421 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<uniprot xmlns="http://uniprot.org/uniprot" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://uniprot.org/uniprot http://www.uniprot.org/support/docs/uniprot.xsd">
+<entry dataset="Swiss-Prot" created="2010-03-23" modified="2012-10-03" version="20">
+<accession>C4PYP8</accession>
+<accession>G4VQR6</accession>
+<name>DRE2_SCHMA</name>
+<protein>
+<recommendedName>
+<fullName>Anamorsin homolog</fullName>
+</recommendedName>
+<alternativeName>
+<fullName>Fe-S cluster assembly protein DRE2 homolog</fullName>
+</alternativeName>
+</protein>
+<gene>
+<name type="ORF">Smp_207000</name>
+</gene>
+<organism>
+<name type="scientific">Schistosoma mansoni</name>
+<name type="common">Blood fluke</name>
+<dbReference type="NCBI Taxonomy" id="6183"/>
+<lineage>
+<taxon>Eukaryota</taxon>
+<taxon>Metazoa</taxon>
+<taxon>Platyhelminthes</taxon>
+<taxon>Trematoda</taxon>
+<taxon>Digenea</taxon>
+<taxon>Strigeidida</taxon>
+<taxon>Schistosomatoidea</taxon>
+<taxon>Schistosomatidae</taxon>
+<taxon>Schistosoma</taxon>
+</lineage>
+</organism>
+<reference key="1">
+<citation type="journal article" date="2009" name="Nature" volume="460" first="352" last="358">
+<title>The genome of the blood fluke Schistosoma mansoni.</title>
+<authorList>
+<person name="Berriman M."/>
+<person name="Haas B.J."/>
+<person name="LoVerde P.T."/>
+<person name="Wilson R.A."/>
+<person name="Dillon G.P."/>
+<person name="Cerqueira G.C."/>
+<person name="Mashiyama S.T."/>
+<person name="Al-Lazikani B."/>
+<person name="Andrade L.F."/>
+<person name="Ashton P.D."/>
+<person name="Aslett M.A."/>
+<person name="Bartholomeu D.C."/>
+<person name="Blandin G."/>
+<person name="Caffrey C.R."/>
+<person name="Coghlan A."/>
+<person name="Coulson R."/>
+<person name="Day T.A."/>
+<person name="Delcher A."/>
+<person name="DeMarco R."/>
+<person name="Djikeng A."/>
+<person name="Eyre T."/>
+<person name="Gamble J.A."/>
+<person name="Ghedin E."/>
+<person name="Gu Y."/>
+<person name="Hertz-Fowler C."/>
+<person name="Hirai H."/>
+<person name="Hirai Y."/>
+<person name="Houston R."/>
+<person name="Ivens A."/>
+<person name="Johnston D.A."/>
+<person name="Lacerda D."/>
+<person name="Macedo C.D."/>
+<person name="McVeigh P."/>
+<person name="Ning Z."/>
+<person name="Oliveira G."/>
+<person name="Overington J.P."/>
+<person name="Parkhill J."/>
+<person name="Pertea M."/>
+<person name="Pierce R.J."/>
+<person name="Protasio A.V."/>
+<person name="Quail M.A."/>
+<person name="Rajandream M.A."/>
+<person name="Rogers J."/>
+<person name="Sajid M."/>
+<person name="Salzberg S.L."/>
+<person name="Stanke M."/>
+<person name="Tivey A.R."/>
+<person name="White O."/>
+<person name="Williams D.L."/>
+<person name="Wortman J."/>
+<person name="Wu W."/>
+<person name="Zamanian M."/>
+<person name="Zerlotini A."/>
+<person name="Fraser-Liggett C.M."/>
+<person name="Barrell B.G."/>
+<person name="El-Sayed N.M."/>
+</authorList>
+<dbReference type="PubMed" id="19606141"/>
+<dbReference type="DOI" id="10.1038/nature08160"/>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [LARGE SCALE GENOMIC DNA]</scope>
+<source>
+<strain>Puerto Rican</strain>
+</source>
+</reference>
+<comment type="function">
+<text>May be required for the maturation of extramitochondrial Fe/S proteins (By similarity). Has anti-apoptotic effects in the cell (By similarity).</text>
+</comment>
+<comment type="subcellular location">
+<subcellularLocation>
+<location status="by similarity">Cytoplasm</location>
+</subcellularLocation>
+</comment>
+<comment type="similarity">
+<text>Belongs to the anamorsin family.</text>
+</comment>
+<dbReference type="EMBL" id="HE601631">
+<property type="protein sequence ID" value="CCD81528.1"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="GO" id="GO:0005737">
+<property type="term" value="C:cytoplasm"/>
+<property type="evidence" value="IEA:UniProtKB-SubCell"/>
+</dbReference>
+<dbReference type="GO" id="GO:0006915">
+<property type="term" value="P:apoptotic process"/>
+<property type="evidence" value="IEA:UniProtKB-KW"/>
+</dbReference>
+<dbReference type="InterPro" id="IPR007785">
+<property type="entry name" value="CIAPIN1"/>
+</dbReference>
+<dbReference type="PANTHER" id="PTHR13273">
+<property type="entry name" value="PTHR13273"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="Pfam" id="PF05093">
+<property type="entry name" value="CIAPIN1"/>
+<property type="match status" value="1"/>
+</dbReference>
+<proteinExistence type="inferred from homology"/>
+<keyword id="KW-0053">Apoptosis</keyword>
+<keyword id="KW-0181">Complete proteome</keyword>
+<keyword id="KW-0963">Cytoplasm</keyword>
+<keyword id="KW-1185">Reference proteome</keyword>
+<feature type="chain" description="Anamorsin homolog" id="PRO_0000392331">
+<location>
+<begin position="1"/>
+<end position="272"/>
+</location>
+</feature>
+<sequence length="272" mass="29662" checksum="11A38702F71B84D8" modified="2010-03-23" version="2">
+MEQCVADCLNSDDCVMIVWSGEVQEDVMRGLQVAVSTYVKKLQFENLEKFVDSSAVDSQL
+HECSVILCGWPNSISVNILKLGLLSNLLSCLRPGGRFFGRDLITGDWDSLKKNLTLSGYI
+NPYQLSCENHLIFSASVPSNYTQGSSVKLPWANSDVEAAWENVDNSSDANGNIINTNTLL
+QKSDLKTPLSVCGKEAATDSVGKKKRACKNCTCGLAEIEAAEEDKSDVPISSCGNCYLGD
+AFRCSTCPYRGLPPFKPGERILIPDDVLRADL
+</sequence>
+</entry>
+<entry dataset="Swiss-Prot" created="1994-06-01" modified="2012-11-28" version="63">
+<accession>P35661</accession>
+<accession>G4VKM5</accession>
+<name>GST27_SCHMA</name>
+<protein>
+<recommendedName>
+<fullName>Glutathione S-transferase class-mu 26 kDa isozyme</fullName>
+<shortName>GST 26</shortName>
+<ecNumber>2.5.1.18</ecNumber>
+</recommendedName>
+<alternativeName>
+<fullName>Sm26/2 antigen</fullName>
+</alternativeName>
+</protein>
+<gene>
+<name type="ORF">Smp_102070</name>
+</gene>
+<organism>
+<name type="scientific">Schistosoma mansoni</name>
+<name type="common">Blood fluke</name>
+<dbReference type="NCBI Taxonomy" id="6183"/>
+<lineage>
+<taxon>Eukaryota</taxon>
+<taxon>Metazoa</taxon>
+<taxon>Platyhelminthes</taxon>
+<taxon>Trematoda</taxon>
+<taxon>Digenea</taxon>
+<taxon>Strigeidida</taxon>
+<taxon>Schistosomatoidea</taxon>
+<taxon>Schistosomatidae</taxon>
+<taxon>Schistosoma</taxon>
+</lineage>
+</organism>
+<reference key="1">
+<citation type="journal article" date="1991" name="Mol. Biochem. Parasitol." volume="49" first="177" last="179">
+<title>Another 26-kilodalton glutathione S-transferase of Schistosoma mansoni.</title>
+<authorList>
+<person name="Wright M.D."/>
+<person name="Harrison R.A."/>
+<person name="Melder A.M."/>
+<person name="Newport G.R."/>
+<person name="Mitchell G.F."/>
+</authorList>
+<dbReference type="MEDLINE" id="92131046"/>
+<dbReference type="PubMed" id="1775156"/>
+<dbReference type="DOI" id="10.1016/0166-6851(91)90140-2"/>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [MRNA]</scope>
+</reference>
+<reference key="2">
+<citation type="journal article" date="2009" name="Nature" volume="460" first="352" last="358">
+<title>The genome of the blood fluke Schistosoma mansoni.</title>
+<authorList>
+<person name="Berriman M."/>
+<person name="Haas B.J."/>
+<person name="LoVerde P.T."/>
+<person name="Wilson R.A."/>
+<person name="Dillon G.P."/>
+<person name="Cerqueira G.C."/>
+<person name="Mashiyama S.T."/>
+<person name="Al-Lazikani B."/>
+<person name="Andrade L.F."/>
+<person name="Ashton P.D."/>
+<person name="Aslett M.A."/>
+<person name="Bartholomeu D.C."/>
+<person name="Blandin G."/>
+<person name="Caffrey C.R."/>
+<person name="Coghlan A."/>
+<person name="Coulson R."/>
+<person name="Day T.A."/>
+<person name="Delcher A."/>
+<person name="DeMarco R."/>
+<person name="Djikeng A."/>
+<person name="Eyre T."/>
+<person name="Gamble J.A."/>
+<person name="Ghedin E."/>
+<person name="Gu Y."/>
+<person name="Hertz-Fowler C."/>
+<person name="Hirai H."/>
+<person name="Hirai Y."/>
+<person name="Houston R."/>
+<person name="Ivens A."/>
+<person name="Johnston D.A."/>
+<person name="Lacerda D."/>
+<person name="Macedo C.D."/>
+<person name="McVeigh P."/>
+<person name="Ning Z."/>
+<person name="Oliveira G."/>
+<person name="Overington J.P."/>
+<person name="Parkhill J."/>
+<person name="Pertea M."/>
+<person name="Pierce R.J."/>
+<person name="Protasio A.V."/>
+<person name="Quail M.A."/>
+<person name="Rajandream M.A."/>
+<person name="Rogers J."/>
+<person name="Sajid M."/>
+<person name="Salzberg S.L."/>
+<person name="Stanke M."/>
+<person name="Tivey A.R."/>
+<person name="White O."/>
+<person name="Williams D.L."/>
+<person name="Wortman J."/>
+<person name="Wu W."/>
+<person name="Zamanian M."/>
+<person name="Zerlotini A."/>
+<person name="Fraser-Liggett C.M."/>
+<person name="Barrell B.G."/>
+<person name="El-Sayed N.M."/>
+</authorList>
+<dbReference type="PubMed" id="19606141"/>
+<dbReference type="DOI" id="10.1038/nature08160"/>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [LARGE SCALE GENOMIC DNA]</scope>
+<source>
+<strain>Puerto Rican</strain>
+</source>
+</reference>
+<comment type="function">
+<text>Conjugation of reduced glutathione to a wide number of exogenous and endogenous hydrophobic electrophiles.</text>
+</comment>
+<comment type="function">
+<text>GST isoenzymes appear to play a central role in the parasite detoxification system. Other functions are also suspected including a role in increasing the solubility of haematin in the parasite gut.</text>
+</comment>
+<comment type="catalytic activity">
+<text>RX + glutathione = HX + R-S-glutathione.</text>
+</comment>
+<comment type="subunit">
+<text>Homodimer.</text>
+</comment>
+<comment type="similarity">
+<text>Belongs to the GST superfamily. Mu family.</text>
+</comment>
+<comment type="similarity">
+<text>Contains 1 GST C-terminal domain.</text>
+</comment>
+<comment type="similarity">
+<text>Contains 1 GST N-terminal domain.</text>
+</comment>
+<dbReference type="EC" id="2.5.1.18"/>
+<dbReference type="EMBL" id="M73624">
+<property type="status" value="NOT_ANNOTATED_CDS"/>
+<property type="molecule type" value="mRNA"/>
+</dbReference>
+<dbReference type="EMBL" id="HE601628">
+<property type="protein sequence ID" value="CCD80234.1"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="PIR" id="A45556">
+<property type="entry name" value="A45556"/>
+</dbReference>
+<dbReference type="HOGENOM" id="HOG000115735"/>
+<dbReference type="GO" id="GO:0004364">
+<property type="term" value="F:glutathione transferase activity"/>
+<property type="evidence" value="IEA:EC"/>
+</dbReference>
+<dbReference type="Gene3D" id="1.20.1050.10">
+<property type="entry name" value="GST_C_like"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="Gene3D" id="3.40.30.10">
+<property type="entry name" value="Thioredoxin_fold"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="InterPro" id="IPR010987">
+<property type="entry name" value="Glutathione-S-Trfase_C-like"/>
+</dbReference>
+<dbReference type="InterPro" id="IPR004045">
+<property type="entry name" value="Glutathione_S-Trfase_N"/>
+</dbReference>
+<dbReference type="InterPro" id="IPR017933">
+<property type="entry name" value="Glutathione_S_Trfase/Cl_chnl_C"/>
+</dbReference>
+<dbReference type="InterPro" id="IPR004046">
+<property type="entry name" value="GST_C"/>
+</dbReference>
+<dbReference type="InterPro" id="IPR012336">
+<property type="entry name" value="Thioredoxin-like_fold"/>
+</dbReference>
+<dbReference type="Pfam" id="PF00043">
+<property type="entry name" value="GST_C"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="Pfam" id="PF02798">
+<property type="entry name" value="GST_N"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="SUPFAM" id="SSF47616">
+<property type="entry name" value="GST_C_like"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="SUPFAM" id="SSF52833">
+<property type="entry name" value="Thiordxn-like_fd"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="PROSITE" id="PS50405">
+<property type="entry name" value="GST_CTER"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="PROSITE" id="PS50404">
+<property type="entry name" value="GST_NTER"/>
+<property type="match status" value="1"/>
+</dbReference>
+<proteinExistence type="evidence at transcript level"/>
+<keyword id="KW-0181">Complete proteome</keyword>
+<keyword id="KW-1185">Reference proteome</keyword>
+<keyword id="KW-0808">Transferase</keyword>
+<feature type="chain" description="Glutathione S-transferase class-mu 26 kDa isozyme" id="PRO_0000185811">
+<location>
+<begin position="1"/>
+<end position="195"/>
+</location>
+</feature>
+<feature type="domain" description="GST N-terminal">
+<location>
+<begin position="1"/>
+<end position="83"/>
+</location>
+</feature>
+<feature type="domain" description="GST C-terminal">
+<location>
+<begin position="85"/>
+<end position="195"/>
+</location>
+</feature>
+<feature type="region of interest" description="Glutathione binding" status="by similarity">
+<location>
+<begin position="7"/>
+<end position="8"/>
+</location>
+</feature>
+<feature type="region of interest" description="Glutathione binding" status="by similarity">
+<location>
+<begin position="41"/>
+<end position="45"/>
+</location>
+</feature>
+<feature type="region of interest" description="Glutathione binding" status="by similarity">
+<location>
+<begin position="54"/>
+<end position="55"/>
+</location>
+</feature>
+<feature type="region of interest" description="Glutathione binding" status="by similarity">
+<location>
+<begin position="67"/>
+<end position="68"/>
+</location>
+</feature>
+<feature type="binding site" description="Substrate" status="by similarity">
+<location>
+<position position="111"/>
+</location>
+</feature>
+<sequence length="195" mass="22546" checksum="7FF9CA7AB3E445B9" modified="2012-06-13" version="2">
+MAPKLGYWKIKGLVQPTRLLLEYLGEAYEERLYDRNDGDVWRNEKFKLGLDFPNLPYYID
+GDVKLTQSMAILRYIADKHNMLGGCPKERAEISMLEGAILDIRYGVSRIAYNKEFETLKV
+DFLNQLPGMLKMFEDRLSHNTYLNGDKVTHPDFMLYDALDVNLPPIKNYLNSNRYIKWPL
+QGWSATFGGGDAPPK
+</sequence>
+</entry>
+<copyright>
+Copyrighted by the UniProt Consortium, see http://www.uniprot.org/terms
+Distributed under the Creative Commons Attribution-NoDerivs License
+</copyright>
+</uniprot>

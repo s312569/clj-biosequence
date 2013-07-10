@@ -1,0 +1,1188 @@
+<?xml version="1.0"?>
+ <!DOCTYPE GBSet PUBLIC "-//NCBI//NCBI GBSeq/EN" "http://www.ncbi.nlm.nih.gov/dtd/NCBI_GBSeq.dtd">
+ <GBSet>
+<GBSeq>
+  <GBSeq_locus>KE373594</GBSeq_locus>
+  <GBSeq_length>21325</GBSeq_length>
+  <GBSeq_strandedness>double</GBSeq_strandedness>
+  <GBSeq_moltype>DNA</GBSeq_moltype>
+  <GBSeq_topology>linear</GBSeq_topology>
+  <GBSeq_division>CON</GBSeq_division>
+  <GBSeq_update-date>08-JUL-2013</GBSeq_update-date>
+  <GBSeq_create-date>08-JUL-2013</GBSeq_create-date>
+  <GBSeq_definition>Blumeria graminis f. sp. tritici 96224 unplaced genomic scaffold Scaffold-10236, whole genome shotgun sequence</GBSeq_definition>
+  <GBSeq_primary-accession>KE373594</GBSeq_primary-accession>
+  <GBSeq_accession-version>KE373594.1</GBSeq_accession-version>
+  <GBSeq_other-seqids>
+    <GBSeqid>gnl|WGS:ANZE01|Scaffold-10236</GBSeqid>
+    <GBSeqid>gb|KE373594.1|</GBSeqid>
+    <GBSeqid>gi|521780387</GBSeqid>
+  </GBSeq_other-seqids>
+  <GBSeq_secondary-accessions>
+    <GBSecondary-accn>ANZE01000000</GBSecondary-accn>
+  </GBSeq_secondary-accessions>
+  <GBSeq_project>PRJNA183607</GBSeq_project>
+  <GBSeq_keywords>
+    <GBKeyword>WGS</GBKeyword>
+  </GBSeq_keywords>
+  <GBSeq_source>Blumeria graminis f. sp. tritici 96224</GBSeq_source>
+  <GBSeq_organism>Blumeria graminis f. sp. tritici 96224</GBSeq_organism>
+  <GBSeq_taxonomy>Eukaryota; Fungi; Dikarya; Ascomycota; Pezizomycotina; Leotiomycetes; Erysiphales; Erysiphaceae; Blumeria</GBSeq_taxonomy>
+  <GBSeq_references>
+    <GBReference>
+      <GBReference_reference>1</GBReference_reference>
+      <GBReference_position>1..21325</GBReference_position>
+      <GBReference_authors>
+        <GBAuthor>Oberhaensli,S.</GBAuthor>
+        <GBAuthor>Wicker,T.</GBAuthor>
+        <GBAuthor>Keller,B.</GBAuthor>
+      </GBReference_authors>
+      <GBReference_title>The wheat powdery mildew genome reveals unique evolution of an obligate biotroph</GBReference_title>
+      <GBReference_journal>Unpublished</GBReference_journal>
+    </GBReference>
+    <GBReference>
+      <GBReference_reference>2</GBReference_reference>
+      <GBReference_position>1..21325</GBReference_position>
+      <GBReference_authors>
+        <GBAuthor>Oberhaensli,S.</GBAuthor>
+        <GBAuthor>Wicker,T.</GBAuthor>
+        <GBAuthor>Keller,B.</GBAuthor>
+      </GBReference_authors>
+      <GBReference_title>Direct Submission</GBReference_title>
+      <GBReference_journal>Submitted (21-JAN-2013) Institute of Plant Biology, University of Zurich, Zollikerstrasse 107, Zurich 8008, Switzerland</GBReference_journal>
+    </GBReference>
+  </GBSeq_references>
+  <GBSeq_comment>##Genome-Assembly-Data-START## Assembly Method Newbler v. 2.5 Assembly Name Bgt_454_newbler_assembly Genome Coverage 13.0x Sequencing Technology 454 ##Genome-Assembly-Data-END##</GBSeq_comment>
+  <GBSeq_feature-table>
+    <GBFeature>
+      <GBFeature_key>source</GBFeature_key>
+      <GBFeature_location>1..21325</GBFeature_location>
+      <GBFeature_intervals>
+        <GBInterval>
+          <GBInterval_from>1</GBInterval_from>
+          <GBInterval_to>21325</GBInterval_to>
+          <GBInterval_accession>KE373594.1</GBInterval_accession>
+        </GBInterval>
+      </GBFeature_intervals>
+      <GBFeature_quals>
+        <GBQualifier>
+          <GBQualifier_name>organism</GBQualifier_name>
+          <GBQualifier_value>Blumeria graminis f. sp. tritici 96224</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>mol_type</GBQualifier_name>
+          <GBQualifier_value>genomic DNA</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>strain</GBQualifier_name>
+          <GBQualifier_value>96224</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>host</GBQualifier_name>
+          <GBQualifier_value>Triticum aestivum</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>db_xref</GBQualifier_name>
+          <GBQualifier_value>taxon:1268274</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>chromosome</GBQualifier_name>
+          <GBQualifier_value>Unknown</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>country</GBQualifier_name>
+          <GBQualifier_value>Switzerland: Kloten</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>collection_date</GBQualifier_name>
+          <GBQualifier_value>Jun-1996</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>note</GBQualifier_name>
+          <GBQualifier_value>forma_specialis: tritici</GBQualifier_value>
+        </GBQualifier>
+      </GBFeature_quals>
+    </GBFeature>
+    <GBFeature>
+      <GBFeature_key>assembly_gap</GBFeature_key>
+      <GBFeature_location>999..2189</GBFeature_location>
+      <GBFeature_intervals>
+        <GBInterval>
+          <GBInterval_from>999</GBInterval_from>
+          <GBInterval_to>2189</GBInterval_to>
+          <GBInterval_accession>KE373594.1</GBInterval_accession>
+        </GBInterval>
+      </GBFeature_intervals>
+      <GBFeature_quals>
+        <GBQualifier>
+          <GBQualifier_name>estimated_length</GBQualifier_name>
+          <GBQualifier_value>1191</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>gap_type</GBQualifier_name>
+          <GBQualifier_value>within scaffold</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>linkage_evidence</GBQualifier_name>
+          <GBQualifier_value>paired-ends</GBQualifier_value>
+        </GBQualifier>
+      </GBFeature_quals>
+    </GBFeature>
+    <GBFeature>
+      <GBFeature_key>assembly_gap</GBFeature_key>
+      <GBFeature_location>8831..9145</GBFeature_location>
+      <GBFeature_intervals>
+        <GBInterval>
+          <GBInterval_from>8831</GBInterval_from>
+          <GBInterval_to>9145</GBInterval_to>
+          <GBInterval_accession>KE373594.1</GBInterval_accession>
+        </GBInterval>
+      </GBFeature_intervals>
+      <GBFeature_quals>
+        <GBQualifier>
+          <GBQualifier_name>estimated_length</GBQualifier_name>
+          <GBQualifier_value>315</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>gap_type</GBQualifier_name>
+          <GBQualifier_value>within scaffold</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>linkage_evidence</GBQualifier_name>
+          <GBQualifier_value>paired-ends</GBQualifier_value>
+        </GBQualifier>
+      </GBFeature_quals>
+    </GBFeature>
+    <GBFeature>
+      <GBFeature_key>gene</GBFeature_key>
+      <GBFeature_location>complement(&lt;14845..&gt;16174)</GBFeature_location>
+      <GBFeature_intervals>
+        <GBInterval>
+          <GBInterval_from>16174</GBInterval_from>
+          <GBInterval_to>14845</GBInterval_to>
+          <GBInterval_iscomp value="true"/>
+          <GBInterval_accession>KE373594.1</GBInterval_accession>
+        </GBInterval>
+      </GBFeature_intervals>
+      <GBFeature_partial5 value="true"/>
+      <GBFeature_partial3 value="true"/>
+      <GBFeature_quals>
+        <GBQualifier>
+          <GBQualifier_name>locus_tag</GBQualifier_name>
+          <GBQualifier_value>BGT96224_2808</GBQualifier_value>
+        </GBQualifier>
+      </GBFeature_quals>
+    </GBFeature>
+    <GBFeature>
+      <GBFeature_key>mRNA</GBFeature_key>
+      <GBFeature_location>complement(join(&lt;14845..15613,15667..15737,15863..16008,16063..&gt;16174))</GBFeature_location>
+      <GBFeature_intervals>
+        <GBInterval>
+          <GBInterval_from>16174</GBInterval_from>
+          <GBInterval_to>16063</GBInterval_to>
+          <GBInterval_iscomp value="true"/>
+          <GBInterval_accession>KE373594.1</GBInterval_accession>
+        </GBInterval>
+        <GBInterval>
+          <GBInterval_from>16008</GBInterval_from>
+          <GBInterval_to>15863</GBInterval_to>
+          <GBInterval_iscomp value="true"/>
+          <GBInterval_accession>KE373594.1</GBInterval_accession>
+        </GBInterval>
+        <GBInterval>
+          <GBInterval_from>15737</GBInterval_from>
+          <GBInterval_to>15667</GBInterval_to>
+          <GBInterval_iscomp value="true"/>
+          <GBInterval_accession>KE373594.1</GBInterval_accession>
+        </GBInterval>
+        <GBInterval>
+          <GBInterval_from>15613</GBInterval_from>
+          <GBInterval_to>14845</GBInterval_to>
+          <GBInterval_iscomp value="true"/>
+          <GBInterval_accession>KE373594.1</GBInterval_accession>
+        </GBInterval>
+      </GBFeature_intervals>
+      <GBFeature_operator>join</GBFeature_operator>
+      <GBFeature_partial5 value="true"/>
+      <GBFeature_partial3 value="true"/>
+      <GBFeature_quals>
+        <GBQualifier>
+          <GBQualifier_name>locus_tag</GBQualifier_name>
+          <GBQualifier_value>BGT96224_2808</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>product</GBQualifier_name>
+          <GBQualifier_value>Legume-like lectin family protein</GBQualifier_value>
+        </GBQualifier>
+      </GBFeature_quals>
+    </GBFeature>
+    <GBFeature>
+      <GBFeature_key>CDS</GBFeature_key>
+      <GBFeature_location>complement(join(14845..15613,15667..15737,15863..16008,16063..16174))</GBFeature_location>
+      <GBFeature_intervals>
+        <GBInterval>
+          <GBInterval_from>16174</GBInterval_from>
+          <GBInterval_to>16063</GBInterval_to>
+          <GBInterval_iscomp value="true"/>
+          <GBInterval_accession>KE373594.1</GBInterval_accession>
+        </GBInterval>
+        <GBInterval>
+          <GBInterval_from>16008</GBInterval_from>
+          <GBInterval_to>15863</GBInterval_to>
+          <GBInterval_iscomp value="true"/>
+          <GBInterval_accession>KE373594.1</GBInterval_accession>
+        </GBInterval>
+        <GBInterval>
+          <GBInterval_from>15737</GBInterval_from>
+          <GBInterval_to>15667</GBInterval_to>
+          <GBInterval_iscomp value="true"/>
+          <GBInterval_accession>KE373594.1</GBInterval_accession>
+        </GBInterval>
+        <GBInterval>
+          <GBInterval_from>15613</GBInterval_from>
+          <GBInterval_to>14845</GBInterval_to>
+          <GBInterval_iscomp value="true"/>
+          <GBInterval_accession>KE373594.1</GBInterval_accession>
+        </GBInterval>
+      </GBFeature_intervals>
+      <GBFeature_operator>join</GBFeature_operator>
+      <GBFeature_quals>
+        <GBQualifier>
+          <GBQualifier_name>locus_tag</GBQualifier_name>
+          <GBQualifier_value>BGT96224_2808</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>codon_start</GBQualifier_name>
+          <GBQualifier_value>1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>transl_table</GBQualifier_name>
+          <GBQualifier_value>1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>product</GBQualifier_name>
+          <GBQualifier_value>Legume-like lectin family protein</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>protein_id</GBQualifier_name>
+          <GBQualifier_value>EPQ67388.1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>db_xref</GBQualifier_name>
+          <GBQualifier_value>GI:521780388</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>translation</GBQualifier_name>
+          <GBQualifier_value>MHGAESATREGIQARLAELFTRHQSIGLANLSNLLFPEVVQVFAALFIINSKTMNLTIILICLAASALAAVQEVTLTDANGIKSIPPYLDSDLQSRWFDFGGNTVIRADRYIRLTSDRPSQEGWIFSRVPLTATNWEVEIEFRISGAGNLHGDGFAMWLTKQRATPGPVFGSTDKFEGIGIFFDTYKNNRPGTIFPYVMAMIGDGVKSYDKSNDGKANEFMGCSAKGIRDALIPTKARLVYFQDKSLRLDLQYKVEGQWDLCFETLDPPAIPSVAYLGFSAETGELSDNHDLIAVSTKNLYDTKTRDQTSGKQSGGLGEKTSSIPQEKKGWGGFLLKIMLFCIIIAGAYVGITAWRTNQRRSHRF</GBQualifier_value>
+        </GBQualifier>
+      </GBFeature_quals>
+    </GBFeature>
+  </GBSeq_feature-table>
+  <GBSeq_contig>join(ANZE01018410.1:1..998,gap(1191),ANZE01018411.1:1..6641,gap(315),ANZE01018412.1:1..12180)</GBSeq_contig>
+</GBSeq>
+
+<GBSeq>
+  <GBSeq_locus>GAAZ01003035</GBSeq_locus>
+  <GBSeq_length>628</GBSeq_length>
+  <GBSeq_strandedness>single</GBSeq_strandedness>
+  <GBSeq_moltype>mRNA</GBSeq_moltype>
+  <GBSeq_topology>linear</GBSeq_topology>
+  <GBSeq_division>TSA</GBSeq_division>
+  <GBSeq_update-date>08-JUL-2013</GBSeq_update-date>
+  <GBSeq_create-date>08-JUL-2013</GBSeq_create-date>
+  <GBSeq_definition>TSA: Crotalus horridus Chorr_CTL-10 mRNA sequence</GBSeq_definition>
+  <GBSeq_primary-accession>GAAZ01003035</GBSeq_primary-accession>
+  <GBSeq_accession-version>GAAZ01003035.1</GBSeq_accession-version>
+  <GBSeq_other-seqids>
+    <GBSeqid>gb|GAAZ01003035.1|</GBSeqid>
+    <GBSeqid>gnl|TSA:GAAZ01|Chorr_CTL-10</GBSeqid>
+    <GBSeqid>gi|521752463</GBSeqid>
+  </GBSeq_other-seqids>
+  <GBSeq_project>PRJNA88989</GBSeq_project>
+  <GBSeq_keywords>
+    <GBKeyword>TSA</GBKeyword>
+    <GBKeyword>Transcriptome Shotgun Assembly</GBKeyword>
+  </GBSeq_keywords>
+  <GBSeq_source>Crotalus horridus (timber rattlesnake)</GBSeq_source>
+  <GBSeq_organism>Crotalus horridus</GBSeq_organism>
+  <GBSeq_taxonomy>Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi; Lepidosauria; Squamata; Scleroglossa; Serpentes; Colubroidea; Viperidae; Crotalinae; Crotalus</GBSeq_taxonomy>
+  <GBSeq_references>
+    <GBReference>
+      <GBReference_reference>1</GBReference_reference>
+      <GBReference_position>1..628</GBReference_position>
+      <GBReference_authors>
+        <GBAuthor>Rokyta,D.R.</GBAuthor>
+        <GBAuthor>Wray,K.P.</GBAuthor>
+        <GBAuthor>Margres,M.J.</GBAuthor>
+      </GBReference_authors>
+      <GBReference_title>The genesis of an exceptionally lethal venom in the timber rattlesnake (Crotalus horridus) revealed through comparative venom-gland transcriptomics</GBReference_title>
+      <GBReference_journal>BMC Genomics 14 (1), 394 (2013)</GBReference_journal>
+      <GBReference_xref>
+        <GBXref>
+          <GBXref_dbname>doi</GBXref_dbname>
+          <GBXref_id>10.1186/1471-2164-14-394</GBXref_id>
+        </GBXref>
+      </GBReference_xref>
+      <GBReference_pubmed>23758969</GBReference_pubmed>
+      <GBReference_remark>Publication Status: Online-Only</GBReference_remark>
+    </GBReference>
+    <GBReference>
+      <GBReference_reference>2</GBReference_reference>
+      <GBReference_position>1..628</GBReference_position>
+      <GBReference_authors>
+        <GBAuthor>Rokyta,D.R.</GBAuthor>
+        <GBAuthor>Wray,K.P.</GBAuthor>
+        <GBAuthor>Margres,M.J.</GBAuthor>
+      </GBReference_authors>
+      <GBReference_title>Direct Submission</GBReference_title>
+      <GBReference_journal>Submitted (10-OCT-2012) Department of Biological Science, Florida State University, 319 Stadium Dr., Tallahassee, FL 32306-4295, USA</GBReference_journal>
+    </GBReference>
+  </GBSeq_references>
+  <GBSeq_comment>##Assembly-Data-START## Assembly Method SeqMan NGen Version 3.1 Sequencing Technology Illumina HiSeq ##Assembly-Data-END##</GBSeq_comment>
+  <GBSeq_feature-table>
+    <GBFeature>
+      <GBFeature_key>source</GBFeature_key>
+      <GBFeature_location>1..628</GBFeature_location>
+      <GBFeature_intervals>
+        <GBInterval>
+          <GBInterval_from>1</GBInterval_from>
+          <GBInterval_to>628</GBInterval_to>
+          <GBInterval_accession>GAAZ01003035.1</GBInterval_accession>
+        </GBInterval>
+      </GBFeature_intervals>
+      <GBFeature_quals>
+        <GBQualifier>
+          <GBQualifier_name>organism</GBQualifier_name>
+          <GBQualifier_value>Crotalus horridus</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>mol_type</GBQualifier_name>
+          <GBQualifier_value>mRNA</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>db_xref</GBQualifier_name>
+          <GBQualifier_value>taxon:35024</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>tissue_type</GBQualifier_name>
+          <GBQualifier_value>venom gland</GBQualifier_value>
+        </GBQualifier>
+      </GBFeature_quals>
+    </GBFeature>
+    <GBFeature>
+      <GBFeature_key>CDS</GBFeature_key>
+      <GBFeature_location>104..553</GBFeature_location>
+      <GBFeature_intervals>
+        <GBInterval>
+          <GBInterval_from>104</GBInterval_from>
+          <GBInterval_to>553</GBInterval_to>
+          <GBInterval_accession>GAAZ01003035.1</GBInterval_accession>
+        </GBInterval>
+      </GBFeature_intervals>
+      <GBFeature_quals>
+        <GBQualifier>
+          <GBQualifier_name>codon_start</GBQualifier_name>
+          <GBQualifier_value>1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>transl_table</GBQualifier_name>
+          <GBQualifier_value>1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>product</GBQualifier_name>
+          <GBQualifier_value>C-type lectin 10</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>protein_id</GBQualifier_name>
+          <GBQualifier_value>JAA94908.1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>db_xref</GBQualifier_name>
+          <GBQualifier_value>GI:521752464</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>translation</GBQualifier_name>
+          <GBQualifier_value>MGRFIFVSFNLLVVFLSLSGTLADLECPSGWSSYDRYCYKPFKQEMTWADAERFCSEQAKGGHLLSVETALEASFVDNVLYANKEYLTRYIWIGLRVQNKGQPCSSISYENLVDPFECFMVSRDTRLREWFKVDCEQQHSFICKFTRPR</GBQualifier_value>
+        </GBQualifier>
+      </GBFeature_quals>
+    </GBFeature>
+  </GBSeq_feature-table>
+  <GBSeq_sequence>ctccattcccctcataggaggaaagcctggagttgcctctgagcagacttgctacctgtggaggccgaggaacagttctctctgcagggaaggaaagaacgccatggggcgattcatcttcgtgagcttcaacttgctggtcgtgttcctctccctaagtggaactctagctgatttggaatgtccctccggttggtcttcctatgatcggtattgctacaagcccttcaaacaagagatgacctgggccgatgcagagaggttctgctcggagcaggcgaagggcgggcatctcctctctgtcgaaaccgccctagaagcatcctttgtggacaatgtgctctatgcgaacaaagagtacctcacacgttatatctggattggactgagggttcaaaacaaaggacagccatgctccagcatcagttatgagaacctggttgacccatttgaatgttttatggtgagcagagacacaaggcttcgtgagtggtttaaagttgactgtgaacaacaacattctttcatatgcaagttcacgcgaccacgttaagatccggctgtgtgaagtctggagaagcaaggaagccccccacctctccccaccccccacctgccgcaatctctg</GBSeq_sequence>
+</GBSeq>
+
+<GBSeq>
+  <GBSeq_locus>GAAZ01003036</GBSeq_locus>
+  <GBSeq_length>571</GBSeq_length>
+  <GBSeq_strandedness>single</GBSeq_strandedness>
+  <GBSeq_moltype>mRNA</GBSeq_moltype>
+  <GBSeq_topology>linear</GBSeq_topology>
+  <GBSeq_division>TSA</GBSeq_division>
+  <GBSeq_update-date>08-JUL-2013</GBSeq_update-date>
+  <GBSeq_create-date>08-JUL-2013</GBSeq_create-date>
+  <GBSeq_definition>TSA: Crotalus horridus Chorr_CTL-11 mRNA sequence</GBSeq_definition>
+  <GBSeq_primary-accession>GAAZ01003036</GBSeq_primary-accession>
+  <GBSeq_accession-version>GAAZ01003036.1</GBSeq_accession-version>
+  <GBSeq_other-seqids>
+    <GBSeqid>gb|GAAZ01003036.1|</GBSeqid>
+    <GBSeqid>gnl|TSA:GAAZ01|Chorr_CTL-11</GBSeqid>
+    <GBSeqid>gi|521752460</GBSeqid>
+  </GBSeq_other-seqids>
+  <GBSeq_project>PRJNA88989</GBSeq_project>
+  <GBSeq_keywords>
+    <GBKeyword>TSA</GBKeyword>
+    <GBKeyword>Transcriptome Shotgun Assembly</GBKeyword>
+  </GBSeq_keywords>
+  <GBSeq_source>Crotalus horridus (timber rattlesnake)</GBSeq_source>
+  <GBSeq_organism>Crotalus horridus</GBSeq_organism>
+  <GBSeq_taxonomy>Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi; Lepidosauria; Squamata; Scleroglossa; Serpentes; Colubroidea; Viperidae; Crotalinae; Crotalus</GBSeq_taxonomy>
+  <GBSeq_references>
+    <GBReference>
+      <GBReference_reference>1</GBReference_reference>
+      <GBReference_position>1..571</GBReference_position>
+      <GBReference_authors>
+        <GBAuthor>Rokyta,D.R.</GBAuthor>
+        <GBAuthor>Wray,K.P.</GBAuthor>
+        <GBAuthor>Margres,M.J.</GBAuthor>
+      </GBReference_authors>
+      <GBReference_title>The genesis of an exceptionally lethal venom in the timber rattlesnake (Crotalus horridus) revealed through comparative venom-gland transcriptomics</GBReference_title>
+      <GBReference_journal>BMC Genomics 14 (1), 394 (2013)</GBReference_journal>
+      <GBReference_xref>
+        <GBXref>
+          <GBXref_dbname>doi</GBXref_dbname>
+          <GBXref_id>10.1186/1471-2164-14-394</GBXref_id>
+        </GBXref>
+      </GBReference_xref>
+      <GBReference_pubmed>23758969</GBReference_pubmed>
+      <GBReference_remark>Publication Status: Online-Only</GBReference_remark>
+    </GBReference>
+    <GBReference>
+      <GBReference_reference>2</GBReference_reference>
+      <GBReference_position>1..571</GBReference_position>
+      <GBReference_authors>
+        <GBAuthor>Rokyta,D.R.</GBAuthor>
+        <GBAuthor>Wray,K.P.</GBAuthor>
+        <GBAuthor>Margres,M.J.</GBAuthor>
+      </GBReference_authors>
+      <GBReference_title>Direct Submission</GBReference_title>
+      <GBReference_journal>Submitted (10-OCT-2012) Department of Biological Science, Florida State University, 319 Stadium Dr., Tallahassee, FL 32306-4295, USA</GBReference_journal>
+    </GBReference>
+  </GBSeq_references>
+  <GBSeq_comment>##Assembly-Data-START## Assembly Method SeqMan NGen Version 3.1 Sequencing Technology Illumina HiSeq ##Assembly-Data-END##</GBSeq_comment>
+  <GBSeq_feature-table>
+    <GBFeature>
+      <GBFeature_key>source</GBFeature_key>
+      <GBFeature_location>1..571</GBFeature_location>
+      <GBFeature_intervals>
+        <GBInterval>
+          <GBInterval_from>1</GBInterval_from>
+          <GBInterval_to>571</GBInterval_to>
+          <GBInterval_accession>GAAZ01003036.1</GBInterval_accession>
+        </GBInterval>
+      </GBFeature_intervals>
+      <GBFeature_quals>
+        <GBQualifier>
+          <GBQualifier_name>organism</GBQualifier_name>
+          <GBQualifier_value>Crotalus horridus</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>mol_type</GBQualifier_name>
+          <GBQualifier_value>mRNA</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>db_xref</GBQualifier_name>
+          <GBQualifier_value>taxon:35024</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>tissue_type</GBQualifier_name>
+          <GBQualifier_value>venom gland</GBQualifier_value>
+        </GBQualifier>
+      </GBFeature_quals>
+    </GBFeature>
+    <GBFeature>
+      <GBFeature_key>CDS</GBFeature_key>
+      <GBFeature_location>92..520</GBFeature_location>
+      <GBFeature_intervals>
+        <GBInterval>
+          <GBInterval_from>92</GBInterval_from>
+          <GBInterval_to>520</GBInterval_to>
+          <GBInterval_accession>GAAZ01003036.1</GBInterval_accession>
+        </GBInterval>
+      </GBFeature_intervals>
+      <GBFeature_quals>
+        <GBQualifier>
+          <GBQualifier_name>codon_start</GBQualifier_name>
+          <GBQualifier_value>1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>transl_table</GBQualifier_name>
+          <GBQualifier_value>1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>product</GBQualifier_name>
+          <GBQualifier_value>C-type lectin 11</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>protein_id</GBQualifier_name>
+          <GBQualifier_value>JAA94907.1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>db_xref</GBQualifier_name>
+          <GBQualifier_value>GI:521752461</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>translation</GBQualifier_name>
+          <GBQualifier_value>MGRLVFVSFGLLVVFLSLSGTAADCPSDWSSYEGHCYRVFQQEMTWEDAEKFCTQQHTGGHLVSFRSSEEVDFLVSILKFDLFWMGRRDIWNERRLQWSDGTKVNYKAWSAEPECIVCRATDNQWLSTFCSKTHNVVCKFQA</GBQualifier_value>
+        </GBQualifier>
+      </GBFeature_quals>
+    </GBFeature>
+  </GBSeq_feature-table>
+  <GBSeq_sequence>ctcccttcccctcccaggaggaaagcctggagttgcctctgagcagacttgctacctgtggaggccgaggaacagggaaggaaagaagaccatggggcgattggtgttcgtgagcttcggcttgctggtcgtgttcctttccctgagtggaactgcagctgattgtccctctgattggtcctcctatgaagggcattgctacagggtcttccaacaagagatgacctgggaagatgcagagaaattctgcacacaacagcacacaggcggacatctggtctcctttcggagcagtgaagaagtagattttctggtctcaattttgaaattcgatcttttctggatgggacggagggatatctggaatgaacgcaggttgcagtggagcgatggcaccaaggtcaactacaaagcctggagtgcagaacctgagtgtatcgtatgcagggcaactgataaccagtggttaagtacattctgcagcaagactcacaatgttgtctgcaagttccaggcatagtctgaagatgcagctgtgtgaagtctgcagaaggaaggaagccccccaccc</GBSeq_sequence>
+</GBSeq>
+
+<GBSeq>
+  <GBSeq_locus>GAAZ01003037</GBSeq_locus>
+  <GBSeq_length>815</GBSeq_length>
+  <GBSeq_strandedness>single</GBSeq_strandedness>
+  <GBSeq_moltype>mRNA</GBSeq_moltype>
+  <GBSeq_topology>linear</GBSeq_topology>
+  <GBSeq_division>TSA</GBSeq_division>
+  <GBSeq_update-date>08-JUL-2013</GBSeq_update-date>
+  <GBSeq_create-date>08-JUL-2013</GBSeq_create-date>
+  <GBSeq_definition>TSA: Crotalus horridus Chorr_CTL-1a mRNA sequence</GBSeq_definition>
+  <GBSeq_primary-accession>GAAZ01003037</GBSeq_primary-accession>
+  <GBSeq_accession-version>GAAZ01003037.1</GBSeq_accession-version>
+  <GBSeq_other-seqids>
+    <GBSeqid>gb|GAAZ01003037.1|</GBSeqid>
+    <GBSeqid>gnl|TSA:GAAZ01|Chorr_CTL-1a</GBSeqid>
+    <GBSeqid>gi|521752457</GBSeqid>
+  </GBSeq_other-seqids>
+  <GBSeq_project>PRJNA88989</GBSeq_project>
+  <GBSeq_keywords>
+    <GBKeyword>TSA</GBKeyword>
+    <GBKeyword>Transcriptome Shotgun Assembly</GBKeyword>
+  </GBSeq_keywords>
+  <GBSeq_source>Crotalus horridus (timber rattlesnake)</GBSeq_source>
+  <GBSeq_organism>Crotalus horridus</GBSeq_organism>
+  <GBSeq_taxonomy>Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi; Lepidosauria; Squamata; Scleroglossa; Serpentes; Colubroidea; Viperidae; Crotalinae; Crotalus</GBSeq_taxonomy>
+  <GBSeq_references>
+    <GBReference>
+      <GBReference_reference>1</GBReference_reference>
+      <GBReference_position>1..815</GBReference_position>
+      <GBReference_authors>
+        <GBAuthor>Rokyta,D.R.</GBAuthor>
+        <GBAuthor>Wray,K.P.</GBAuthor>
+        <GBAuthor>Margres,M.J.</GBAuthor>
+      </GBReference_authors>
+      <GBReference_title>The genesis of an exceptionally lethal venom in the timber rattlesnake (Crotalus horridus) revealed through comparative venom-gland transcriptomics</GBReference_title>
+      <GBReference_journal>BMC Genomics 14 (1), 394 (2013)</GBReference_journal>
+      <GBReference_xref>
+        <GBXref>
+          <GBXref_dbname>doi</GBXref_dbname>
+          <GBXref_id>10.1186/1471-2164-14-394</GBXref_id>
+        </GBXref>
+      </GBReference_xref>
+      <GBReference_pubmed>23758969</GBReference_pubmed>
+      <GBReference_remark>Publication Status: Online-Only</GBReference_remark>
+    </GBReference>
+    <GBReference>
+      <GBReference_reference>2</GBReference_reference>
+      <GBReference_position>1..815</GBReference_position>
+      <GBReference_authors>
+        <GBAuthor>Rokyta,D.R.</GBAuthor>
+        <GBAuthor>Wray,K.P.</GBAuthor>
+        <GBAuthor>Margres,M.J.</GBAuthor>
+      </GBReference_authors>
+      <GBReference_title>Direct Submission</GBReference_title>
+      <GBReference_journal>Submitted (10-OCT-2012) Department of Biological Science, Florida State University, 319 Stadium Dr., Tallahassee, FL 32306-4295, USA</GBReference_journal>
+    </GBReference>
+  </GBSeq_references>
+  <GBSeq_comment>##Assembly-Data-START## Assembly Method SeqMan NGen Version 3.1 Sequencing Technology Illumina HiSeq ##Assembly-Data-END##</GBSeq_comment>
+  <GBSeq_feature-table>
+    <GBFeature>
+      <GBFeature_key>source</GBFeature_key>
+      <GBFeature_location>1..815</GBFeature_location>
+      <GBFeature_intervals>
+        <GBInterval>
+          <GBInterval_from>1</GBInterval_from>
+          <GBInterval_to>815</GBInterval_to>
+          <GBInterval_accession>GAAZ01003037.1</GBInterval_accession>
+        </GBInterval>
+      </GBFeature_intervals>
+      <GBFeature_quals>
+        <GBQualifier>
+          <GBQualifier_name>organism</GBQualifier_name>
+          <GBQualifier_value>Crotalus horridus</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>mol_type</GBQualifier_name>
+          <GBQualifier_value>mRNA</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>db_xref</GBQualifier_name>
+          <GBQualifier_value>taxon:35024</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>tissue_type</GBQualifier_name>
+          <GBQualifier_value>venom gland</GBQualifier_value>
+        </GBQualifier>
+      </GBFeature_quals>
+    </GBFeature>
+    <GBFeature>
+      <GBFeature_key>CDS</GBFeature_key>
+      <GBFeature_location>186..632</GBFeature_location>
+      <GBFeature_intervals>
+        <GBInterval>
+          <GBInterval_from>186</GBInterval_from>
+          <GBInterval_to>632</GBInterval_to>
+          <GBInterval_accession>GAAZ01003037.1</GBInterval_accession>
+        </GBInterval>
+      </GBFeature_intervals>
+      <GBFeature_quals>
+        <GBQualifier>
+          <GBQualifier_name>codon_start</GBQualifier_name>
+          <GBQualifier_value>1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>transl_table</GBQualifier_name>
+          <GBQualifier_value>1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>product</GBQualifier_name>
+          <GBQualifier_value>C-type lectin 1a</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>protein_id</GBQualifier_name>
+          <GBQualifier_value>JAA94906.1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>db_xref</GBQualifier_name>
+          <GBQualifier_value>GI:521752458</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>translation</GBQualifier_name>
+          <GBQualifier_value>MGRFIFVSFGLLVVFLSLSGTEAGFCCPSGWSSYDRYCYKPFQQEMTWADAENFCTQQHTGSHLVSFHSTEEVDFVVKMTHQSLKTNFVWIGANNIWNKCNWQWSDGSKPDYEEWHEQFECLISRTFDNQWLSMDCGDTCSFVCKFEA</GBQualifier_value>
+        </GBQualifier>
+      </GBFeature_quals>
+    </GBFeature>
+  </GBSeq_feature-table>
+  <GBSeq_sequence>cgaaaatccattctcacacagagccttttctcccactgtcccccccacagaaatccaccccccyttccttgcctataaatgcctccattcccctcccaggaggaaagcctggagttgcctctgagcagacttgctacctgtggaggcagaggaacagttctctctgcagggaaggaaggaagaccatggggcgattcatcttcgtgagcttcggcttgctggtcgtgttcctctccctgagtggaactgaagctggtttctgttgtccctccggttggtcttcctatgatcggtattgctacaagcccttccaacaagagatgacctgggccgatgcagagaatttctgcacacaacagcacacaggcagccatctggtctcctttcacagcactgaagaagtagattttgtggtcaagatgacccaccaaagtttgaagaccaattttgtctggattggagcgaacaatatctggaataaatgcaactggcagtggagcgatggcagcaagcccgactacgaagaatggcatgaacaatttgaatgtctcatatccaggacatttgataatcagtggttaagtatggactgcggcgatacttgctctttcgtctgcaagttcgaggcatagtctgaagatccggctgtgtgaagtctggagaagcaaggaagcccccagcccacctcaccccacccccgcctgccacaatctctgctctgcccccttcgctcaatggatgctctctgtggctggatctggttctgctgctcctgatgggccagaaggtccaataaattctgcctagcaaaaaaa</GBSeq_sequence>
+</GBSeq>
+
+<GBSeq>
+  <GBSeq_locus>GAAZ01003038</GBSeq_locus>
+  <GBSeq_length>764</GBSeq_length>
+  <GBSeq_strandedness>single</GBSeq_strandedness>
+  <GBSeq_moltype>mRNA</GBSeq_moltype>
+  <GBSeq_topology>linear</GBSeq_topology>
+  <GBSeq_division>TSA</GBSeq_division>
+  <GBSeq_update-date>08-JUL-2013</GBSeq_update-date>
+  <GBSeq_create-date>08-JUL-2013</GBSeq_create-date>
+  <GBSeq_definition>TSA: Crotalus horridus Chorr_CTL-1b mRNA sequence</GBSeq_definition>
+  <GBSeq_primary-accession>GAAZ01003038</GBSeq_primary-accession>
+  <GBSeq_accession-version>GAAZ01003038.1</GBSeq_accession-version>
+  <GBSeq_other-seqids>
+    <GBSeqid>gb|GAAZ01003038.1|</GBSeqid>
+    <GBSeqid>gnl|TSA:GAAZ01|Chorr_CTL-1b</GBSeqid>
+    <GBSeqid>gi|521752454</GBSeqid>
+  </GBSeq_other-seqids>
+  <GBSeq_project>PRJNA88989</GBSeq_project>
+  <GBSeq_keywords>
+    <GBKeyword>TSA</GBKeyword>
+    <GBKeyword>Transcriptome Shotgun Assembly</GBKeyword>
+  </GBSeq_keywords>
+  <GBSeq_source>Crotalus horridus (timber rattlesnake)</GBSeq_source>
+  <GBSeq_organism>Crotalus horridus</GBSeq_organism>
+  <GBSeq_taxonomy>Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi; Lepidosauria; Squamata; Scleroglossa; Serpentes; Colubroidea; Viperidae; Crotalinae; Crotalus</GBSeq_taxonomy>
+  <GBSeq_references>
+    <GBReference>
+      <GBReference_reference>1</GBReference_reference>
+      <GBReference_position>1..764</GBReference_position>
+      <GBReference_authors>
+        <GBAuthor>Rokyta,D.R.</GBAuthor>
+        <GBAuthor>Wray,K.P.</GBAuthor>
+        <GBAuthor>Margres,M.J.</GBAuthor>
+      </GBReference_authors>
+      <GBReference_title>The genesis of an exceptionally lethal venom in the timber rattlesnake (Crotalus horridus) revealed through comparative venom-gland transcriptomics</GBReference_title>
+      <GBReference_journal>BMC Genomics 14 (1), 394 (2013)</GBReference_journal>
+      <GBReference_xref>
+        <GBXref>
+          <GBXref_dbname>doi</GBXref_dbname>
+          <GBXref_id>10.1186/1471-2164-14-394</GBXref_id>
+        </GBXref>
+      </GBReference_xref>
+      <GBReference_pubmed>23758969</GBReference_pubmed>
+      <GBReference_remark>Publication Status: Online-Only</GBReference_remark>
+    </GBReference>
+    <GBReference>
+      <GBReference_reference>2</GBReference_reference>
+      <GBReference_position>1..764</GBReference_position>
+      <GBReference_authors>
+        <GBAuthor>Rokyta,D.R.</GBAuthor>
+        <GBAuthor>Wray,K.P.</GBAuthor>
+        <GBAuthor>Margres,M.J.</GBAuthor>
+      </GBReference_authors>
+      <GBReference_title>Direct Submission</GBReference_title>
+      <GBReference_journal>Submitted (10-OCT-2012) Department of Biological Science, Florida State University, 319 Stadium Dr., Tallahassee, FL 32306-4295, USA</GBReference_journal>
+    </GBReference>
+  </GBSeq_references>
+  <GBSeq_comment>##Assembly-Data-START## Assembly Method SeqMan NGen Version 3.1 Sequencing Technology Illumina HiSeq ##Assembly-Data-END##</GBSeq_comment>
+  <GBSeq_feature-table>
+    <GBFeature>
+      <GBFeature_key>source</GBFeature_key>
+      <GBFeature_location>1..764</GBFeature_location>
+      <GBFeature_intervals>
+        <GBInterval>
+          <GBInterval_from>1</GBInterval_from>
+          <GBInterval_to>764</GBInterval_to>
+          <GBInterval_accession>GAAZ01003038.1</GBInterval_accession>
+        </GBInterval>
+      </GBFeature_intervals>
+      <GBFeature_quals>
+        <GBQualifier>
+          <GBQualifier_name>organism</GBQualifier_name>
+          <GBQualifier_value>Crotalus horridus</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>mol_type</GBQualifier_name>
+          <GBQualifier_value>mRNA</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>db_xref</GBQualifier_name>
+          <GBQualifier_value>taxon:35024</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>tissue_type</GBQualifier_name>
+          <GBQualifier_value>venom gland</GBQualifier_value>
+        </GBQualifier>
+      </GBFeature_quals>
+    </GBFeature>
+    <GBFeature>
+      <GBFeature_key>CDS</GBFeature_key>
+      <GBFeature_location>83..577</GBFeature_location>
+      <GBFeature_intervals>
+        <GBInterval>
+          <GBInterval_from>83</GBInterval_from>
+          <GBInterval_to>577</GBInterval_to>
+          <GBInterval_accession>GAAZ01003038.1</GBInterval_accession>
+        </GBInterval>
+      </GBFeature_intervals>
+      <GBFeature_quals>
+        <GBQualifier>
+          <GBQualifier_name>codon_start</GBQualifier_name>
+          <GBQualifier_value>1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>transl_table</GBQualifier_name>
+          <GBQualifier_value>1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>product</GBQualifier_name>
+          <GBQualifier_value>C-type lectin 1b</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>protein_id</GBQualifier_name>
+          <GBQualifier_value>JAA94905.1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>db_xref</GBQualifier_name>
+          <GBQualifier_value>GI:521752455</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>translation</GBQualifier_name>
+          <GBQualifier_value>MGRFIFVSFGLLVVFLSLSGTEAGFCCPSGWSSYDRYCYKPFQQEMTWADAENFCTQQHTGSHLVSFHSTEEVDFVVKMTHQSLKTNFVWIGANNIWNPEPPPQSAHGASLSFQKCNWQWSDGSKPDYEEWHEQFECLISRTFDNQWLSMDCGDTCSFVCKFEA</GBQualifier_value>
+        </GBQualifier>
+      </GBFeature_quals>
+    </GBFeature>
+  </GBSeq_feature-table>
+  <GBSeq_sequence>aaagcctggagttgcctctgagcagacttgctacctgtggaggcagaggaacagttctctctgcagggaaggaaggaagaccatggggcgattcatcttcgtgagcttcggcttgctggtcgtgttcctctccctgagtggaactgaagctggtttctgttgtccctccggttggtcttcctatgatcggtattgctacaagcccttccaacaagagatgacctgggccgatgcagagaacttctgcacacaacagcacacaggcagccatctggtctcctttcacagcactgaagaagtagattttgtggtcaagatgacccaccaaagtttgaagaccaattttgtctggattggagcgaacaatatctggaatccagaaccccctcctcagtcggctcacggggcctccttgtctttccagaaatgcaactggcagtggagcgatggcagcaagcccgactacgaagaatggcatgaacaatttgaatgtctcatatccaggacatttgataatcagtggttaagtatggactgcggcgatacttgctctttcgtctgcaagttcgaggcatagtctgaagatccggctgtgtgaagtctggagaagcaaggaagcccccagcccacctcaccccacccccgcctgccacaatctctgctctgcccccttcgctcaatggatgctctgtgtagctggatctggttctgctgctcctgatgggccagaaggtccaataaattctgcctagcatgaaaaaaaa</GBSeq_sequence>
+</GBSeq>
+
+<GBSeq>
+  <GBSeq_locus>GAAZ01003039</GBSeq_locus>
+  <GBSeq_length>660</GBSeq_length>
+  <GBSeq_strandedness>single</GBSeq_strandedness>
+  <GBSeq_moltype>mRNA</GBSeq_moltype>
+  <GBSeq_topology>linear</GBSeq_topology>
+  <GBSeq_division>TSA</GBSeq_division>
+  <GBSeq_update-date>08-JUL-2013</GBSeq_update-date>
+  <GBSeq_create-date>08-JUL-2013</GBSeq_create-date>
+  <GBSeq_definition>TSA: Crotalus horridus Chorr_CTL-2a mRNA sequence</GBSeq_definition>
+  <GBSeq_primary-accession>GAAZ01003039</GBSeq_primary-accession>
+  <GBSeq_accession-version>GAAZ01003039.1</GBSeq_accession-version>
+  <GBSeq_other-seqids>
+    <GBSeqid>gb|GAAZ01003039.1|</GBSeqid>
+    <GBSeqid>gnl|TSA:GAAZ01|Chorr_CTL-2a</GBSeqid>
+    <GBSeqid>gi|521752451</GBSeqid>
+  </GBSeq_other-seqids>
+  <GBSeq_project>PRJNA88989</GBSeq_project>
+  <GBSeq_keywords>
+    <GBKeyword>TSA</GBKeyword>
+    <GBKeyword>Transcriptome Shotgun Assembly</GBKeyword>
+  </GBSeq_keywords>
+  <GBSeq_source>Crotalus horridus (timber rattlesnake)</GBSeq_source>
+  <GBSeq_organism>Crotalus horridus</GBSeq_organism>
+  <GBSeq_taxonomy>Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi; Lepidosauria; Squamata; Scleroglossa; Serpentes; Colubroidea; Viperidae; Crotalinae; Crotalus</GBSeq_taxonomy>
+  <GBSeq_references>
+    <GBReference>
+      <GBReference_reference>1</GBReference_reference>
+      <GBReference_position>1..660</GBReference_position>
+      <GBReference_authors>
+        <GBAuthor>Rokyta,D.R.</GBAuthor>
+        <GBAuthor>Wray,K.P.</GBAuthor>
+        <GBAuthor>Margres,M.J.</GBAuthor>
+      </GBReference_authors>
+      <GBReference_title>The genesis of an exceptionally lethal venom in the timber rattlesnake (Crotalus horridus) revealed through comparative venom-gland transcriptomics</GBReference_title>
+      <GBReference_journal>BMC Genomics 14 (1), 394 (2013)</GBReference_journal>
+      <GBReference_xref>
+        <GBXref>
+          <GBXref_dbname>doi</GBXref_dbname>
+          <GBXref_id>10.1186/1471-2164-14-394</GBXref_id>
+        </GBXref>
+      </GBReference_xref>
+      <GBReference_pubmed>23758969</GBReference_pubmed>
+      <GBReference_remark>Publication Status: Online-Only</GBReference_remark>
+    </GBReference>
+    <GBReference>
+      <GBReference_reference>2</GBReference_reference>
+      <GBReference_position>1..660</GBReference_position>
+      <GBReference_authors>
+        <GBAuthor>Rokyta,D.R.</GBAuthor>
+        <GBAuthor>Wray,K.P.</GBAuthor>
+        <GBAuthor>Margres,M.J.</GBAuthor>
+      </GBReference_authors>
+      <GBReference_title>Direct Submission</GBReference_title>
+      <GBReference_journal>Submitted (10-OCT-2012) Department of Biological Science, Florida State University, 319 Stadium Dr., Tallahassee, FL 32306-4295, USA</GBReference_journal>
+    </GBReference>
+  </GBSeq_references>
+  <GBSeq_comment>##Assembly-Data-START## Assembly Method SeqMan NGen Version 3.1 Sequencing Technology Illumina HiSeq ##Assembly-Data-END##</GBSeq_comment>
+  <GBSeq_feature-table>
+    <GBFeature>
+      <GBFeature_key>source</GBFeature_key>
+      <GBFeature_location>1..660</GBFeature_location>
+      <GBFeature_intervals>
+        <GBInterval>
+          <GBInterval_from>1</GBInterval_from>
+          <GBInterval_to>660</GBInterval_to>
+          <GBInterval_accession>GAAZ01003039.1</GBInterval_accession>
+        </GBInterval>
+      </GBFeature_intervals>
+      <GBFeature_quals>
+        <GBQualifier>
+          <GBQualifier_name>organism</GBQualifier_name>
+          <GBQualifier_value>Crotalus horridus</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>mol_type</GBQualifier_name>
+          <GBQualifier_value>mRNA</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>db_xref</GBQualifier_name>
+          <GBQualifier_value>taxon:35024</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>tissue_type</GBQualifier_name>
+          <GBQualifier_value>venom gland</GBQualifier_value>
+        </GBQualifier>
+      </GBFeature_quals>
+    </GBFeature>
+    <GBFeature>
+      <GBFeature_key>CDS</GBFeature_key>
+      <GBFeature_location>34..510</GBFeature_location>
+      <GBFeature_intervals>
+        <GBInterval>
+          <GBInterval_from>34</GBInterval_from>
+          <GBInterval_to>510</GBInterval_to>
+          <GBInterval_accession>GAAZ01003039.1</GBInterval_accession>
+        </GBInterval>
+      </GBFeature_intervals>
+      <GBFeature_quals>
+        <GBQualifier>
+          <GBQualifier_name>codon_start</GBQualifier_name>
+          <GBQualifier_value>1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>transl_table</GBQualifier_name>
+          <GBQualifier_value>1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>product</GBQualifier_name>
+          <GBQualifier_value>C-type lectin 2a</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>protein_id</GBQualifier_name>
+          <GBQualifier_value>JAA94904.1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>db_xref</GBQualifier_name>
+          <GBQualifier_value>GI:521752452</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>translation</GBQualifier_name>
+          <GBQualifier_value>MGRFIFVGVGLLVAFLSLSGTGADLHCPSDWYYYDQHCYQIFNEEMNWEDAEWFCTKQAKGGHLVSIKSAKEADFVAWMVTQNIEESFSHVWIGLRVQNKEKQCSTKWSDGSSVSYDNLLDLYITKCSMLKKETGFRKWFVVSCIGEIPFVCKFPPQC</GBQualifier_value>
+        </GBQualifier>
+      </GBFeature_quals>
+    </GBFeature>
+  </GBSeq_feature-table>
+  <GBSeq_sequence>gacagttctctctgcagggaaggaaggaagaccatggggcgattcatcttcgtgggcgtcggcttgctggttgcgttcctctccctgagtggtactggagctgatttacattgtccctctgattggtattactatgatcagcattgctaccagatcttcaatgaagagatgaactgggaagatgcagagtggttctgcacgaagcaggcgaagggcgggcatctcgtctctatcaaaagcgccaaagaagcagactttgtggcctggatggtcactcagaacatagaggaatccttttcccatgtctggattggactgagggttcaaaacaaagaaaagcaatgcagcacgaagtggagtgatggctccagcgtcagttatgacaacttgttggatctatatattacaaagtgtagtatgctgaaaaaagagacagggtttcgtaagtggttcgttgttagctgtataggagagattcctttcgtctgcaagttcccgccacagtgttaagatccagctgtgtgaagtctgcagaagcaaggaagccccccaccccacccccacccttcgctcagcagatgctctgtgtagctggatctggttctgctgctcctgatgggccagaaggtccaataaattctgcctagcatgaaaaaaaaa</GBSeq_sequence>
+</GBSeq>
+
+<GBSeq>
+  <GBSeq_locus>GAAZ01003040</GBSeq_locus>
+  <GBSeq_length>658</GBSeq_length>
+  <GBSeq_strandedness>single</GBSeq_strandedness>
+  <GBSeq_moltype>mRNA</GBSeq_moltype>
+  <GBSeq_topology>linear</GBSeq_topology>
+  <GBSeq_division>TSA</GBSeq_division>
+  <GBSeq_update-date>08-JUL-2013</GBSeq_update-date>
+  <GBSeq_create-date>08-JUL-2013</GBSeq_create-date>
+  <GBSeq_definition>TSA: Crotalus horridus Chorr_CTL-2b mRNA sequence</GBSeq_definition>
+  <GBSeq_primary-accession>GAAZ01003040</GBSeq_primary-accession>
+  <GBSeq_accession-version>GAAZ01003040.1</GBSeq_accession-version>
+  <GBSeq_other-seqids>
+    <GBSeqid>gb|GAAZ01003040.1|</GBSeqid>
+    <GBSeqid>gnl|TSA:GAAZ01|Chorr_CTL-2b</GBSeqid>
+    <GBSeqid>gi|521752448</GBSeqid>
+  </GBSeq_other-seqids>
+  <GBSeq_project>PRJNA88989</GBSeq_project>
+  <GBSeq_keywords>
+    <GBKeyword>TSA</GBKeyword>
+    <GBKeyword>Transcriptome Shotgun Assembly</GBKeyword>
+  </GBSeq_keywords>
+  <GBSeq_source>Crotalus horridus (timber rattlesnake)</GBSeq_source>
+  <GBSeq_organism>Crotalus horridus</GBSeq_organism>
+  <GBSeq_taxonomy>Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi; Lepidosauria; Squamata; Scleroglossa; Serpentes; Colubroidea; Viperidae; Crotalinae; Crotalus</GBSeq_taxonomy>
+  <GBSeq_references>
+    <GBReference>
+      <GBReference_reference>1</GBReference_reference>
+      <GBReference_position>1..658</GBReference_position>
+      <GBReference_authors>
+        <GBAuthor>Rokyta,D.R.</GBAuthor>
+        <GBAuthor>Wray,K.P.</GBAuthor>
+        <GBAuthor>Margres,M.J.</GBAuthor>
+      </GBReference_authors>
+      <GBReference_title>The genesis of an exceptionally lethal venom in the timber rattlesnake (Crotalus horridus) revealed through comparative venom-gland transcriptomics</GBReference_title>
+      <GBReference_journal>BMC Genomics 14 (1), 394 (2013)</GBReference_journal>
+      <GBReference_xref>
+        <GBXref>
+          <GBXref_dbname>doi</GBXref_dbname>
+          <GBXref_id>10.1186/1471-2164-14-394</GBXref_id>
+        </GBXref>
+      </GBReference_xref>
+      <GBReference_pubmed>23758969</GBReference_pubmed>
+      <GBReference_remark>Publication Status: Online-Only</GBReference_remark>
+    </GBReference>
+    <GBReference>
+      <GBReference_reference>2</GBReference_reference>
+      <GBReference_position>1..658</GBReference_position>
+      <GBReference_authors>
+        <GBAuthor>Rokyta,D.R.</GBAuthor>
+        <GBAuthor>Wray,K.P.</GBAuthor>
+        <GBAuthor>Margres,M.J.</GBAuthor>
+      </GBReference_authors>
+      <GBReference_title>Direct Submission</GBReference_title>
+      <GBReference_journal>Submitted (10-OCT-2012) Department of Biological Science, Florida State University, 319 Stadium Dr., Tallahassee, FL 32306-4295, USA</GBReference_journal>
+    </GBReference>
+  </GBSeq_references>
+  <GBSeq_comment>##Assembly-Data-START## Assembly Method SeqMan NGen Version 3.1 Sequencing Technology Illumina HiSeq ##Assembly-Data-END##</GBSeq_comment>
+  <GBSeq_feature-table>
+    <GBFeature>
+      <GBFeature_key>source</GBFeature_key>
+      <GBFeature_location>1..658</GBFeature_location>
+      <GBFeature_intervals>
+        <GBInterval>
+          <GBInterval_from>1</GBInterval_from>
+          <GBInterval_to>658</GBInterval_to>
+          <GBInterval_accession>GAAZ01003040.1</GBInterval_accession>
+        </GBInterval>
+      </GBFeature_intervals>
+      <GBFeature_quals>
+        <GBQualifier>
+          <GBQualifier_name>organism</GBQualifier_name>
+          <GBQualifier_value>Crotalus horridus</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>mol_type</GBQualifier_name>
+          <GBQualifier_value>mRNA</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>db_xref</GBQualifier_name>
+          <GBQualifier_value>taxon:35024</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>tissue_type</GBQualifier_name>
+          <GBQualifier_value>venom gland</GBQualifier_value>
+        </GBQualifier>
+      </GBFeature_quals>
+    </GBFeature>
+    <GBFeature>
+      <GBFeature_key>CDS</GBFeature_key>
+      <GBFeature_location>34..510</GBFeature_location>
+      <GBFeature_intervals>
+        <GBInterval>
+          <GBInterval_from>34</GBInterval_from>
+          <GBInterval_to>510</GBInterval_to>
+          <GBInterval_accession>GAAZ01003040.1</GBInterval_accession>
+        </GBInterval>
+      </GBFeature_intervals>
+      <GBFeature_quals>
+        <GBQualifier>
+          <GBQualifier_name>codon_start</GBQualifier_name>
+          <GBQualifier_value>1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>transl_table</GBQualifier_name>
+          <GBQualifier_value>1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>product</GBQualifier_name>
+          <GBQualifier_value>C-type lectin 2b</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>protein_id</GBQualifier_name>
+          <GBQualifier_value>JAA94903.1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>db_xref</GBQualifier_name>
+          <GBQualifier_value>GI:521752449</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>translation</GBQualifier_name>
+          <GBQualifier_value>MGRFIFVGVGLLVAFLSLSGTGADLHCPSDWYYYDQHCYQIFNEEMNWEDAEWFCTKQAKGGHLVSIKSAKEADFVAWMVTQNIEESFSHVWIGLRVQNKEKQCSTKWSDGSSVSYDNLLDLYITKCSMLKKETGFRKWFVVSCIGEIPFVCKFPPQC</GBQualifier_value>
+        </GBQualifier>
+      </GBFeature_quals>
+    </GBFeature>
+  </GBSeq_feature-table>
+  <GBSeq_sequence>gacagttctctctgcagggaaggaaggaagaccatggggcgattcatcttcgtgggcgtcggcttgctggttgcgttcctctccctgagtggtactggagctgatttacattgtccctctgattggtattactatgatcagcattgctaccagatcttcaatgaagagatgaactgggaagatgcagagtggttctgcacgaagcaggcgaagggcgggcatctcgtctctatcaaaagcgccaaagaagcagactttgtggcctggatggtcactcagaacatagaggaatccttttcccatgtctggattggactgagggttcaaaacaaagaaaagcaatgcagcacgaagtggagcgatggctccagcgtcagttatgacaacttgctggatctatatattacaaagtgtagtatgctgaaaaaagagacagggtttcgtaagtggttcgttgttagctgtataggagagattcctttcgtctgcaagttcccgccacagtgttaagatccagctgtgtgaagtctgcagaagcaaggaagccccccaccccacccccacccttcgctcagcagatgctctgtgtagctggatctggttctgctgctcctgatgggccagaaggtccaataaattctgcctagcawraaaaaaa</GBSeq_sequence>
+</GBSeq>
+
+<GBSeq>
+  <GBSeq_locus>GAAZ01003041</GBSeq_locus>
+  <GBSeq_length>733</GBSeq_length>
+  <GBSeq_strandedness>single</GBSeq_strandedness>
+  <GBSeq_moltype>mRNA</GBSeq_moltype>
+  <GBSeq_topology>linear</GBSeq_topology>
+  <GBSeq_division>TSA</GBSeq_division>
+  <GBSeq_update-date>08-JUL-2013</GBSeq_update-date>
+  <GBSeq_create-date>08-JUL-2013</GBSeq_create-date>
+  <GBSeq_definition>TSA: Crotalus horridus Chorr_CTL-3 mRNA sequence</GBSeq_definition>
+  <GBSeq_primary-accession>GAAZ01003041</GBSeq_primary-accession>
+  <GBSeq_accession-version>GAAZ01003041.1</GBSeq_accession-version>
+  <GBSeq_other-seqids>
+    <GBSeqid>gb|GAAZ01003041.1|</GBSeqid>
+    <GBSeqid>gnl|TSA:GAAZ01|Chorr_CTL-3</GBSeqid>
+    <GBSeqid>gi|521752445</GBSeqid>
+  </GBSeq_other-seqids>
+  <GBSeq_project>PRJNA88989</GBSeq_project>
+  <GBSeq_keywords>
+    <GBKeyword>TSA</GBKeyword>
+    <GBKeyword>Transcriptome Shotgun Assembly</GBKeyword>
+  </GBSeq_keywords>
+  <GBSeq_source>Crotalus horridus (timber rattlesnake)</GBSeq_source>
+  <GBSeq_organism>Crotalus horridus</GBSeq_organism>
+  <GBSeq_taxonomy>Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi; Lepidosauria; Squamata; Scleroglossa; Serpentes; Colubroidea; Viperidae; Crotalinae; Crotalus</GBSeq_taxonomy>
+  <GBSeq_references>
+    <GBReference>
+      <GBReference_reference>1</GBReference_reference>
+      <GBReference_position>1..733</GBReference_position>
+      <GBReference_authors>
+        <GBAuthor>Rokyta,D.R.</GBAuthor>
+        <GBAuthor>Wray,K.P.</GBAuthor>
+        <GBAuthor>Margres,M.J.</GBAuthor>
+      </GBReference_authors>
+      <GBReference_title>The genesis of an exceptionally lethal venom in the timber rattlesnake (Crotalus horridus) revealed through comparative venom-gland transcriptomics</GBReference_title>
+      <GBReference_journal>BMC Genomics 14 (1), 394 (2013)</GBReference_journal>
+      <GBReference_xref>
+        <GBXref>
+          <GBXref_dbname>doi</GBXref_dbname>
+          <GBXref_id>10.1186/1471-2164-14-394</GBXref_id>
+        </GBXref>
+      </GBReference_xref>
+      <GBReference_pubmed>23758969</GBReference_pubmed>
+      <GBReference_remark>Publication Status: Online-Only</GBReference_remark>
+    </GBReference>
+    <GBReference>
+      <GBReference_reference>2</GBReference_reference>
+      <GBReference_position>1..733</GBReference_position>
+      <GBReference_authors>
+        <GBAuthor>Rokyta,D.R.</GBAuthor>
+        <GBAuthor>Wray,K.P.</GBAuthor>
+        <GBAuthor>Margres,M.J.</GBAuthor>
+      </GBReference_authors>
+      <GBReference_title>Direct Submission</GBReference_title>
+      <GBReference_journal>Submitted (10-OCT-2012) Department of Biological Science, Florida State University, 319 Stadium Dr., Tallahassee, FL 32306-4295, USA</GBReference_journal>
+    </GBReference>
+  </GBSeq_references>
+  <GBSeq_comment>##Assembly-Data-START## Assembly Method SeqMan NGen Version 3.1 Sequencing Technology Illumina HiSeq ##Assembly-Data-END##</GBSeq_comment>
+  <GBSeq_feature-table>
+    <GBFeature>
+      <GBFeature_key>source</GBFeature_key>
+      <GBFeature_location>1..733</GBFeature_location>
+      <GBFeature_intervals>
+        <GBInterval>
+          <GBInterval_from>1</GBInterval_from>
+          <GBInterval_to>733</GBInterval_to>
+          <GBInterval_accession>GAAZ01003041.1</GBInterval_accession>
+        </GBInterval>
+      </GBFeature_intervals>
+      <GBFeature_quals>
+        <GBQualifier>
+          <GBQualifier_name>organism</GBQualifier_name>
+          <GBQualifier_value>Crotalus horridus</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>mol_type</GBQualifier_name>
+          <GBQualifier_value>mRNA</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>db_xref</GBQualifier_name>
+          <GBQualifier_value>taxon:35024</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>tissue_type</GBQualifier_name>
+          <GBQualifier_value>venom gland</GBQualifier_value>
+        </GBQualifier>
+      </GBFeature_quals>
+    </GBFeature>
+    <GBFeature>
+      <GBFeature_key>CDS</GBFeature_key>
+      <GBFeature_location>132..572</GBFeature_location>
+      <GBFeature_intervals>
+        <GBInterval>
+          <GBInterval_from>132</GBInterval_from>
+          <GBInterval_to>572</GBInterval_to>
+          <GBInterval_accession>GAAZ01003041.1</GBInterval_accession>
+        </GBInterval>
+      </GBFeature_intervals>
+      <GBFeature_quals>
+        <GBQualifier>
+          <GBQualifier_name>codon_start</GBQualifier_name>
+          <GBQualifier_value>1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>transl_table</GBQualifier_name>
+          <GBQualifier_value>1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>product</GBQualifier_name>
+          <GBQualifier_value>C-type lectin 3</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>protein_id</GBQualifier_name>
+          <GBQualifier_value>JAA94902.1</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>db_xref</GBQualifier_name>
+          <GBQualifier_value>GI:521752446</GBQualifier_value>
+        </GBQualifier>
+        <GBQualifier>
+          <GBQualifier_name>translation</GBQualifier_name>
+          <GBQualifier_value>MGRFIFVSFGLLVVFLSLSGTAADCPSGWSSYEGHCYKPFNEPKTWDDAENFCTQQHTGGHLVSFHSTEEADFVSKLAFQTFGQSIFWIGLSNVWNKCSWQWSNGAMLKYEDWAEESYCVYFKSTNNKWRSRACRMLAHFVCEFQA</GBQualifier_value>
+        </GBQualifier>
+      </GBFeature_quals>
+    </GBFeature>
+  </GBSeq_feature-table>
+  <GBSeq_sequence>ccttccacagaaatcccctcccttccttgcctataaatgcctccattcccctcccaggaggaaagcctggagttgcctctgagcagacttgctacctgtggaggccgaggaaaagggaaggaaagaagaccatggggcgattcatcttcgtgagctttggcttgctggtcgtgttcctctccctgagtggaactgcagctgattgtccctctggttggtcttcctatgaagggcattgctacaagcccttcaatgaaccaaagacctgggatgatgcagagaacttctgcacacaacagcacacaggcggacatctggtctccttccacagcactgaagaagcagattttgtgagcaagctggccttccaaacctttggccagagtattttctggataggactgagcaatgtctggaataaatgcagctggcaatggagcaatggtgccatgctcaaatacgaagactgggctgaagaatcttattgtgtctatttcaagtcaactaataacaaatggaggagtagagcctgcagaatgttggcacatttcgtctgcgagttccaggcatagtttgaagatgcggctgaactgagagaagtctgcagaagcaaggaagtcccccaccccagacccccacactttgctcaatggatgctctctgtagctggatctggttctgctgctcctgatggaccagaaggtccaataaattctgcctagcaaaaaaaaaa</GBSeq_sequence>
+</GBSeq>
+
+</GBSet>
+
