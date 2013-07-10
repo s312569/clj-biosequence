@@ -1,4 +1,4 @@
-(ns biosequence.utilities
+(ns clj-biosequence.utilities
   (:require [clojure.java.io :as io]
             [clojure.string :as string]
             [fs.core :as fs]

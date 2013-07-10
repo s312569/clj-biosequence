@@ -1,10 +1,10 @@
-(ns biosequence.core-test
+(ns clj-biosequence.core-test
   (:use clojure.test
-        biosequence.core
-        biosequence.blast
-        biosequence.uniprot)
+        clj-biosequence.core
+        clj-biosequence.blast
+        clj-biosequence.uniprot)
   (:require [fs.core :as fs]
-            [biosequence.genbank :as gb]))
+            [clj-biosequence.genbank :as gb]))
 
 (deftest core
   (testing "Core:"
@@ -15,12 +15,12 @@
             store (index-fasta-file ffile)
             sseq (with-biosequences [l store]
                    (first l))]
-       (is (= biosequence.core.fastaSequence
+       (is (= clj-biosequence.core.fastaSequence
               (class nuc)))
        (is (= 6 (count (six-frame-translation nuc (codon-tables :standard)))))
-       (is (= biosequence.core.fastaSequence
+       (is (= clj-biosequence.core.fastaSequence
               (class prot)))
-       (is (= biosequence.core.fastaFile
+       (is (= clj-biosequence.core.fastaFile
               (class ffile)))
        (is (= "/Users/jason/Dropbox/biosequence/test-files/bl-test.fa"
               (file-path ffile)))
@@ -29,18 +29,18 @@
                     (println (last l)))))
        (is (= nil
               (fasta-to-stream nuc *out*)))
-       (is (= biosequence.core.fastaStore
+       (is (= clj-biosequence.core.fastaStore
               (class store)))
        (is (= nil (with-biosequences [l store]
                     (println (first l))
                     (println (last l)))))
-       (is (= biosequence.core.fastaSequence (class sseq)))
-       (is (= biosequence.core.fastaSequence
+       (is (= clj-biosequence.core.fastaSequence (class sseq)))
+       (is (= clj-biosequence.core.fastaSequence
               (class (with-connection-to-store [store]
                        (update-object (assoc sseq :sequence "jason"))))))
        (is (= "jason" (with-connection-to-store [store]
                         (sequence-string (get-biosequence (accession sseq))))))
-       (is (= biosequence.core.fastaStore
+       (is (= clj-biosequence.core.fastaStore
               (class (load-fasta-store "/Users/jason/Dropbox/biosequence/test-files/bl-test.fa.ind" :protein))))
        (fs/delete-dir (fs/parent (:file store)))))))
 
@@ -56,11 +56,11 @@
             store (index-fasta-file file)
             sbl (blast-store store bdb "blastp")
             bl (blast-biosequence seq bdb "blastp")]
-        (is (= biosequence.blast.blastDB (class bdb)))
-        (is (= biosequence.core.fastaFile (class file)))
-        (is (= biosequence.core.fastaStore (class store)))
-        (is (= biosequence.blast.blastSearch (class fbl)))
-        (is (= biosequence.blast.blastIteration (class bl)))
+        (is (= clj-biosequence.blast.blastDB (class bdb)))
+        (is (= clj-biosequence.core.fastaFile (class file)))
+        (is (= clj-biosequence.core.fastaStore (class store)))
+        (is (= clj-biosequence.blast.blastSearch (class fbl)))
+        (is (= clj-biosequence.blast.blastIteration (class bl)))
         (is (= 24.6386102277464 (hit-bit-score (first (hit-seq bl)))))
         (fs/delete-dir (fs/parent (:file store)))
         (fs/delete (:src fbl))
@@ -77,9 +77,9 @@
                  "/Users/jason/Dropbox/biosequence/test-files/toxins.fasta"
                  :protein)
           ubl (blast-biosequence useq bdb "blastp")]
-      (is (= biosequence.uniprot.uniprotXmlFile
+      (is (= clj-biosequence.uniprot.uniprotXmlFile
              (class ufile)))
-      (is (= biosequence.uniprot.uniprotProtein
+      (is (= clj-biosequence.uniprot.uniprotProtein
              (class useq)))
       (is (= '("C4PYP8" "G4VQR6")
              (accessions useq)))
@@ -112,12 +112,12 @@
                         (println (fasta-string (first l)))
                         (println (fasta-string (second l)))))))
       (is (= "/Users/jason/Dropbox/biosequence/test-files/uniprot-s-mansoni-20121217.xml" (file-path ufile)))
-      (is (= biosequence.uniprot.uniprotStore
+      (is (= clj-biosequence.uniprot.uniprotStore
              (class ustore)))
       (is (= nil (with-biosequences [l ustore]
                    (println (fasta-string (first l)))
                    (println (fasta-string (last l))))))
-      (is (= biosequence.uniprot.uniprotStore
+      (is (= clj-biosequence.uniprot.uniprotStore
              (class ustore2)))
       (fs/delete-dir (fs/parent (:file ustore))))))
 
@@ -131,9 +131,9 @@
                      (get-biosequence "B3EWH7"))
           pgfeat  (nth (gb/feature-seq pgseq) 2)
           pgint (first (gb/interval-seq pgfeat))]
-      (is (= biosequence.genbank.genbankFile (class pgfile)))
-      (is (= biosequence.genbank.genbankSequence (class pgseq)))
-      (is (= biosequence.genbank.genbankStore (class pgstore)))
+      (is (= clj-biosequence.genbank.genbankFile (class pgfile)))
+      (is (= clj-biosequence.genbank.genbankSequence (class pgseq)))
+      (is (= clj-biosequence.genbank.genbankStore (class pgstore)))
       (is (= '("sp|B3EWH7.1|CYCM_PETHY" "gi|408407585")
              (accessions pgstorep)))
       (is (= 8 (with-biosequences-in-file [l pgfile]
@@ -157,15 +157,15 @@
       (is (= nil (gb/gene pgfeat)))
       (is (= nil (gb/product pgfeat)))
       (is (= false (gb/feature-comp? pgfeat)))
-      (is (= #biosequence.core.fastaSequence{:accession "B3EWH7", :description "RecName: Full=Acyclotide phyb-M - Feature: Region - [1-32]", :type :protein, :sequence "QSISCAESCVWIPCATSLIGCSCVNSRCIYSK"} (gb/get-feature-sequence pgfeat pgseq)))
+      (is (= #clj-biosequence.core.fastaSequence{:accession "B3EWH7", :description "RecName: Full=Acyclotide phyb-M - Feature: Region - [1-32]", :type :protein, :sequence "QSISCAESCVWIPCATSLIGCSCVNSRCIYSK"} (gb/get-feature-sequence pgfeat pgseq)))
       (is (= 1 (count (gb/interval-seq pgfeat))))
-      (is (= biosequence.genbank.genbankInterval (class pgint)))
+      (is (= clj-biosequence.genbank.genbankInterval (class pgint)))
       (is (= 1 (gb/start pgint)))
       (is (= 32 (gb/end pgint)))
       (is (= false (gb/comp? pgint)))
-      (is (= #biosequence.core.fastaSequence{:accession "B3EWH7", :description "RecName: Full=Acyclotide phyb-M [1-32]", :type :protein, :sequence "QSISCAESCVWIPCATSLIGCSCVNSRCIYSK"} (gb/get-interval-sequence pgint pgseq)))
+      (is (= #clj-biosequence.core.fastaSequence{:accession "B3EWH7", :description "RecName: Full=Acyclotide phyb-M [1-32]", :type :protein, :sequence "QSISCAESCVWIPCATSLIGCSCVNSRCIYSK"} (gb/get-interval-sequence pgint pgseq)))
       (is (= "152031586" (first (gb/wget-genbank-search "cyclotide" :protein))))
-      (is (= #biosequence.core.fastaSequence{:accession "gi|152031586|sp|P58440.2|CYO8_VIOOD", :description "RecName: Full=Cycloviolacin-O8; AltName: Full=Cyclotide c1; Flags: Precursor", :type :protein, :sequence "MEMKNMVVGLFLIAAFALPALATNFEKDFITHETVQAILKKVGPSSNGMLDEQTISALTGKTIISNPVLEEALLTHSNSINALGGTLPCGESCVWIPCISSVVGCSCKSKVCYKNSLA"}
+      (is (= #clj-biosequence.core.fastaSequence{:accession "gi|152031586|sp|P58440.2|CYO8_VIOOD", :description "RecName: Full=Cycloviolacin-O8; AltName: Full=Cyclotide c1; Flags: Precursor", :type :protein, :sequence "MEMKNMVVGLFLIAAFALPALATNFEKDFITHETVQAILKKVGPSSNGMLDEQTISALTGKTIISNPVLEEALLTHSNSINALGGTLPCGESCVWIPCISSVVGCSCKSKVCYKNSLA"}
              (first (gb/wget-genbank-sequence "152031586" :protein :fasta))))
       (is (= '("sp|P58440.2|CYO8_VIOOD" "gi|152031586")
              (accessions
@@ -183,9 +183,9 @@
                      (get-biosequence "GAAZ01003035"))
           ngfeat  (nth (gb/feature-seq ngseq) 1)
           ngint (first (gb/interval-seq ngfeat))]
-      (is (= biosequence.genbank.genbankFile (class ngfile)))
-      (is (= biosequence.genbank.genbankSequence (class ngseq)))
-      (is (= biosequence.genbank.genbankStore (class ngstore)))
+      (is (= clj-biosequence.genbank.genbankFile (class ngfile)))
+      (is (= clj-biosequence.genbank.genbankSequence (class ngseq)))
+      (is (= clj-biosequence.genbank.genbankStore (class ngstore)))
       (is (= '("gb|GAAZ01003035.1|" "gnl|TSA:GAAZ01|Chorr_CTL-10" "gi|521752463")
              (accessions ngstoren)))
       (is (= 8 (with-biosequences-in-file [l ngfile]
@@ -210,14 +210,14 @@
       (is (= nil (gb/gene ngfeat)))
       (is (= nil (gb/product ngfeat)))
       (is (= false (gb/feature-comp? ngfeat)))
-      (is (= #biosequence.core.fastaSequence{:accession "GAAZ01003035", :description "TSA: Crotalus horridus Chorr_CTL-10 mRNA sequence - Feature: CDS - [104-553]", :type :nucleotide, :sequence "ATGGGGCGATTCATCTTCGTGAGCTTCAACTTGCTGGTCGTGTTCCTCTCCCTAAGTGGAACTCTAGCTGATTTGGAATGTCCCTCCGGTTGGTCTTCCTATGATCGGTATTGCTACAAGCCCTTCAAACAAGAGATGACCTGGGCCGATGCAGAGAGGTTCTGCTCGGAGCAGGCGAAGGGCGGGCATCTCCTCTCTGTCGAAACCGCCCTAGAAGCATCCTTTGTGGACAATGTGCTCTATGCGAACAAAGAGTACCTCACACGTTATATCTGGATTGGACTGAGGGTTCAAAACAAAGGACAGCCATGCTCCAGCATCAGTTATGAGAACCTGGTTGACCCATTTGAATGTTTTATGGTGAGCAGAGACACAAGGCTTCGTGAGTGGTTTAAAGTTGACTGTGAACAACAACATTCTTTCATATGCAAGTTCACGCGACCACGTTAA"}
+      (is (= #clj-biosequence.core.fastaSequence{:accession "GAAZ01003035", :description "TSA: Crotalus horridus Chorr_CTL-10 mRNA sequence - Feature: CDS - [104-553]", :type :nucleotide, :sequence "ATGGGGCGATTCATCTTCGTGAGCTTCAACTTGCTGGTCGTGTTCCTCTCCCTAAGTGGAACTCTAGCTGATTTGGAATGTCCCTCCGGTTGGTCTTCCTATGATCGGTATTGCTACAAGCCCTTCAAACAAGAGATGACCTGGGCCGATGCAGAGAGGTTCTGCTCGGAGCAGGCGAAGGGCGGGCATCTCCTCTCTGTCGAAACCGCCCTAGAAGCATCCTTTGTGGACAATGTGCTCTATGCGAACAAAGAGTACCTCACACGTTATATCTGGATTGGACTGAGGGTTCAAAACAAAGGACAGCCATGCTCCAGCATCAGTTATGAGAACCTGGTTGACCCATTTGAATGTTTTATGGTGAGCAGAGACACAAGGCTTCGTGAGTGGTTTAAAGTTGACTGTGAACAACAACATTCTTTCATATGCAAGTTCACGCGACCACGTTAA"}
              (gb/get-feature-sequence ngfeat ngseq)))
       (is (= 1 (count (gb/interval-seq ngfeat))))
-      (is (= biosequence.genbank.genbankInterval (class ngint)))
+      (is (= clj-biosequence.genbank.genbankInterval (class ngint)))
       (is (= 104 (gb/start ngint)))
       (is (= 553 (gb/end ngint)))
       (is (= false (gb/comp? ngint)))
-      (is (= #biosequence.core.fastaSequence{:accession "GAAZ01003035", :description "TSA: Crotalus horridus Chorr_CTL-10 mRNA sequence [104-553]", :type :nucleotide, :sequence "ATGGGGCGATTCATCTTCGTGAGCTTCAACTTGCTGGTCGTGTTCCTCTCCCTAAGTGGAACTCTAGCTGATTTGGAATGTCCCTCCGGTTGGTCTTCCTATGATCGGTATTGCTACAAGCCCTTCAAACAAGAGATGACCTGGGCCGATGCAGAGAGGTTCTGCTCGGAGCAGGCGAAGGGCGGGCATCTCCTCTCTGTCGAAACCGCCCTAGAAGCATCCTTTGTGGACAATGTGCTCTATGCGAACAAAGAGTACCTCACACGTTATATCTGGATTGGACTGAGGGTTCAAAACAAAGGACAGCCATGCTCCAGCATCAGTTATGAGAACCTGGTTGACCCATTTGAATGTTTTATGGTGAGCAGAGACACAAGGCTTCGTGAGTGGTTTAAAGTTGACTGTGAACAACAACATTCTTTCATATGCAAGTTCACGCGACCACGTTAA"}
+      (is (= #clj-biosequence.core.fastaSequence{:accession "GAAZ01003035", :description "TSA: Crotalus horridus Chorr_CTL-10 mRNA sequence [104-553]", :type :nucleotide, :sequence "ATGGGGCGATTCATCTTCGTGAGCTTCAACTTGCTGGTCGTGTTCCTCTCCCTAAGTGGAACTCTAGCTGATTTGGAATGTCCCTCCGGTTGGTCTTCCTATGATCGGTATTGCTACAAGCCCTTCAAACAAGAGATGACCTGGGCCGATGCAGAGAGGTTCTGCTCGGAGCAGGCGAAGGGCGGGCATCTCCTCTCTGTCGAAACCGCCCTAGAAGCATCCTTTGTGGACAATGTGCTCTATGCGAACAAAGAGTACCTCACACGTTATATCTGGATTGGACTGAGGGTTCAAAACAAAGGACAGCCATGCTCCAGCATCAGTTATGAGAACCTGGTTGACCCATTTGAATGTTTTATGGTGAGCAGAGACACAAGGCTTCGTGAGTGGTTTAAAGTTGACTGTGAACAACAACATTCTTTCATATGCAAGTTCACGCGACCACGTTAA"}
              (gb/get-interval-sequence ngint ngseq)))
       (fs/delete-dir (fs/parent (:file ngstore))))))
 

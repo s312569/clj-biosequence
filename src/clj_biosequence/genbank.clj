@@ -1,4 +1,4 @@
-(ns biosequence.genbank
+(ns clj-biosequence.genbank
   (:require [clojure.data.xml :as xml]
             [clojure.data.zip.xml :as zf]
             [clojure.zip :as zip]
@@ -8,7 +8,7 @@
             [clojure.pprint :as pp]
             [fs.core :as fs]
             [clojure.java.jdbc :as sql]
-            [biosequence.core :as bs]))
+            [clj-biosequence.core :as bs]))
 
 (declare qualifier-extract init-genbank-store feature-seq genbank-search-helper genbank-sequence-helper)
 

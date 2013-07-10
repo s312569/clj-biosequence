@@ -1,14 +1,14 @@
-(ns biosequence.blast
+(ns clj-biosequence.blast
   (:require [clojure.java.io :as io]
             [fs.core :as fs]
             [clj-commons-exec :as exec]
             [clojure.data.zip.xml :as zf]
             [clojure.zip :as zip]
-            [biosequence.core :as bios]
+            [clj-biosequence.core :as bios]
             [clojure.pprint :as pp]
             [clojure.string :as st]
             [clojure.data.xml :as xml])
-  (:import [biosequence.core fastaSequence]))
+  (:import [clj-biosequence.core fastaSequence]))
 
 (import '(java.io BufferedReader StringReader))
 

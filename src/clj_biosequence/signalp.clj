@@ -1,10 +1,10 @@
-(ns biosequence.signalp
+(ns clj-biosequence.signalp
   (:require [clojure.java.io :as io]
             [fs.core :as fs]
             [clj-commons-exec :as exec]
             [clojure.data.zip.xml :as zf]
             [clojure.zip :as zip]
-            [biosequence.core :as bios]
+            [clj-biosequence.core :as bios]
             [clojure.string :as string]
             [clojure.pprint :as pp]
             [clojure.data.xml :as xml]))

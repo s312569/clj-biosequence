@@ -1,4 +1,4 @@
-(ns biosequence.core
+(ns clj-biosequence.core
   (:require [clojure.java.io :as io]
             [clojure.java.jdbc :as sql]
             [fs.core :as fs]

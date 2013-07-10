@@ -1,11 +1,11 @@
-(ns biosequence.uniprot
+(ns clj-biosequence.uniprot
   (:require [clojure.data.xml :as xml]
             [clojure.data.zip.xml :as zf]
             [clojure.zip :as zip]
             [clojure.string :as string]
             [clojure.java.io :as io]
             [clojure.pprint :as pp]
-            [biosequence.core :as bios]
+            [clj-biosequence.core :as bios]
             [clj-http.client :as client]
             [fs.core :as fs]
             [clojure.java.jdbc :as sql]))
