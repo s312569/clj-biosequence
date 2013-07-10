@@ -17,7 +17,8 @@
 ;; macros
 
 (defmacro with-iterations-in-search
-  "Returns a handle to a lazy list of blastIteration objects in a blastSearch object."
+  "Returns a handle to a lazy list of blastIteration objects 
+   in a blastSearch object."
   [[handle blastsearch] & body]
   `(with-open [rdr# (io/reader (:src ~blastsearch))]
      (let [~handle (map #(assoc (->blastIteration (zip/node %))

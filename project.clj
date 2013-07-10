@@ -11,4 +11,6 @@
                  [clj-http "0.7.4"]
                  [fs "1.3.2"]
                  [org.clojars.hozumi/clj-commons-exec "1.0.6"]]
-  :plugins [[codox "0.6.4"]])
+  :plugins [[codox "0.6.4"]]
+  :codox {:src-dir-uri "https://github.com/s312569/clj-biosequence/blob/master/"
+          :src-linenum-anchor-prefix "L"})
