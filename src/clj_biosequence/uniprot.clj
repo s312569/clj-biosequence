@@ -50,9 +50,6 @@
            (:amino-acids (amino-acids this))
            \newline)))
 
-  (fasta-to-stream [this wrt]
-    (pp/cl-format wrt "~A" (bios/fasta-string this)))
-
   (protein? [this] true)
   
   (org-scientific-name [this]

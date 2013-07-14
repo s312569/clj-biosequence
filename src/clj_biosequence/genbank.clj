@@ -212,10 +212,7 @@
     (str ">gb|" (bs/accession this) "|"
          (apply str (bs/accessions this))
          "| " (bs/def-line this) \newline
-         (bs/sequence-string this)))
-
-  (fasta-to-stream [this wrt]
-    (pp/cl-format wrt "~A~%" (bs/fasta-string this))))
+         (bs/sequence-string this))))
 
 (defn moltype
   [gbseq]

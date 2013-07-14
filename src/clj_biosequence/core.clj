@@ -62,8 +62,6 @@
     "Returns the sequence of a biosequence as a string.")
   (fasta-string [this]
     "Returns the biosequence as a string in fasta format.")
-  (fasta-to-stream [this wrt]
-    "Emits biosequence in fasta format to wrt.")
   (protein? [this]
     "Returns true if a protein and false otherwise.")
   (org-scientific-name [this]
@@ -239,9 +237,6 @@
       (pp/cl-format nil ">~A~%~A~%"
                     (:accession this)
                     (:sequence this))))
-
-  (fasta-to-stream [this str]
-    (pp/cl-format str "~A" (fasta-string this)))
 
   (org-scientific-name [this]
     nil)
