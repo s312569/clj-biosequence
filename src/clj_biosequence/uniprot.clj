@@ -344,7 +344,7 @@
        (throw (Throwable. (str retype
                                " not allowed. "
                                "Only :xml and :fasta are allowed retype values.")))
-       (uniprot-sequence-helper (partition-all 10000 (if (coll? accessions)
+       (uniprot-sequence-helper (partition-all 1000 (if (coll? accessions)
                                                       accessions
                                                       (list accessions)))
                                 retype email))))
@@ -368,17 +368,18 @@
      (let [r (remove #(= % "")
                      (string/split
                       (:body
-                       (client/get (str "http://www.uniprot.org/uniprot/?query="
-                                        term
-                                        "&format=list"
-                                        (str "&offset=" offset)
-                                        "&limit=1000")
-                                   {:client-params {"http.useragent"
-                                                    (str "clj-http " email)}}))
+                       (client/get
+                        (str "http://www.uniprot.org/uniprot/?query="
+                             term
+                             "&format=list"
+                             (str "&offset=" offset)
+                             "&limit=1000")
+                        {:client-params {"http.useragent"
+                                         (str "clj-http " email)}}))
                       #"\n"))]
        (if (empty? r)
          nil
-         (lazy-cat r (wget-uniprot-search term email (+ offset 10000)))))))
+         (lazy-cat r (wget-uniprot-search term email (+ offset 1000)))))))
 
 ;; utilities
 
@@ -429,8 +430,10 @@
                    (throw (Throwable. "Too many tries."))
                    :else
                    (recur
-                    (do (Thread/sleep (read-string
-                                       (get (:headers r) "retry-after")))a)
+                    (do (Thread/sleep (* 10
+                                         (read-string
+                                          (get (:headers r) "retry-after"))))
+                        a)
                     (+ 1 c)))))]
         (if (some #(= (:status p) %) '(302 303))
           (do
