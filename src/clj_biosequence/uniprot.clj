@@ -420,28 +420,24 @@
 
 (defn- uniprot-process-request
   [address params file]
-  (let [p (client/post address params)]
-    (cond (= (:status p) 302)
-          (do (fs/delete file)
-              (client/get (get (:headers p) "location")))
-          (= (:status p) 303)
-          (do (fs/delete file)
-              (Thread/sleep (get (:headers p) "retry-after"))
-              (loop [r (client/get (get (:headers p) "location"))
-                     c 0]
-                (cond (nil? (read-string (get (:headers r) "retry-after")))
-                      (client/get (get (:headers r) "location"))
-                      (> c 5)
-                      (throw (Throwable. "Too many tries."))
-                      :else
-                      (do
-                        (Thread/sleep
-                         (read-string (get (:headers r) "retry-after")))
-                        (recur (client/get (get (:headers r) "location"))
-                               (+ 1 c))))))
-          :else
-          (throw (Throwable. (str "Problem in sequence retrieval: status code "
-                                  (:status p)))))))
+  (try
+    (let [p (client/post address params)]
+      (letfn [(check [r c]
+                (cond
+                 (nil? (get (:headers r) "retry-after"))
+                 (client/get (get (:headers r) "location"))
+                 (> c 5)
+                 (throw (Throwable. "Too many tries."))
+                 :else
+                 (recur
+                  (do (Thread/sleep (get (:headers r) "retry-after"))
+                      (client/get (get (:headers p) "location")))
+                  (+ 1 c))))]
+        (check p 0)))
+    (catch Exception e
+      (println e))
+    (finally
+      (fs/delete file))))
 
 (defn- init-uniprot-store
   [file memory]
