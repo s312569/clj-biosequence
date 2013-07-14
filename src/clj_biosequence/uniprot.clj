@@ -426,8 +426,19 @@
               (client/get (get (:headers p) "location")))
           (= (:status p) 303)
           (do (fs/delete file)
-              (Thread/sleep (read-string (get (:headers p) "retry-after")))
-              (client/get (get (:headers p) "location")))
+              (Thread/sleep (get (:headers p) "retry-after"))
+              (loop [r (client/get (get (:headers p) "location"))
+                     c 0]
+                (cond (nil? (read-string (get (:headers r) "retry-after")))
+                      (client/get (get (:headers r) "location"))
+                      (> c 5)
+                      (throw (Throwable. "Too many tries."))
+                      :else
+                      (do
+                        (Thread/sleep
+                         (read-string (get (:headers r) "retry-after")))
+                        (recur (client/get (get (:headers r) "location"))
+                               (+ 1 c))))))
           :else
           (throw (Throwable. (str "Problem in sequence retrieval: status code "
                                   (:status p)))))))

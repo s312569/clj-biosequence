@@ -21,7 +21,7 @@ suggestions welcome.
 `clj-biosequence` is available from [Clojars](https://clojars.org/clj-biosequence). For the current version add the following to your project.clj file:
 
 ```clojure
-[clj-biosequence "0.1.2-SNAPSHOT"]
+[clj-biosequence "0.1.3-SNAPSHOT"]
 ```
 
 To use in your namespace:
