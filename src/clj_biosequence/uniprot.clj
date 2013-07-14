@@ -407,7 +407,9 @@
           s  (condp = class
                :xml (filter #(= :entry (:tag %))
                             (:content
-                             (xml/parse-str (:body r))))
+                             (try (xml/parse-str (:body r))
+                                  (catch javax.xml.stream.XMLStreamException e
+                                    (println r)))))
                :fasta (bios/fasta-seq-string (:body r) :protein))]
       (lazy-cat (map #(condp = class
                         :xml (->uniprotProtein (zf/xml1-> (zip/xml-zip %)
