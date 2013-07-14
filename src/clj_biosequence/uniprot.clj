@@ -336,11 +336,10 @@
 ;; web
 
 (defn wget-uniprot-sequence
-  "Takes a list of accessions and returns a 'semi-lazy' (1000 records are fetched at a time)
-   list of sequences corresponding to the accession numbers. The type of sequence entry is
-   specified by 'retype' and can be either :xml for a uniprotProtein object or :fasta for
-   a fastaSequence, no other values are allowed. Uniprot requires an email address so one
-   should be provided in the 'email' argument."
+  "Takes a list of accessions and returns a lazy list of sequences corresponding to the 
+   accession numbers. The type of sequence entry is specified by 'retype' and can be either
+   :xml for a uniprotProtein object or :fasta for a fastaSequence, no other values are allowed.
+   Uniprot requires an email address so one should be provided in the 'email' argument."
   ([accessions retype] (wget-uniprot-sequence accessions retype ""))
   ([accessions retype email]
      (if-not (some #(= retype %)
@@ -348,15 +347,14 @@
        (throw (Throwable. (str retype
                                " not allowed. "
                                "Only :xml and :fasta are allowed retype values.")))
-       (uniprot-sequence-helper (partition-all 1000 (if (coll? accessions)
+       (uniprot-sequence-helper (partition-all 10000 (if (coll? accessions)
                                                       accessions
                                                       (list accessions)))
                                 retype email))))
 
 (defn wget-uniprot-search
-  "Returns a 'semi-lazy' (in that 1000 matches are retrieved at time) list of uniprot accession
-   numbers satisfying the search term. The search term uses the same syntax as the uniprot web
-   interface. For example:
+  "Returns a lazy list of uniprot accession numbers satisfying the search term. The search
+   term uses the same syntax as the uniprot web interface. For example:
    - to get all Schistosoma mansoni proteins in the proteome reference set term would be:
      'organism:6183 AND keyword:1185'
    - get all Schistosoma mansoni proteins in the proteome set that are intrinsic to the
@@ -383,7 +381,7 @@
                       #"\n"))]
        (if (empty? r)
          nil
-         (lazy-cat r (wget-uniprot-search term email (+ offset 1000)))))))
+         (lazy-cat r (wget-uniprot-search term email (+ offset 10000)))))))
 
 ;; utilities
 
@@ -422,20 +420,30 @@
   [address params file]
   (try
     (let [p (client/post address params)]
-      (letfn [(check [r c]
-                (cond
-                 (nil? (get (:headers r) "retry-after"))
-                 (client/get (get (:headers r) "location"))
-                 (> c 5)
-                 (throw (Throwable. "Too many tries."))
-                 :else
-                 (recur
-                  (do (Thread/sleep (get (:headers r) "retry-after"))
-                      (client/get (get (:headers p) "location")))
-                  (+ 1 c))))]
-        (check p 0)))
+      (letfn [(check [a c]
+                (let [r (client/get a {:follow-redirects false})]
+                  (cond
+                   (nil? (get (:headers r) "retry-after"))
+                   (if (= (:status r) 200)
+                     r
+                     (throw (Throwable. (str "Error in sequence retrieval: code"
+                                             (:status r)))))
+                   (> c 50)
+                   (throw (Throwable. "Too many tries."))
+                   :else
+                   (recur
+                    (do (Thread/sleep (read-string
+                                       (get (:headers r) "retry-after")))a)
+                    (+ 1 c)))))]
+        (if (some #(= (:status p) %) '(302 303))
+          (do
+            (if (get (:headers p) "retry-after")
+              (Thread/sleep (read-string (get (:headers p) "retry-after"))))
+            (check (get (:headers p) "location") 0))
+          (throw (Throwable. (str "Error in sequence retrieval"
+                                  p))))))
     (catch Exception e
-      (println e))
+      (throw (Throwable. e)))
     (finally
       (fs/delete file))))
 
