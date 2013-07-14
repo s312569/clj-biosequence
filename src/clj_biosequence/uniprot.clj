@@ -401,11 +401,13 @@
              {:client-params {"http.useragent"
                               (str "clj-http " email)}
               :multipart [{:name "file" :content f}
-                          {:name "format" :content (name class)}]}
+                          {:name "format" :content (name class)}]
+              :follow-redirects false}
              f)
           s  (condp = class
                :xml (filter #(= :entry (:tag %))
-                            (:content (xml/parse-str (:body r))))
+                            (:content
+                             (xml/parse-str (:body r))))
                :fasta (bios/fasta-seq-string (:body r) :protein))]
       (lazy-cat (map #(condp = class
                         :xml (->uniprotProtein (zf/xml1-> (zip/xml-zip %)
@@ -417,11 +419,16 @@
 (defn- uniprot-process-request
   [address params file]
   (let [p (client/post address params)]
-    (if (= (:status p) 302)
-      (do (fs/delete file)
-          (client/get (get (:headers p) "location")))
-      (throw (Throwable. (str "Problem in sequence retrieval: status code "
-                             (:status p)))))))
+    (cond (= (:status p) 302)
+          (do (fs/delete file)
+              (client/get (get (:headers p) "location")))
+          (= (:status p) 303)
+          (do (fs/delete file)
+              (Thread/sleep (read-string (get (:headers p) "retry-after")))
+              (client/get (get (:headers p) "location")))
+          :else
+          (throw (Throwable. (str "Problem in sequence retrieval: status code "
+                                  (:status p)))))))
 
 (defn- init-uniprot-store
   [file memory]
