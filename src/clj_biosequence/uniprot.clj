@@ -344,9 +344,9 @@
        (throw (Throwable. (str retype
                                " not allowed. "
                                "Only :xml and :fasta are allowed retype values.")))
-       (uniprot-sequence-helper (partition-all 1000 (if (coll? accessions)
-                                                      accessions
-                                                      (list accessions)))
+       (uniprot-sequence-helper (if (coll? accessions)
+                                  accessions
+                                  (list accessions))
                                 retype email))))
 
 (defn wget-uniprot-search
@@ -387,9 +387,8 @@
   [accessions class email]
   (if (empty? accessions)
     nil
-    (let [a (first accessions)
-          f (let [file (fs/temp-file "up-seq-")]
-              (doseq [s a]
+    (let [f (let [file (fs/temp-file "up-seq-")]
+              (doseq [s accessions]
                 (spit file (str s "\n") :append true))
               file)
           r (uniprot-process-request
