@@ -365,6 +365,20 @@
 ;; utilities
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn now
+  []
+  (.getTime (java.util.Date.)))
+
+(defn time-stamped-file
+  ([base] (time-stamped-file base nil))
+  ([base ext]
+     (let [nf (if ext
+                (fs/file (str base "-" (now) "." ext))
+                (fs/file (str base "-" (now))))]
+       (if-not (fs/exists? nf)
+         nf
+         (time-stamped-file base ext)))))
+
 (defn- db-parsing
   [st k]
   (with-connection-to-store [st]
