@@ -10,7 +10,7 @@
             [fs.core :as fs]
             [clojure.java.jdbc :as sql]))
 
-(declare prot-names prot-name process-feature process-sequence process-cites process-dbref text? init-uniprot-store meta-data amino-acids nomenclature organism-name uniprot-process-request uniprot-sequence-helper)
+(declare prot-names prot-name process-feature process-sequence process-cites process-dbref text? init-uniprot-store meta-data amino-acids nomenclature organism-name uniprot-process-request uniprot-sequence-helper read-xml-from-stream)
 
 ;; protein
 
@@ -282,6 +282,22 @@
 
 ;; file
 
+(defn read-xml-from-stream
+  [rdr]
+  (letfn [(process [x]
+            (if (empty? x)
+              nil
+              (lazy-seq (cons (->uniprotProtein (zf/xml1-> (zip/xml-zip (first x))
+                                                           :accession
+                                                           zf/text)
+                                                (first x))
+                              (process (rest x))))))]
+    (let [xml (xml/parse rdr)]
+      (if (= (:tag xml) :uniprot)
+        (process (filter #(= (:tag %) :entry)
+                         (:content xml)))
+        (throw (Throwable. "Doesn't appear to be a uniprot XML file."))))))
+
 (defrecord uniprotXmlFile [file])
 
 (extend-protocol bios/biosequenceFile
@@ -289,15 +305,7 @@
   uniprotXmlFile
   
   (biosequence-seq-file [this rdr]
-    (let [xml (xml/parse rdr)]
-      (if (= (:tag xml) :uniprot)
-        (map #(->uniprotProtein (zf/xml1-> (zip/xml-zip %)
-                                           :accession
-                                           zf/text)
-                                %)
-             (filter #(= (:tag %) :entry)
-                     (:content xml)))
-        (throw (Throwable. "Doesn't appear to be a uniprot XML file.")))))
+    (read-xml-from-stream rdr))
 
   (file-path [this]
     (:file this)))
@@ -332,22 +340,48 @@
 
 ;; web
 
-(defn wget-uniprot-sequence
+(defn get-uniprot-stream
+  "Returns a GZIPInputStream from Uniprot with the results of a batch fetch command for
+   the sequences in a collection of accessions."
+  [accessions class email]
+  (if (empty? accessions)
+    nil
+    (let [f (let [file (fs/temp-file "up-seq-")]
+              (doseq [s accessions]
+                (spit file (str s "\n") :append true))
+              file)]
+      (:body (uniprot-process-request "http://www.uniprot.org/batch/"
+                                 {:client-params {"http.useragent"
+                                                  (str "clj-http " email)}
+                                  :multipart [{:name "file" :content f}
+                                              {:name "format" :content (name class)}]
+                                  :follow-redirects false}
+                                 f)))))
+
+(defmacro with-wget-uniprot-sequence
   "Takes a list of accessions and returns a lazy list of sequences corresponding to the 
    accession numbers. The type of sequence entry is specified by 'retype' and can be either
    :xml for a uniprotProtein object or :fasta for a fastaSequence, no other values are allowed.
    Uniprot requires an email address so one should be provided in the 'email' argument."
-  ([accessions retype] (wget-uniprot-sequence accessions retype ""))
-  ([accessions retype email]
-     (if-not (some #(= retype %)
-                   '(:xml :fasta))
-       (throw (Throwable. (str retype
-                               " not allowed. "
-                               "Only :xml and :fasta are allowed retype values.")))
-       (uniprot-sequence-helper (if (coll? accessions)
-                                  accessions
-                                  (list accessions))
-                                retype email))))
+  [[handle accessions retype email] & code]
+  `(if (not (some #(= ~retype %) '(:xml :fasta)))
+     (throw (Throwable. (str ~retype
+                             " not allowed. "
+                             "Only :xml and :fasta are allowed retype values.")))
+     (let [rdr# (get-uniprot-stream (if (coll? ~accessions)
+                                           ~accessions
+                                           (list ~accessions))
+                                    ~retype ~email)]
+       (with-open [str# (java.io.PushbackReader. (io/reader rdr#))]
+         (let [~handle (condp = ~retype
+                         :xml (read-xml-from-stream str#)
+                         :fasta (bios/read-fasta-from-stream str#))]
+           (try
+             ~@code
+             (catch Exception e#
+               (throw (Throwable. e#)))
+             (finally
+               (.close rdr#))))))))
 
 (defn wget-uniprot-search
   "Returns a lazy list of uniprot accession numbers satisfying the search term. The search
@@ -383,42 +417,13 @@
 
 ;; utilities
 
-(defn- uniprot-sequence-helper
-  [accessions class email]
-  (if (empty? accessions)
-    nil
-    (let [f (let [file (fs/temp-file "up-seq-")]
-              (doseq [s accessions]
-                (spit file (str s "\n") :append true))
-              file)
-          r (uniprot-process-request
-             "http://www.uniprot.org/batch/"
-             {:client-params {"http.useragent"
-                              (str "clj-http " email)}
-              :multipart [{:name "file" :content f}
-                          {:name "format" :content (name class)}]
-              :follow-redirects false}
-             f)
-          s  (condp = class
-               :xml (filter #(= :entry (:tag %))
-                            (:content
-                             (try (xml/parse-str (:body r))
-                                  (catch javax.xml.stream.XMLStreamException e
-                                    (println r)))))
-               :fasta (bios/fasta-seq-string (:body r) :protein))]
-      (lazy-cat (map #(condp = class
-                        :xml (->uniprotProtein (zf/xml1-> (zip/xml-zip %)
-                                                          :accession
-                                                          zf/text) %)
-                        :fasta %) s)
-                (uniprot-sequence-helper (rest accessions) class email)))))
-
 (defn- uniprot-process-request
   [address params file]
   (try
     (let [p (client/post address params)]
       (letfn [(check [a c]
-                (let [r (client/get a {:follow-redirects false})]
+                (let [r (client/get a {:follow-redirects false
+                                       :as :stream})]
                   (cond
                    (nil? (get (:headers r) "retry-after"))
                    (if (= (:status r) 200)

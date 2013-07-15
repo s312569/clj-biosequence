@@ -149,9 +149,9 @@
           (sql/create-table :sequence
                             [:id "varchar(255)" "PRIMARY KEY" "NOT NULL"]
                             [:src :clob])
-          (sql/create-table :parsing
-                            [:idregex "varchar(50)"]
-                            [:descregex "varchar(50)"]))
+          (sql/create-table :meta
+                            [:id "varchar(50)" "PRIMARY KEY" "NOT NULL"]
+                            [:src :clob]))
         db)
       (catch Exception e
         (fs/delete-dir (fs/parent (:file store)))))))
@@ -261,7 +261,21 @@
 
 ;; files
 
-(defrecord fastaFile [file type idregex descregex])
+(defn read-fasta-from-stream
+  [rdr type]
+  (letfn [(process [x]
+            (if (empty? x)
+              nil
+              (let [s (first x)]
+                (lazy-seq (cons (->fastaSequence (first s) 
+                                             (second s)
+                                             type
+                                             (nth s 2))
+                                (process (rest x)))))))]
+    (process (take-while (complement nil?)
+                         (repeatedly #(read-seq rdr))))))
+
+(defrecord fastaFile [file type])
 
 (extend-protocol biosequenceFile
   
@@ -271,35 +285,24 @@
     (:file this))
 
   (biosequence-seq-file [this rdr]
-    (map #(->fastaSequence (first %) (second %) (:type this) (nth % 2))
-         (take-while (complement nil?)
-                     (repeatedly #(read-seq rdr (:idregex this) (:descregex this)))))))
+    (read-fasta-from-stream rdr (:type this))))
 
 (defn init-fasta-file
-  "Initialises fasta protein file. Regular expressions can be supplied for the parsing 
-   of accession and description from the fasta entry. Default regular expressions split
-   on first space with accession being first entry and description the second."
-  ([path type] (init-fasta-file path type #"^([^\s]+)" #"^[^\s]+\s+(.+)"))
-  ([path type idregex] (init-fasta-file path type idregex #"^[^\s]+\s+(.+)"))
-  ([path type idregex descregex]
-     (if-not (or (= :protein type) (= :nucleotide type))
-       (throw (Throwable. "Fasta file type can be :protein or :nucleotide only."))
-       (if (fs/exists? path)
-         (->fastaFile path type idregex descregex)
-         (throw (Throwable. (str "File not found: " path)))))))
+  "Initialises fasta protein file. Accession numbers and description are processed by splitting 
+   the string on the first space, the accession being the first value and description the second."
+  [path type]
+  (if-not (or (= :protein type) (= :nucleotide type))
+    (throw (Throwable. "Fasta file type can be :protein or :nucleotide only."))
+    (if (fs/exists? path)
+      (->fastaFile path type)
+      (throw (Throwable. (str "File not found: " path))))))
 
 (defn fasta-seq-string
   "Returns a non-lazy list of fastaSequence objects from a string."
-  ([string type] (fasta-seq-string string type #"^([^\s]+)" #"^[^\s]+\s+(.+)"))
-  ([string type idregex descregex]
-     (with-in-str string
-      (with-open [rdr (java.io.PushbackReader. *in*)]
-        (doall (map #(->fastaSequence (first %)
-                                      (second %)
-                                      type
-                                      (nth % 2))
-                    (take-while (complement nil?)
-                                (repeatedly #(read-seq rdr idregex descregex)))))))))
+  [string type]
+  (with-in-str string
+    (with-open [rdr (java.io.PushbackReader. *in*)]
+      (doall (read-fasta-from-stream rdr type)))))
 
 ;; persistence
 
@@ -321,10 +324,7 @@
   (let [file (first (fs/glob (str dir "/" "*.h2.db")))
         db-file (second (re-find  #"(.+)\.h2.db" (fs/absolute-path file)))]
     (if (not (nil? db-file))
-      (let [st (assoc (->fastaStore db-file type)
-                 :db (make-db-connection db-file true))]
-        (assoc st :idregex (db-parsing st :idregex)
-               :descregex (db-parsing st :descregex)))
+      (->fastaStore db-file type)
       (throw (Throwable. "DB file not found!")))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -381,32 +381,19 @@
     (init-in-mem-store (assoc 
                            (->fastaStore 
                             'in-memory 
-                            (:type fastafile))
-                         :idregex
-                         (:idregex fastafile)
-                         :descregex
-                         (:descregex fastafile)))
-    (let [st (init-store (->fastaStore 
-                          (index-file-name (file-path fastafile)) 
-                          (:type fastafile)))]
-      (with-connection-to-store [st]
-        (sql/insert-record :parsing 
-                           {:idregex (pr-str (:idregex fastafile))
-                            :descregex (pr-str (:descregex fastafile))}))
-      (assoc st
-        :idregex (:idregex fastafile)
-        :descregex (:descregex fastafile)))))
+                            (:type fastafile))))
+    (init-store (->fastaStore 
+                 (index-file-name (file-path fastafile)) 
+                 (:type fastafile)))))
 
 (defn- read-seq
-  [^java.io.PushbackReader strm 
-   idregex 
-   descregex]
+  [^java.io.PushbackReader strm]
   (let [c (.read strm)]
     (cond (= c -1) nil
           (= (char c) \>)
           (let [d (pb-read-line strm)]
-            (vector (get (re-find idregex d) 1)
-                    (get (re-find descregex d) 1)
+            (vector (get (re-find #"^([^\s]+)" d) 1)
+                    (get (re-find #"^[^\s]+\s+(.+)" d) 1)
                     (loop [e (.read strm)
                            acc []]
                       (cond (= e -1) (apply str acc)
