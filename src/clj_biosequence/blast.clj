@@ -426,18 +426,6 @@
                     blasts))))
    strm))
 
-(defn- time-stamped-file
-  [file]
-  (loop [f file
-         n (str f "-blast-" (now))]
-    (if-not (fs/exists? n)
-      n
-      (recur f (str f "-blast-" (now))))))
-
-(defn- now
-  []
-  (.getTime (java.util.Date.)))
-
 (defn- store-blast-file
   [store]
   (let [bl-dir (str (fs/parent (:file store)) "/" "blast")]
