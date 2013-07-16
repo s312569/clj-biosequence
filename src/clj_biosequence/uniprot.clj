@@ -434,9 +434,7 @@
                    (throw (Throwable. "Too many tries."))
                    :else
                    (recur
-                    (do (Thread/sleep (* 10
-                                         (read-string
-                                          (get (:headers r) "retry-after"))))
+                    (do (Thread/sleep 3000)
                         a)
                     (+ 1 c)))))]
         (if (some #(= (:status p) %) '(302 303))
