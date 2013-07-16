@@ -42,7 +42,7 @@
                "Swiss-Prot" "sp"
                "TrEMBL" "tr")]
       (str ">" db "|"
-           (string/join "|" (bios/accessions this))
+           (string/join "|" (take 2 (bios/accessions this)))
            "|"
            (prot-name this)
            " " (bios/def-line this)
