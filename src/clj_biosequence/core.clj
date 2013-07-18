@@ -350,16 +350,18 @@
    WormBase	            WORMBASE_ID	     both"
   [ids from to email]
   (let [param {:from from :to to :format "tab" 
-               :query (apply str (interpose "," (if (list? ids)
-                                                  ids
-                                                  (list ids))))}
+               :query (apply str (doall (interpose "," (if (list? ids)
+                                                         ids
+                                                         (list ids)))))}
         address "http://www.uniprot.org/mapping/"
-        r (:body (client/post address 
-                              {:client-params {"http.useragent" (str "clj-http " email)}
-                               :follow-redirects true
-                               :force-redirects true
-                               :form-params param}))]
-    (into {} (map #(string/split % #"\t") (rest (string/split r #"\n"))))))
+        r (client/post address 
+                       {:client-params {"http.useragent" (str "clj-http " email)}
+                        :follow-redirects true
+                        :force-redirects true
+                        :form-params param})]
+    (if-not (= 200 (:status r))
+      (throw (Throwable. (str "Error in mapping request: " (:body r))))
+      (into {} (map #(string/split % #"\t") (rest (string/split (:body r) #"\n")))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; utilities

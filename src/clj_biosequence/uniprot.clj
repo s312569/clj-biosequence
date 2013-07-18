@@ -375,7 +375,7 @@
        (with-open [str# (java.io.PushbackReader. (io/reader rdr#))]
          (let [~handle (condp = ~retype
                          :xml (read-xml-from-stream str#)
-                         :fasta (bios/read-fasta-from-stream str#))]
+                         :fasta (bios/read-fasta-from-stream str# :protein))]
            (try
              ~@code
              (catch Exception e#
