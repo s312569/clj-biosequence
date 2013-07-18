@@ -28,7 +28,7 @@
                     (println (first l))
                     (println (last l)))))
        (is (= nil
-              (fasta-to-stream nuc *out*)))
+              (println (fasta-string nuc))))
        (is (= clj_biosequence.core.fastaStore
               (class store)))
        (is (= nil (with-biosequences [l store]
@@ -84,7 +84,7 @@
       (is (= '("C4PYP8" "G4VQR6")
              (accessions useq)))
       (is (= nil (println (fasta-string useq))))
-      (is (= nil (fasta-to-stream useq *out*)))
+      (is (= nil (println (fasta-string useq))))
       (is (= "Schistosoma mansoni" (org-scientific-name useq)))
       (is (= "2010-03-23" (created useq)))
       (is (= "2012-10-03" (modified useq)))
@@ -150,7 +150,7 @@
       (is (= true (protein? pgseq)))
       (is (= ">gb|B3EWH7|sp|B3EWH7.1|CYCM_PETHYgi|408407585| RecName: Full=Acyclotide phyb-M\nQSISCAESCVWIPCATSLIGCSCVNSRCIYSK"
              (fasta-string pgseq)))
-      (is (= nil (fasta-to-stream pgseq *out*)))
+      (is (= nil (println (fasta-string pgseq))))
       (is (= "CYCM_PETHY" (gb/gb-locus pgseq)))
       (is (= 12 (count (gb/feature-seq pgseq))))
       (is (= "Region" (gb/feature-type pgfeat)))
@@ -161,13 +161,13 @@
       (is (= 32 (gb/end pgint)))
       (is (= false (gb/comp? pgint)))
       (is (= #clj_biosequence.core.fastaSequence{:accession "B3EWH7", :description "RecName: Full=Acyclotide phyb-M [1-32]", :type :protein, :sequence "QSISCAESCVWIPCATSLIGCSCVNSRCIYSK"} (gb/get-interval-sequence pgint pgseq)))
-      (is (= "152031586" (first (gb/wget-genbank-search "cyclotide" :protein))))
       (is (= #clj_biosequence.core.fastaSequence{:accession "gi|152031586|sp|P58440.2|CYO8_VIOOD", :description "RecName: Full=Cycloviolacin-O8; AltName: Full=Cyclotide c1; Flags: Precursor", :type :protein, :sequence "MEMKNMVVGLFLIAAFALPALATNFEKDFITHETVQAILKKVGPSSNGMLDEQTISALTGKTIISNPVLEEALLTHSNSINALGGTLPCGESCVWIPCISSVVGCSCKSKVCYKNSLA"}
-             (first (gb/wget-genbank-sequence "152031586" :protein :fasta))))
+             (gb/with-wget-genbank-sequence [l "152031586" :protein :fasta]
+               (first l))))
       (is (= '("sp|P58440.2|CYO8_VIOOD" "gi|152031586")
              (accessions
-              (first
-               (gb/wget-genbank-sequence "152031586" :protein :xml)))))
+              (gb/with-wget-genbank-sequence [l "152031586" :protein :xml]
+                (first l)))))
       (fs/delete-dir (fs/parent (:file pgstore))))))
 
 (deftest genbank-nuc
@@ -200,7 +200,7 @@
       (is (= false (protein? ngseq)))
       (is (= ">gb|GAAZ01003035|gb|GAAZ01003035.1|gnl|TSA:GAAZ01|Chorr_CTL-10gi|521752463| TSA: Crotalus horridus Chorr_CTL-10 mRNA sequence\nCTCCATTCCCCTCATAGGAGGAAAGCCTGGAGTTGCCTCTGAGCAGACTTGCTACCTGTGGAGGCCGAGGAACAGTTCTCTCTGCAGGGAAGGAAAGAACGCCATGGGGCGATTCATCTTCGTGAGCTTCAACTTGCTGGTCGTGTTCCTCTCCCTAAGTGGAACTCTAGCTGATTTGGAATGTCCCTCCGGTTGGTCTTCCTATGATCGGTATTGCTACAAGCCCTTCAAACAAGAGATGACCTGGGCCGATGCAGAGAGGTTCTGCTCGGAGCAGGCGAAGGGCGGGCATCTCCTCTCTGTCGAAACCGCCCTAGAAGCATCCTTTGTGGACAATGTGCTCTATGCGAACAAAGAGTACCTCACACGTTATATCTGGATTGGACTGAGGGTTCAAAACAAAGGACAGCCATGCTCCAGCATCAGTTATGAGAACCTGGTTGACCCATTTGAATGTTTTATGGTGAGCAGAGACACAAGGCTTCGTGAGTGGTTTAAAGTTGACTGTGAACAACAACATTCTTTCATATGCAAGTTCACGCGACCACGTTAAGATCCGGCTGTGTGAAGTCTGGAGAAGCAAGGAAGCCCCCCACCTCTCCCCACCCCCCACCTGCCGCAATCTCTG"
              (fasta-string ngseq)))
-      (is (= nil (fasta-to-stream ngseq *out*)))
+      (is (= nil (println (fasta-string ngseq))))
       (is (= "GAAZ01003035" (gb/gb-locus ngseq)))
       (is (= 2 (count (gb/feature-seq ngseq))))
       (is (= "CDS" (gb/feature-type ngfeat)))
