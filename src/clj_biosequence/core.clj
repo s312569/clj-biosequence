@@ -324,7 +324,7 @@
   (let [file (first (fs/glob (str dir "/" "*.h2.db")))
         db-file (second (re-find  #"(.+)\.h2.db" (fs/absolute-path file)))]
     (if (not (nil? db-file))
-      (assoc :db (->fastaStore db-file type)
+      (assoc (->fastaStore db-file type) :db
              (make-db-connection file false))
       (throw (Throwable. "DB file not found!")))))
 
