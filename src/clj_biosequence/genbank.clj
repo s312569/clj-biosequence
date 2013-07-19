@@ -275,7 +275,7 @@
   ([genbankfile memory]
      (let [st (init-genbank-store genbankfile memory)]
        (bs/with-connection-to-store [st]
-         (bs/with-biosequences-in-file [l genbankfile]
+         (bs/with-biosequences [l genbankfile]
            (dorun (map #(bs/save-object %) l))))
        st)))
 

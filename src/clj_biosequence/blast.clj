@@ -295,7 +295,7 @@
      (let [out (bios/time-stamped-file (:file file))]
        (with-open [wrt (io/writer out)]
          (merge-blasts
-          (bios/with-biosequences-in-file [l file]
+          (bios/with-biosequences [l file]
             (doall (pmap #(let [i (fs/temp-file "seq-")
                                 o (fs/temp-file "blast-")]
                             (doseq [s %]

@@ -323,7 +323,7 @@
   ([uniprotfile memory]
      (let [st (init-uniprot-store uniprotfile memory)]
        (bios/with-connection-to-store [st]
-         (bios/with-biosequences-in-file [l uniprotfile]
+         (bios/with-biosequences [l uniprotfile]
            (dorun (pmap #(bios/save-object %) l))))
        st)))
 

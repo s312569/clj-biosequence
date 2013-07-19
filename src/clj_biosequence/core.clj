@@ -6,7 +6,7 @@
             [clj-http.client :as client]
             [clojure.string :as string]))
 
-(declare codon-tables declob with-connection-to-store read-seq pb-read-line init-fasta-store translate translate-string adjust-dna-frame map-frame)
+(declare codon-tables declob with-connection-to-store read-seq pb-read-line init-fasta-store translate translate-string adjust-dna-frame map-frame sink-type)
 
 ; macros
 
@@ -17,24 +17,38 @@
      (sql/transaction
       ~@code)))
 
-(defmacro with-biosequences-in-file
-  "Returns a handle to a lazy list of biosequences in a biosequence file object."
-  [[handle file] & body]
-  `(with-open [rdr# (java.io.PushbackReader. (io/reader (:file ~file)))]
-     (let [~handle (biosequence-seq-file ~file rdr#)]
-       ~@body)))
-
 (defmacro with-biosequences
   "Provides a handle to a lazy list of biosequences in a biosequence store object."
-  [[handle store] & body]
-  `(with-connection-to-store [~store]
-     (sql/with-query-results res#
-       ["select * from sequence"]
-       {:fetch-size 10 :concurrency :read-only :result-type :forward-only}
-       (let [~handle (map #(assoc (declob (:src %))
-                             :db (:db ~store))
-                          res#)]
-         ~@body))))
+  [[handle sink] & body]
+  `(if (satisfies? biosequenceFile ~sink)
+     (with-open [rdr# (java.io.PushbackReader. (io/reader (:file ~sink)))]
+       (let [~handle (biosequence-seq-file ~sink rdr#)]
+         ~@body))
+     (with-connection-to-store [~sink]
+       (sql/with-query-results res#
+         ["select * from sequence"]
+         {:fetch-size 10 :concurrency :read-only :result-type :forward-only}
+         (let [~handle (map #(assoc (declob (:src %))
+                               :db (:db ~sink))
+                            res#)]
+           ~@body)))))
+
+(defmacro with-fasta-file
+  "Provides a handle to a temporary fasta file containing the biosequences
+   contained in a biosequence file or store."
+  [[handle sink] & code]
+  `(if (= fastaFile (class ~sink))
+     (let [~handle (init-fasta-file (fs/copy (file-path ~sink)
+                                             (fs/temp-file "fasta"))
+                                    (:type ~sink))]
+       (try ~@code (catch Exception e# (throw e#))
+            (finally (fs/delete ~handle))))
+     (let [~handle (init-fasta-file (fs/temp-file "fasta") (sink-type ~sink))]
+       (with-biosequences [l# ~sink]
+         (doseq [s# l#]
+           (spit (:file ~handle) (fasta-string s#) :append true)))
+       (try ~@code (catch Exception e# (throw e#))
+            (finally (fs/delete (:file ~handle)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; biosequence protocol
@@ -106,6 +120,13 @@
   ([nucleotide table]
      (map #(translate nucleotide % table)
           '(1 2 3 -1 -2 -3))))
+
+(defn sink-type
+  [sink]
+  (with-biosequences [l sink]
+    (if (protein? (first l))
+      :protein
+      :nucleotide)))
 
 ;; persistance
 
@@ -295,7 +316,10 @@
     (:file this))
 
   (biosequence-seq-file [this rdr]
-    (read-fasta-from-stream rdr (:type this))))
+    (read-fasta-from-stream rdr (:type this)))
+
+  (file-type [this]
+    (:type this)))
 
 (defn init-fasta-file
   "Initialises fasta protein file. Accession numbers and description are processed by splitting 
@@ -318,13 +342,20 @@
 
 (defrecord fastaStore [file type])
 
+(extend-protocol biosequenceStore
+
+  fastaStore
+  
+  (store-type [this]
+    (:type this)))
+
 (defn index-fasta-file
   "Indexes a fastaFile object and returns a fastaStore object."
   ([fastafile] (index-fasta-file fastafile false))
   ([fastafile memory]
      (let [st (init-fasta-store fastafile memory)]
        (with-connection-to-store [st]
-         (with-biosequences-in-file [l fastafile]
+         (with-biosequences [l fastafile]
            (dorun (pmap #(save-object %) l))))
        st)))
 
