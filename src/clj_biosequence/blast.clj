@@ -12,7 +12,7 @@
 
 (import '(java.io BufferedReader StringReader))
 
-(declare blastp-defaults run-blast get-sequence-from-blast-db blast-default-params merge-blasts time-stamped-file now store-blast-file with-iterations-in-search split-hsp-align)
+(declare blastp-defaults run-blast get-sequence-from-blast-db blast-default-params merge-blasts store-blast-file with-iterations-in-search split-hsp-align)
 
 ;; macros
 
@@ -304,7 +304,7 @@
    containing the location of the results."
   ([file db prog] (blast-file file db prog {}))
   ([file db prog params]
-     (let [out (time-stamped-file (:file file))]
+     (let [out (bios/time-stamped-file (:file file))]
        (with-open [wrt (io/writer out)]
          (merge-blasts
           (bios/with-biosequences-in-file [l file]
@@ -430,6 +430,6 @@
   [store]
   (let [bl-dir (str (fs/parent (:file store)) "/" "blast")]
     (if (fs/directory? bl-dir)
-      (time-stamped-file (str bl-dir "/" "blast"))
+      (bios/time-stamped-file (str bl-dir "/" "blast"))
       (do (fs/mkdir bl-dir)
-          (time-stamped-file (str bl-dir "/" "blast"))))))
+          (bios/time-stamped-file (str bl-dir "/" "blast"))))))

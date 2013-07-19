@@ -10,11 +10,11 @@
             [fs.core :as fs]
             [clojure.java.jdbc :as sql]))
 
-(declare prot-names prot-name process-feature process-sequence process-cites process-dbref text? init-uniprot-store meta-data amino-acids nomenclature organism-name uniprot-process-request uniprot-sequence-helper read-xml-from-stream)
+(declare prot-names prot-name process-feature process-sequence process-cites process-dbref text? init-uniprot-store meta-data amino-acids nomenclature organism-name uniprot-process-request uniprot-sequence-helper read-up-xml-from-stream)
 
 ;; protein
 
-(defrecord uniprotProtein [accession src])
+(defrecord uniprotProtein [src])
 
 (extend-protocol bios/Biosequence
   
@@ -151,13 +151,14 @@
                             :name
                             zf/text) values))))
 
-(defn citation
-  "Returns a list of citations from a uniprot. Each citation is a map with the keys - 
-   :country, :last (page), :date, :pubmed, :institute, :name (journal), :first (page),
-   :title, :city, :scope, :type, :consortium, :number, :authors, :source, :editors, 
-   :publisher, :volume, :db. All are strings, except for :scope, :editor, :strain and 
-   :author, which are lists of strings. The value of :source is a map with the keys - 
-   :tissue, :transposons, :plasmid and :strain which are all lists of strings."
+(defn citations
+  "Returns a list of citations from a uniprot. Each citation is a map with the keys
+   - :country, :last (page), :date, :pubmed, :institute, :name (journal), :first 
+     (page), :title, :city, :scope, :type, :consortium, :number, :authors, :source,
+     :editors, :publisher, :volume, :db. All are strings, except for :scope, 
+     :editor, :strain and :author, which are lists of strings. The value of :source
+     is a map with the keys - :tissue, :transposons, :plasmid and :strain which are
+     all lists of strings."
   [uniprot]
   (zf/xml-> (zip/xml-zip (:src uniprot))
             :reference
@@ -282,15 +283,12 @@
 
 ;; file
 
-(defn read-xml-from-stream
+(defn read-up-xml-from-stream
   [rdr]
   (letfn [(process [x]
             (if (empty? x)
               nil
-              (lazy-seq (cons (->uniprotProtein (zf/xml1-> (zip/xml-zip (first x))
-                                                           :accession
-                                                           zf/text)
-                                                (first x))
+              (lazy-seq (cons (->uniprotProtein (first x))
                               (process (rest x))))))]
     (let [xml (xml/parse rdr)]
       (if (= (:tag xml) :uniprot)
@@ -305,7 +303,7 @@
   uniprotXmlFile
   
   (biosequence-seq-file [this rdr]
-    (read-xml-from-stream rdr))
+    (read-up-xml-from-stream rdr))
 
   (file-path [this]
     (:file this)))
@@ -341,8 +339,8 @@
 ;; web
 
 (defn get-uniprot-stream
-  "Returns a GZIPInputStream from Uniprot with the results of a batch fetch command for
-   the sequences in a collection of accessions."
+  "Returns a GZIPInputStream from Uniprot with the results of a batch fetch 
+   command for the sequences in a collection of accessions."
   [accessions class email]
   (if (empty? accessions)
     nil
@@ -350,31 +348,38 @@
               (doseq [s accessions]
                 (spit file (str s "\n") :append true))
               file)]
-      (:body (uniprot-process-request "http://www.uniprot.org/batch/"
-                                 {:client-params {"http.useragent"
-                                                  (str "clj-http " email)}
-                                  :multipart [{:name "file" :content f}
-                                              {:name "format" :content (name class)}]
-                                  :follow-redirects false}
-                                 f)))))
+      (try
+        (:body
+         (uniprot-process-request
+          "http://www.uniprot.org/batch/"
+          {:client-params {"http.useragent"
+                           (str "clj-http " email)}
+           :multipart [{:name "file" :content f}
+                       {:name "format" :content (name class)}]
+           :follow-redirects false}
+          f))
+        (catch Exception e
+          (throw e))
+        (finally (fs/delete f))))))
 
 (defmacro with-wget-uniprot-sequence
-  "Takes a list of accessions and returns a lazy list of sequences corresponding to the 
-   accession numbers. The type of sequence entry is specified by 'retype' and can be either
-   :xml for a uniprotProtein object or :fasta for a fastaSequence, no other values are allowed.
-   Uniprot requires an email address so one should be provided in the 'email' argument."
+  "Takes a list of accessions and returns a lazy list of sequences corresponding
+   to the accession numbers. The type of sequence entry is specified by 'retype'
+   and can be either :xml for a uniprotProtein object or :fasta for a fastaSequence,
+   no other values are allowed. Uniprot requires an email address so one should 
+   be provided in the 'email' argument."
   [[handle accessions retype email] & code]
   `(if (not (some #(= ~retype %) '(:xml :fasta)))
      (throw (Throwable. (str ~retype
                              " not allowed. "
                              "Only :xml and :fasta are allowed retype values.")))
      (let [rdr# (get-uniprot-stream (if (coll? ~accessions)
-                                           ~accessions
-                                           (list ~accessions))
+                                      ~accessions
+                                      (list ~accessions))
                                     ~retype ~email)]
        (with-open [str# (java.io.PushbackReader. (io/reader rdr#))]
          (let [~handle (condp = ~retype
-                         :xml (read-xml-from-stream str#)
+                         :xml (read-up-xml-from-stream str#)
                          :fasta (bios/read-fasta-from-stream str# :protein))]
            (try
              ~@code
@@ -384,33 +389,34 @@
                (.close rdr#))))))))
 
 (defn wget-uniprot-search
-  "Returns a lazy list of uniprot accession numbers satisfying the search term. The search
-   term uses the same syntax as the uniprot web interface. For example:
-   - to get all Schistosoma mansoni proteins in the proteome reference set term would be:
+  "Returns a non-lazy list of uniprot accession numbers satisfying the search term. 
+   The search term uses the same syntax as the uniprot web interface. For 
+   example:
+   - to get all Schistosoma mansoni proteins in the proteome reference set term
+     would be:
      'organism:6183 AND keyword:1185'
-   - get all Schistosoma mansoni proteins in the proteome set that are intrinsic to the
-     membrane:
+   - get all Schistosoma mansoni proteins in the proteome set that are intrinsic
+     to the membrane:
      'taxonomy:6183 AND keyword:1185 AND go:0031224'
    - get all reviewed human entries:
      'reviewed:yes AND organism:9606'
-   And so on. Returns an empty list if no matches found. Offset refers to the start of the
-   retrieved results and may be of use if a download fails. Uniprot requires an email so an email
-   can be supplied using the email argument."
+   And so on. Returns an empty list if no matches found. Offset refers to the
+   start of the retrieved results and may be of use if a download fails. Uniprot
+   requires an email so an email can be supplied using the email argument."
   ([term] (wget-uniprot-search term "" 0))
   ([term email] (wget-uniprot-search term email 0))
   ([term email offset]
      (let [r (remove #(= % "")
-                     (string/split
-                      (:body
-                       (client/get
-                        (str "http://www.uniprot.org/uniprot/?query="
-                             term
-                             "&format=list"
-                             (str "&offset=" offset)
-                             "&limit=1000")
-                        {:client-params {"http.useragent"
-                                         (str "clj-http " email)}}))
-                      #"\n"))]
+                     (-> (client/get
+                          (str "http://www.uniprot.org/uniprot/?query="
+                               term
+                               "&format=list"
+                               (str "&offset=" offset)
+                               "&limit=1000")
+                          {:client-params {"http.useragent"
+                                           (str "clj-http " email)}})
+                         (:body)
+                         (string/split #"\n")))]
        (if (empty? r)
          nil
          (lazy-cat r (wget-uniprot-search term email (+ offset 1000)))))))
@@ -419,35 +425,30 @@
 
 (defn- uniprot-process-request
   [address params file]
-  (try
-    (let [p (client/post address params)]
-      (letfn [(check [a c]
-                (let [r (client/get a {:follow-redirects false
-                                       :as :stream})]
-                  (cond
-                   (nil? (get (:headers r) "retry-after"))
-                   (if (= (:status r) 200)
-                     r
-                     (throw (Throwable. (str "Error in sequence retrieval: code"
-                                             (:status r)))))
-                   (> c 50)
-                   (throw (Throwable. "Too many tries."))
-                   :else
-                   (recur
-                    (do (Thread/sleep 3000)
-                        a)
-                    (+ 1 c)))))]
-        (if (some #(= (:status p) %) '(302 303))
-          (do
-            (if (get (:headers p) "retry-after")
-              (Thread/sleep (read-string (get (:headers p) "retry-after"))))
-            (check (get (:headers p) "location") 0))
-          (throw (Throwable. (str "Error in sequence retrieval"
-                                  p))))))
-    (catch Exception e
-      (throw (Throwable. e)))
-    (finally
-      (fs/delete file))))
+  (let [p (client/post address params)]
+    (letfn [(check [a c]
+              (let [r (client/get a {:follow-redirects false
+                                     :as :stream})]
+                (cond
+                 (nil? (get (:headers r) "retry-after"))
+                 (if (= (:status r) 200)
+                   r
+                   (throw (Throwable. (str "Error in sequence retrieval: code"
+                                           (:status r)))))
+                 (> c 50)
+                 (throw (Throwable. "Too many tries."))
+                 :else
+                 (recur
+                  (do (Thread/sleep 3000)
+                      a)
+                  (+ 1 c)))))]
+      (if (some #(= (:status p) %) '(302 303))
+        (do
+          (if (get (:headers p) "retry-after")
+            (Thread/sleep (read-string (get (:headers p) "retry-after"))))
+          (check (get (:headers p) "location") 0))
+        (throw (Throwable. (str "Error in sequence retrieval"
+                                p)))))))
 
 (defn- init-uniprot-store
   [file memory]

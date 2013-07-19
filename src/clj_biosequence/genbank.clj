@@ -143,7 +143,7 @@
 
 ; sequence
 
-(defrecord genbankSequence [accession src])
+(defrecord genbankSequence [src])
 
 (extend-protocol bs/Biosequence
 
@@ -234,6 +234,19 @@
 
 ; file
 
+(defn read-gb-xml-from-stream
+  [rdr]
+  (letfn [(process [x]
+            (if (empty? x)
+              nil
+              (lazy-seq (cons (->genbankSequence (first x))
+                              (process (rest x))))))]
+    (let [xml (xml/parse rdr)]
+      (if (= (:tag xml) :GBSet)
+        (process (filter #(= (:tag %) :GBSeq)
+                         (:content xml)))
+        (throw (Throwable. "Doesn't appear to be a GenBank XML file."))))))
+
 (defrecord genbankFile [file])
 
 (extend-protocol bs/biosequenceFile
@@ -241,15 +254,7 @@
   genbankFile
 
   (biosequence-seq-file [this rdr]
-    (let [xml (xml/parse rdr)]
-      (if (= (:tag xml) :GBSet)
-        (map #(let [a (zf/xml1-> (zip/xml-zip %)
-                                 :GBSeq_primary-accession
-                                 zf/text)]
-                (->genbankSequence a %))
-             (filter #(= (:tag %) :GBSeq)
-                     (:content xml)))
-        (throw (Throwable. "Doesn't appear to be a genbank XML file.")))))
+    (read-gb-xml-from-stream rdr))
   
   (file-path [this]
     (:file this)))
@@ -257,13 +262,6 @@
 (defn init-genbank-file
   [file]
   (->genbankFile file))
-
-(defmacro with-genbank-features-in-file
-  "For use with very large sequences such as genomes."
-  [[gbseq handle feature] & code]
-  `(let [fl# (extract-features-genbank rdr# ~feature)
-           ~handle (map #(->genbankFeature %) fl#)]
-     ~@code))
 
 ;; persistance
 
@@ -291,52 +289,84 @@
 
 ;; web
 
-(defn wget-genbank-sequence
-  "Returns a 'semi-lazy' (1000 sequences are fetched at a time) list of genbankSequences
-   corresponding to the 'accessions' list argument. Accepts any identification that 
-   genbank accepts but will return an exception (status code 400) if the id is not recognised.
-   Can return genbankSequences or fastaSequence objects depending whether the 'class' argument
-   is :xml or :fasta respectively. The 'db' argument has the same format and allowed values as
-   the wget-genbank-search function."
-  [accessions db rettype]
-  (if (some #(= db %) '(:protein :nucleotide :nucest :nuccore :nucgss :popset))
-    (if-not (some #(= rettype %)
-                   '(:xml :fasta))
-      (throw (Throwable. (str rettype
+(defn get-genbank-stream
+  [a-list db rettype]
+  (if (empty? a-list)
+    nil
+    (let [r (client/post "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+                         {:query-params
+                          {:db (name db)
+                           :id (apply str (interpose "," a-list))
+                           :rettype (condp = rettype
+                                      :xml "gb"
+                                      :fasta "fasta")
+                           :retmode (condp = rettype
+                                      :xml "xml"
+                                      :fasta "text")}
+                          :as :stream})]
+      (:body r))))
+
+(defmacro with-wget-genbank-sequence
+  "Returns a 'semi-lazy' (1000 sequences are fetched at a time) list of 
+   genbankSequences corresponding to the 'accessions' list argument. Accepts
+   any identification that genbank accepts but will return an exception 
+   (status code 400) if the id is not recognised. Can return genbankSequences 
+   or fastaSequence objects depending whether the 'class' argument is :xml or
+   :fasta respectively. The 'db' argument has the same format and allowed values
+   as the wget-genbank-search function."
+  [[handle accessions db rettype] & code]
+  `(if (some #(= ~db %) '(:protein :nucest :nuccore :nucgss :popset))
+    (if (some #(= ~rettype %)
+              '(:xml :fasta))
+      (let [rdr# (get-genbank-stream (if (coll? ~accessions)
+                                       ~accessions
+                                       (list ~accessions))
+                                     ~db ~rettype)]
+        (with-open [str# (java.io.PushbackReader. (io/reader rdr#))]
+          (let [~handle (condp = ~rettype
+                          :xml (read-gb-xml-from-stream str#)
+                          :fasta (bs/read-fasta-from-stream
+                                  str#
+                                  (if (= ~db :protein)
+                                    :protein
+                                    :nucleotide)))]
+            (try
+              ~@code
+              (catch Exception e#
+                (throw e#))
+              (finally
+                (.close rdr#))))))
+      (throw (Throwable. (str ~rettype
                               " not allowed. "
-                              "Only :xml and :fasta are allowed rettype values.")))
-      (genbank-sequence-helper (partition-all 1000 (if (coll? accessions)
-                                                     accessions
-                                                     (list accessions)))
-                               db rettype))
-    (throw (Throwable. (str "'" db "' " "not allowed. Only :protein, :nucleotide, :nucest, :nuccore, :nucgss and :popset are acceptable database arguments. See the documentation for 'wget-genbank-search' for an explanation of the different databases.")))))
+                              "Only :xml and :fasta are allowed rettype values."))))
+    (throw (Throwable. (str "'" ~db "' " "not allowed. Only :protein, :nucleotide, :nucest, :nuccore, :nucgss and :popset are acceptable database arguments. See the documentation for 'wget-genbank-search' for an explanation of the different databases.")))))
 
 (defn wget-genbank-search
-  "Returns a 'semi-lazy' (in that it fetches 1000 results at a time) list of result ids from 
-   NCBI for a particular search term and database. Search term syntax is the same as is used 
-   at the NCBI. For example, to retreive all Schistosoma mansoni protein sequences the 'db' 
-   argument would be 'protein' and the search term 'txid6183[Organism:noexp]'. Database arguments
-   are restricted to the following keyword arguments and any other value will cause an error:
-   :protein    - a collection of sequences from several sources, including translations 
-                 from annotated coding regions in GenBank, RefSeq and TPA, as well as 
-                 records from SwissProt, PIR, PRF, and PDB.
-   :nucleotide - a collection of sequences from several sources, including GenBank, 
-                 RefSeq, TPA and PDB.
+  "Returns a lazy list of result ids from NCBI for a particular search term and
+   database. Search term syntax is the same as is used at the NCBI. For example,
+   to retreive all Schistosoma mansoni protein sequences the 'db' argument would
+   be 'protein' and the search term 'txid6183[Organism:noexp]'. Database arguments
+   are restricted to the following keyword arguments and any other value will cause
+   an error:
+   :protein    - a collection of sequences from several sources, including 
+                 translations from annotated coding regions in GenBank, RefSeq 
+                 and TPA, as well as records from SwissProt, PIR, PRF, and PDB.
    :nucest     - a collection of short single-read transcript sequences from GenBank.
    :nuccore    - a collection of sequences from several sources, including GenBank, 
                  RefSeq, TPA and PDB (same as :nucleotide).
-   :nucgss     - a collection of unannotated short single-read primarily genomic sequences
-                 from GenBank including random survey sequences clone-end sequences and 
-                 exon-trapped sequences.
-   :popset     - a set of DNA sequences that have been collected to analyse the evolutionary
-                 relatedness of a population. The population could originate from different
-                 members of the same species, or from organisms from different species. 
+   :nucgss     - a collection of unannotated short single-read primarily genomic
+                 sequences from GenBank including random survey sequences clone-end
+                 sequences and exon-trapped sequences.
+   :popset     - a set of DNA sequences that have been collected to analyse the 
+                 evolutionary relatedness of a population. The population could 
+                 originate from different members of the same species, or from 
+                 organisms from different species. 
 
-   Note that when retrieving popset entries multiple sequences are returned from a single accession
-   number. Returns an empty list if no matches found."
+   Note that when retrieving popset entries multiple sequences are returned from a
+   single accession number. Returns an empty list if no matches found."
   ([term db] (wget-genbank-search term db 0 nil))
   ([term db restart key]
-     (if (some #(= db %) '(:protein :nucleotide :nucest :nuccore :nucgss :popset))
+     (if (some #(= db %) '(:protein :nucest :nuccore :nucgss :popset))
          (let [r (genbank-search-helper term db restart key)
                k (zf/xml1-> (zip/xml-zip r) :WebEnv zf/text)
                c (read-string (zf/xml1-> (zip/xml-zip r) :Count zf/text))]
@@ -350,36 +380,6 @@
          (throw (Throwable. (str "'" db "' " "not allowed. Only :protein, :nucleotide, :nucest, :nuccore, :nucgss and :popset are acceptable database arguments. See the documentation for 'wget-genbank-search' for an explanation of the different databases."))))))
 
 ;private
-
-(defn- genbank-sequence-helper
-  [a-list db class]
-  (if (empty? a-list)
-    nil
-    (let [r (client/post "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
-                         {:query-params
-                          {:db (name db)
-                           :id (apply str (interpose "," (first a-list)))
-                           :rettype (condp = class
-                                      :xml "gb"
-                                      :fasta "fasta")
-                           :retmode (condp = class
-                                      :xml "xml"
-                                      :fasta "text")}})
-          s (condp = class
-              :xml (filter #(= (:tag %) :GBSeq)
-                           (:content
-                            (xml/parse-str (:body r))))
-              :fasta (bs/fasta-seq-string (:body r) (if (= db :protein)
-                                                      :protein
-                                                      :nucleotide)))]
-      (lazy-cat (map #(condp = class
-                        :xml (->genbankSequence (zf/xml1-> (zip/xml-zip %)
-                                                           :GBSeq_primary-accession
-                                                           zf/text)
-                                                %)
-                        :fasta %) 
-                     s)
-                (genbank-sequence-helper (rest a-list) db class)))))
 
 (defn- genbank-search-helper
   ([term db retstart] (genbank-search-helper term db retstart nil))
