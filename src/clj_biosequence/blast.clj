@@ -324,7 +324,7 @@
 
 (defn blast-store
   "Blasts all sequences in a biosequence store against a blastDatabase object
-   and returns a blastSearch contianing the location of the results."
+   and returns a blastSearch containing the location of the results."
   ([store db prog] (blast-store store db prog {}))
   ([store db prog params]
      (let [out (store-blast-file store)]
