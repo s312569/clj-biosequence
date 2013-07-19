@@ -184,6 +184,16 @@
         obj)
     (throw (Throwable. "Object not currently in database."))))
 
+(defn update-object-by-accession
+  "Takes an accession number and key value pairs. If the object exists in
+   the current store the object with the corresponding accession number
+   will be updated with the key value pairs and saved. Throws an exception
+   if a corresponding object is not found in the store."
+  [accession & args]
+  (if-let [seq (get-biosequence accession)]
+    (update-object (apply assoc seq args))
+    (throw (Throwable. (str "No object found with accession: " accession)))))
+
 (defn index-file-name
   "Returns a path suitable for a persistent store."
   [file]
