@@ -6,7 +6,7 @@
             [clj-http.client :as client]
             [clojure.string :as string]))
 
-(declare codon-tables declob with-connection-to-store read-seq pb-read-line init-fasta-store translate translate-string adjust-dna-frame map-frame db-parsing)
+(declare codon-tables declob with-connection-to-store read-seq pb-read-line init-fasta-store translate translate-string adjust-dna-frame map-frame)
 
 ; macros
 
@@ -315,7 +315,7 @@
      (let [st (init-fasta-store fastafile memory)]
        (with-connection-to-store [st]
          (with-biosequences-in-file [l fastafile]
-           (dorun (pmap #(future (save-object %)) l))))
+           (dorun (pmap #(save-object %) l))))
        st)))
 
 (defn load-fasta-store
@@ -325,7 +325,7 @@
         db-file (second (re-find  #"(.+)\.h2.db" (fs/absolute-path file)))]
     (if (not (nil? db-file))
       (assoc (->fastaStore db-file type) :db
-             (make-db-connection file false))
+             (make-db-connection db-file false))
       (throw (Throwable. "DB file not found!")))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -381,15 +381,6 @@
        (if-not (fs/exists? nf)
          nf
          (time-stamped-file base ext)))))
-
-(defn- db-parsing
-  [st k]
-  (with-connection-to-store [st]
-    (sql/with-query-results row
-      ["select * from parsing"]
-      {:fetch-size 1}
-      (if-not (empty? row)
-        (read-string (k (first row)))))))
 
 (defn- init-fasta-store
   "Initialises a fasta store."
