@@ -21,9 +21,7 @@
    in a blastSearch object."
   [[handle blastsearch] & body]
   `(with-open [rdr# (io/reader (:src ~blastsearch))]
-     (let [~handle (map #(assoc (->blastIteration (zip/node %))
-                           :qregex (:qregex ~blastsearch)
-                           :hregex (:hregex ~blastsearch))
+     (let [~handle (map #(->blastIteration (zip/node %))
                         (zf/xml-> (zip/xml-zip (xml/parse rdr#))
                                      :BlastOutput_iterations
                                      :Iteration))]
@@ -180,10 +178,11 @@
   blastIteration
 
   (iteration-query-id [this]
-    (second (re-find (:qregex this)
-                     (zf/xml1-> (zip/xml-zip (:src this))
-                                :Iteration_query-def
-                                zf/text))))
+    (-> (zf/xml1-> (zip/xml-zip (:src this))
+                   :Iteration_query-def
+                   zf/text)
+        (st/split #"\s")
+        (first)))
 
   (hit-seq [this]
     (map #(->blastHit (zip/node %))
@@ -226,13 +225,10 @@
   blastSearch
 
   (get-iteration-by-id [this accession]
-    (assoc
-        (with-iterations-in-search [l this]
-          (some #(if (= accession (iteration-query-id %))
-                   %)
-                l))
-      :qregex (:qregex this)
-      :hregex (:hregex this)))
+    (with-iterations-in-search [l this]
+      (some #(if (= accession (iteration-query-id %))
+               %)
+            l)))
 
   (get-parameter-value [this key]
     (with-open [rdr (io/reader (:src this))]
@@ -256,29 +252,22 @@
 
 ;; blast db
 
-(defrecord blastDB [path type regex])
+(defrecord blastDB [path type])
 
 (defn get-sequence
   "Returns the specified sequence from a blastDB object as a fastaSequence object."
   [db id]
   (if id
-    (let [lines (line-seq
-                 (BufferedReader. (StringReader.
-                                   (get-sequence-from-blast-db db id))))]
-      (fastaSequence. (second (re-find (:regex db) (first lines)))
-                      (second (re-find #"^[^\s]+\s+(.+)" (first lines)))
-                      (:type db)
-                      (apply str (rest lines))))))
+    (first (bios/fasta-seq-string (get-sequence-from-blast-db db id)))))
 
 (defn init-blast-db
   "initialises a blastDB object."
-  ([path type] (init-blast-db path type #"^[^|]+\|([^|\s]+)"))
-  ([path type regex]
-     (if-not (or (= :protein type) (= :nucleotide type))
-       (throw (Throwable. "BLAST DB file type can be :protein or :nucleotide only."))
-       (if (fs/exists? path)
-         (->blastDB path type regex)
-         (throw (Throwable. (str "File not found: " path)))))))
+  [path type]
+  (if-not (or (= :protein type) (= :nucleotide type))
+    (throw (Throwable. "BLAST DB file type can be :protein or :nucleotide only."))
+    (if (fs/exists? path)
+      (->blastDB path type)
+      (throw (Throwable. (str "File not found: " path))))))
 
 ;; blasting
 
@@ -290,12 +279,11 @@
       (let [in (fs/temp-file "seq-")
             out (fs/temp-file "blast-")]
         (spit in (bios/fasta-string bs))
-        (let [r (assoc (run-blast prog
-                                  db
-                                  (fs/absolute-path in)
-                                  (fs/absolute-path out)
-                                  params)
-                  :hregex (:regex db))]
+        (let [r (run-blast prog
+                           db
+                           (fs/absolute-path in)
+                           (fs/absolute-path out)
+                           params)]
           (with-iterations-in-search [l r]
             (first l))))))
 
@@ -318,9 +306,7 @@
                                        params))
                          (partition-all 1000 l))))
           wrt))
-       (assoc (->blastSearch out)
-         :qregex (:idregex file)
-         :hregex (:regex db)))))
+       (->blastSearch out))))
 
 (defn blast-store
   "Blasts all sequences in a biosequence store against a blastDatabase object
@@ -341,9 +327,7 @@
                                        params))
                          (partition-all 1000 l))))
           wrt))
-       (assoc (->blastSearch out)
-         :qregex (:idregex store)
-         :hregex (:regex db)))))
+       (->blastSearch out))))
 
 ;; helpers
 
