@@ -161,7 +161,7 @@ clj_biosequence.core.fastaSequence
 
 Downloaded sequences can be streamed to a file or a persistent store.
 
-### Genbank
+### GenBank
 
 `clj-biosequence.uniprot` provides an interface to Genbank sequences in the GenbankXML format.
 
@@ -230,16 +230,16 @@ Bond: Bond: unsure: 12 - 12
 Bond: unsure: 18 - 18
 unsure: 19 - 19
 unsure: 29 - 29
-
 ```
 
+The function and macro `wget-genbank-search` and `with-wget-genbank-sequences` provide access to Genbank sequences over the web in the same way as described above for Uniprot.
 
+### BLAST
 
-
-
+A wrapper for BLAST provides one function and two macros for running BLAST and providing access to the results. The core function `blast` takes a biosequence file, store (see below) or collection of biosequences and will BLAST every biosequence against the specified database using the specified parameters and return a blastSearch object initialised with the BLAST output in the specified outfile. The parameters argument is a hash-map with two mandatory keys, :db and :program, which specifiy the database to be searched and the program (blastp etc) to search it with. An optional key :params contains another hash-map of BLAST parameters for changing the default parameters. They keys being BLAST command line parameters and the values the value of the argument.
 
 ## License
 
-Copyright © 2013 FIXME
+Copyright © 2013
 
 Distributed under the Eclipse Public License, the same as Clojure.
