@@ -40,7 +40,7 @@ To use in your namespace:
 
 ### Core functionality
 
-`clj-biosequence` provides access to sequences from a variety of sources, including files, persistent stores and web-based websites. The `clj-biosequence.core` library provides the core functionality as well as an implementation for handling fasta sequences. So, for example, working with a fasta formatted file in the REPL could go something like this:
+`clj-biosequence` provides access to sequences from a variety of sources, including files, persistent stores and websites. The `clj-biosequence.core` library provides the core functionality as well as an implementation for handling fasta sequences. So if working with a fasta formatted file in the REPL, a workflow could go something like this:
 
 ```clojure
 (use 'clj-biosequence.core)
@@ -49,11 +49,11 @@ To use in your namespace:
 
 (def f-file (init-fasta-file "/Users/jason/Dropbox/clj-biosequence/test-files/bl-test.fa" :protein))
 
-;; to access the sequences use the macro `with-biosequences-in-file`. This provides
-;; a handle to a lazy list of sequence objects, the type depending on the file
-;; type. In this case a list of `fastaSequence` objects is returned.
+;; The macro `with-biosequences` provides a handle to a lazy list of biosequence objects, from
+;; a variety of sequence sources including biosequence files, stores and collections of biosequences.
+;; In this case a list of `fastaSequence` objects is returned from a `fastaFile`.
 
-(with-biosequences-in-file [list f-file]
+(with-biosequences [list f-file]
   (first list))
 -> \#clj_biosequence.core.fastaSequence{:accession "sp|P84001|29C0_ANCSP", :description "U3-ctenitoxin-Asp1a (Fragment) OS=Ancylometes sp. PE=1 SV=1", :type :protein, :sequence "ANACTKQADCAEDECCLDNLFFKRPYCEMRYGAGKRCAAASVYKEDKDLY"}
 ```
@@ -66,7 +66,6 @@ This workflow can be used for all sequence types defined in `clj-biosequence` (s
 - `def-line` - the definition line of a sequence.
 - `protein?` - boolean
 - `fasta-string` - a string of the sequence in fasta format.
-- `fasta-to-stream` - outputs a sequence in fasta format to a stream.
 - `org-scientific-name` - scientific name of the organism from which the sequence is derived
 - `created` - date sequence was created.
 - `modified` - date sequence was modified.
@@ -75,7 +74,7 @@ This workflow can be used for all sequence types defined in `clj-biosequence` (s
 - `taxonomy` - returns a list containing all the taxa of the organism from which the sequence is derived.
 - `taxid` - the NCBI identification of the organism.
 
-All sequence objects are records so extra information can be associated with a sequence, for example BLAST results, using 'assoc'. This can be handy when using the presistence capabilities described below.
+All sequence objects are records so extra information can be associated with a sequence, for example BLAST results, using `assoc`. This can be handy when using the presistence capabilities described below.
 
 ### Uniprot
 
@@ -87,7 +86,7 @@ All sequence objects are records so extra information can be associated with a s
 ;; initialise a uniprotxml file
 (def ufile (init-uniprotxml-file "/Users/jason/Dropbox/clj-biosequence/test-files/uniprot-s-mansoni-20121217.xml"))
 
-;; use `with-biosequences-in-file` as above to access a lazy list of uniprotProtein
+;; use `with-biosequences` as above to access a lazy list of uniprotProtein
 ;; objects.
 
 (with-biosequences-in-file [l ufile]
@@ -95,9 +94,9 @@ All sequence objects are records so extra information can be associated with a s
 -> "C4PYP8"
 ```
 
-`uniprotProtein` objects implement the protocol described above as well as a few specific functions (see the docs for detailed information):
+`uniprotProtein` objects implement the protocol described above as well as a few specific functions for extracting information from a uniprot biosequence. All of the following return either a `clojure.data.xml.Element` or a list of these elements. Information can then be accessed using the `clojure.data.xml`, `clojure.data.zip.xml` and `clojure.zip` libraries.
 
-- `organism-name` - extensive organism information
+- `organism` - extensive organism information
 - `prot-name` - the name of the protein
 - `amino-acids` - extensive sequence information
 - `nomenclature` - extensive naming information
@@ -117,8 +116,8 @@ All sequence objects are records so extra information can be associated with a s
 `clj-biosequence.uniprot` also provides a web interface to uniprot comprised of two functions. A search function `wget-uniprot-search`:
 
 ```clojure
-;; `wget-uniprot-search` returns a lazy'ish (results are obtained from the server
-;; 1000 at a time) list of uniprot accession numbers corresponding to a search term.
+;; `wget-uniprot-search` returns a non-lazy list of uniprot accession numbers
+;; corresponding to a search term.
 ;; The search term has the same format as that used at the Uniprot website
 ;; (http://www.uniprot.org/).
 ;; So to retrieve accessions from Schistosoma mansoni reference proteome set 
@@ -133,22 +132,31 @@ All sequence objects are records so extra information can be associated with a s
 (count (wget-uniprot-search "reviewed:yes AND organism:9606"))
 ->20264
 ```
-The retrieval function, `wget-uniprot-sequence`, retrieves sequences from Uniprot. Sequences can be returned as `uniprotProtein` or `fastaSequence` objects:
+A lazy list of sequences can be obtained from uniprot using the macro `with-wget-uniprot-sequence`. This macro provides a handle to a lazy list of biosequences from Uniprot corresponding to those specified in the list of accessions provided as an argument. Sequences can be returned as `uniprotProtein` or `fastaSequence` objects:
 
 ```clojure
-;; `wget-uniprot-sequence` takes a collection of Uniprot accession numbers
-;; and returns a lazy'ish (1000 retrieved at a time) list of sequence
-;; objects
+;; `with-wget-uniprot-sequence` takes a collection of Uniprot accession numbers
+;;  and returns a handle to a lazy list of sequence objects from Uniprot.
 
-(doseq [s (wget-uniprot-sequence '("Q26597" "Q8MZK8") :fasta)]
-        (println (class s)))
-->clj_biosequence.core.fastaSequence
-  clj_biosequence.core.fastaSequence
+(with-wget-uniprot-sequence [l (take 10 (wget-uniprot-search "taxonomy:6183 AND keyword:1185 AND go:0031224")) :xml "jason.mulvenna@gmail.com"]
+  (doseq [seq l]
+    (println (accession seq))))
+Q26597
+Q8MZK8
+C4Q533
+C4PYI6
+C4PYZ0
+Q27779
+Q26586
+Q86D97
+C4PY08
+Q26579
 
-(doseq [s (wget-uniprot-sequence '("Q26597" "Q8MZK8") :xml)]
-        (println (:mass (amino-acids s))))
-->58602
- 84159
+(with-wget-uniprot-sequence [l '("Q26597" "Q8MZK8") :fasta "jason.mulvenna@gmail.com"]
+  (doseq [seq l]
+    (println (class seq))))
+clj_biosequence.core.fastaSequence
+clj_biosequence.core.fastaSequence
 ```
 
 Downloaded sequences can be streamed to a file or a persistent store.

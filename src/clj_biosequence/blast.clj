@@ -27,6 +27,16 @@
                                      :Iteration))]
        ~@body)))
 
+(defmacro with-blast-results
+  [[handle bioseqs params] & code]
+  `(let [f# (fs/temp-file "blast")
+         b# (blast ~bioseqs f# ~params)]
+     (try
+       (with-iterations-in-search [~handle b#]
+         ~@code)
+       (catch Exception e# (throw e#))
+       (finally (fs/delete f#)))))
+
 ;; blast hsp
 
 (defrecord blastHSP [src])
@@ -271,63 +281,35 @@
 
 ;; blasting
 
-(defn blast-biosequence
-  "Blasts a biosequence object against the specified blastDatabase object
-   and returns a blastIteration with the results of the search."
-  ([bs db prog] (blast-biosequence bs db prog {}))
-  ([bs db prog params]
-      (let [in (fs/temp-file "seq-")
-            out (fs/temp-file "blast-")]
-        (spit in (bios/fasta-string bs))
-        (let [r (run-blast prog
-                           db
-                           (fs/absolute-path in)
-                           (fs/absolute-path out)
-                           params)]
-          (with-iterations-in-search [l r]
-            (first l))))))
-
-(defn blast-file
+(defn blast
   "Blasts all sequences in a biosequence file object and returns a blastSearch
-   containing the location of the results."
-  ([file db prog] (blast-file file db prog {}))
-  ([file db prog params]
-     (let [out (bios/time-stamped-file (:file file))]
-       (with-open [wrt (io/writer out)]
-         (merge-blasts
-          (bios/with-biosequences [l file]
-            (doall (pmap #(let [i (fs/temp-file "seq-")
-                                o (fs/temp-file "blast-")]
-                            (doseq [s %]
-                              (spit i (bios/fasta-string s) :append true))
-                            (run-blast prog db
-                                       (fs/absolute-path i)
-                                       (fs/absolute-path o)
-                                       params))
-                         (partition-all 1000 l))))
-          wrt))
-       (->blastSearch out))))
+   containing the location of the results. Takes a biosequence file, store or a 
+   collection of biosequences, an file to which the blast results will be written
+   and a params hash-map:
+   :db   -   the BLAST database to be searched
+   :program   -   the BLAST program to be used.
+   :options   -  an optional hash-map of BLAST options. The keys corresponding to
+                 the command line options of BLAST and the values the 
+                 corresponding values.
 
-(defn blast-store
-  "Blasts all sequences in a biosequence store against a blastDatabase object
-   and returns a blastSearch containing the location of the results."
-  ([store db prog] (blast-store store db prog {}))
-  ([store db prog params]
-     (let [out (store-blast-file store)]
-       (with-open [wrt (io/writer out)]
-         (merge-blasts
-          (bios/with-biosequences [l store]
-            (doall (pmap #(let [i (fs/temp-file "seq-")
-                                o (fs/temp-file "blast-")]
-                            (doseq [s %]
-                              (spit i (bios/fasta-string s) :append true))
-                            (run-blast prog db
-                                       (fs/absolute-path i)
-                                       (fs/absolute-path o)
-                                       params))
-                         (partition-all 1000 l))))
-          wrt))
-       (->blastSearch out))))
+   Returns a blastSearch object."
+  [bioseqs out-file params]
+  (with-open [wrt (io/writer out-file)]
+    (let [r (bios/with-biosequences [l bioseqs]
+              (doall (pmap #(let [i (fs/temp-file "seq-")
+                                  o (fs/temp-file "blast-")]
+                              (do
+                                (doseq [s %]
+                                  (spit i (bios/fasta-string s) :append true))
+                                (run-blast (:program params) (:db params)
+                                           (fs/absolute-path i)
+                                           (fs/absolute-path o)
+                                           (:options params))))
+                           (partition-all 1000 l))))]
+      (try (merge-blasts r wrt)
+           (catch Exception e (throw e))
+           (finally (doall (map #(fs/delete (:src %)) r))))
+      (->blastSearch out-file))))
 
 ;; helpers
 
@@ -375,16 +357,21 @@
 (defn- run-blast 
   [prog db in out params]
   "Need timeout"
-  (let [defs (blast-default-params params
-                                   in
-                                   out
-                                   (:path db))]
-    (let [bl @(exec/sh (cons prog defs))]
-      (if (= 0 (:exit bl))
-        (->blastSearch out)
-        (if (:err bl)
-          (throw (Throwable. (str "Blast error: " (:err bl))))
-          (throw (Throwable. (str "Exception: " (:exception bl)))))))))
+  (try
+    (let [defs (blast-default-params params
+                                     in
+                                     out
+                                     (:path db))]
+      (let [bl @(exec/sh (cons prog defs))]
+        (if (= 0 (:exit bl))
+          (->blastSearch out)
+          (if (:err bl)
+            (throw (Throwable. (str "Blast error: " (:err bl))))
+            (throw (Throwable. (str "Exception: " (:exception bl))))))))
+    (catch Exception e
+      (do (fs/delete out)
+          (throw e)))
+    (finally (fs/delete in))))
 
 (defn- merge-blasts
   [blasts strm]

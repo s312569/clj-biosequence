@@ -24,7 +24,7 @@
               (class ffile)))
        (is (= "/Users/jason/Dropbox/clj-biosequence/test-files/bl-test.fa"
               (file-path ffile)))
-       (is (= nil (with-biosequences-in-file [l ffile]
+       (is (= nil (with-biosequences [l ffile]
                     (println (first l))
                     (println (last l)))))
        (is (= nil
@@ -44,7 +44,7 @@
               (class (load-fasta-store "/Users/jason/Dropbox/clj-biosequence/test-files/bl-test.fa.ind" :protein))))
        (fs/delete-dir (fs/parent (:file store)))))))
 
-(deftest blast
+(deftest blast-test
   (testing "Blast"
     (testing "Blastp"
       (let [seq (init-fasta-sequence "tr|Q93X48|Q93X48_LENER" "Lectin OS=Lens ervoides GN=lectin PE=4 SV=2" :protein "MASLQTQMISFYLIFLSILLTTIFFFKVNSTETTSFSITKFSPDQQNLIFQGDGYTTKEKLTLTKAVKNTVGRALYSTPIHIWDRDTGNVANFVTSFTFVINAPNSYNVADGFTFFIAPVDTKPQTGGGYLGVFNSKDYDKTSQTVAVEFDTFYNAAWDPSNKDRHIGIDVNSIKSVSTKSWNLQNGERANVVIAFNAATNVLTVTLTYPNSLEEENVTSYTLNEVVPMKDVLPEWVRIGFSATTGAEFAAHEVLSWSFHSELGGTSSSKQAADA")
@@ -52,10 +52,11 @@
                  "/Users/jason/Dropbox/clj-biosequence/test-files/toxins.fasta"
                  :protein)
             file (init-fasta-file "/Users/jason/Dropbox/clj-biosequence/test-files/bl-test.fa" :protein)
-            fbl (blast-file file bdb "blastp")
+            fbl (blast file "/Users/jason/Dropbox/clj-biosequence/test-files/bl.txt" {:db bdb :program "blastp"})
             store (index-fasta-file file)
-            sbl (blast-store store bdb "blastp")
-            bl (blast-biosequence seq bdb "blastp")]
+            sbl (blast store "/Users/jason/Dropbox/clj-biosequence/test-files/bl2.txt" {:db bdb :program "blastp"})
+            bl (with-iterations-in-search [l (blast (list seq) "/Users/jason/Dropbox/clj-biosequence/test-files/bl3.txt" {:db bdb :program "blastp"})]
+                 (first l))]
         (is (= clj_biosequence.blast.blastDB (class bdb)))
         (is (= clj_biosequence.core.fastaFile (class file)))
         (is (= clj_biosequence.core.fastaStore (class store)))
@@ -64,19 +65,19 @@
         (is (= 24.6386102277464 (hit-bit-score (first (hit-seq bl)))))
         (fs/delete-dir (fs/parent (:file store)))
         (fs/delete (:src fbl))
-        (fs/delete (:src sbl))))))
+        (fs/delete (:src sbl))
+        (fs/delete "/Users/jason/Dropbox/clj-biosequence/test-files/bl3.txt")))))
 
 (deftest uniprot
   (testing "Uniprot"
     (let [ufile (init-uniprotxml-file "/Users/jason/Dropbox/clj-biosequence/test-files/uniprot-s-mansoni-20121217.xml")
-          useq (with-biosequences-in-file [l ufile]
+          useq (with-biosequences [l ufile]
                  (first l))
           ustore (index-uniprotxml-file ufile)
           ustore2 (load-uniprot-store (fs/parent (:file ustore)))
           bdb (init-blast-db
                  "/Users/jason/Dropbox/clj-biosequence/test-files/toxins.fasta"
-                 :protein)
-          ubl (blast-biosequence useq bdb "blastp")]
+                 :protein)]
       (is (= clj_biosequence.uniprot.uniprotXmlFile
              (class ufile)))
       (is (= clj_biosequence.uniprot.uniprotProtein
@@ -98,7 +99,7 @@
       (is (= {:alternate '({:fullname "Fe-S cluster assembly protein DRE2 homolog", :shortname nil, :ecnumber nil}), :recommended '({:fullname "Anamorsin homolog", :shortname nil, :ecnumber nil})} (nomenclature useq)))
       (is (= '({:name "Smp_207000", :type "ORF"}) (gene useq)))
       (is (= {:mitochondrion (), :chloroplast (), :apicoplast (), :nucleomorph (), :plasmid (), :hydrogenosome (), :cyanelle (), :plastid (), :organellar-chromatophore (), :non-photosynthetic-plastid ()} (gene-location useq)))
-      (is (= '({:country nil, :last "358", :date "2009", :pubmed "19606141", :institute nil, :name "Nature", :first "352", :title "The genome of the blood fluke Schistosoma mansoni.", :city nil, :scope ("NUCLEOTIDE SEQUENCE [LARGE SCALE GENOMIC DNA]"), :type "journal article", :consortium (), :number nil, :authors ("Berriman M." "Haas B.J." "LoVerde P.T." "Wilson R.A." "Dillon G.P." "Cerqueira G.C." "Mashiyama S.T." "Al-Lazikani B." "Andrade L.F." "Ashton P.D." "Aslett M.A." "Bartholomeu D.C." "Blandin G." "Caffrey C.R." "Coghlan A." "Coulson R." "Day T.A." "Delcher A." "DeMarco R." "Djikeng A." "Eyre T." "Gamble J.A." "Ghedin E." "Gu Y." "Hertz-Fowler C." "Hirai H." "Hirai Y." "Houston R." "Ivens A." "Johnston D.A." "Lacerda D." "Macedo C.D." "McVeigh P." "Ning Z." "Oliveira G." "Overington J.P." "Parkhill J." "Pertea M." "Pierce R.J." "Protasio A.V." "Quail M.A." "Rajandream M.A." "Rogers J." "Sajid M." "Salzberg S.L." "Stanke M." "Tivey A.R." "White O." "Williams D.L." "Wortman J." "Wu W." "Zamanian M." "Zerlotini A." "Fraser-Liggett C.M." "Barrell B.G." "El-Sayed N.M."), :source {:tissue (), :transposon (), :plasmid (), :strain ("Puerto Rican")}, :editors (), :publisher nil, :volume "460", :db nil}) (citation useq)))
+      (is (= '({:country nil, :last "358", :date "2009", :pubmed "19606141", :institute nil, :name "Nature", :first "352", :title "The genome of the blood fluke Schistosoma mansoni.", :city nil, :scope ("NUCLEOTIDE SEQUENCE [LARGE SCALE GENOMIC DNA]"), :type "journal article", :consortium (), :number nil, :authors ("Berriman M." "Haas B.J." "LoVerde P.T." "Wilson R.A." "Dillon G.P." "Cerqueira G.C." "Mashiyama S.T." "Al-Lazikani B." "Andrade L.F." "Ashton P.D." "Aslett M.A." "Bartholomeu D.C." "Blandin G." "Caffrey C.R." "Coghlan A." "Coulson R." "Day T.A." "Delcher A." "DeMarco R." "Djikeng A." "Eyre T." "Gamble J.A." "Ghedin E." "Gu Y." "Hertz-Fowler C." "Hirai H." "Hirai Y." "Houston R." "Ivens A." "Johnston D.A." "Lacerda D." "Macedo C.D." "McVeigh P." "Ning Z." "Oliveira G." "Overington J.P." "Parkhill J." "Pertea M." "Pierce R.J." "Protasio A.V." "Quail M.A." "Rajandream M.A." "Rogers J." "Sajid M." "Salzberg S.L." "Stanke M." "Tivey A.R." "White O." "Williams D.L." "Wortman J." "Wu W." "Zamanian M." "Zerlotini A." "Fraser-Liggett C.M." "Barrell B.G." "El-Sayed N.M."), :source {:tissue (), :transposon (), :plasmid (), :strain ("Puerto Rican")}, :editors (), :publisher nil, :volume "460", :db nil}) (citations useq)))
       (is (= '({:comments nil, :orientation nil, :topology nil, :location "Cytoplasm", :evidence "by similarity"}) (subcellular-location useq)))
       (is (= () (alternative-products useq)))
       (is (= () (mass-spectroscopy useq)))
@@ -108,7 +109,7 @@
       (is (= {:KW-1185 "Reference proteome", :KW-0963 "Cytoplasm", :KW-0181 "Complete proteome", :KW-0053 "Apoptosis"} (keywords useq)))
       (is (= '(({:id "PRO_0000392331", :description "Anamorsin homolog", :type "chain", :begin 1, :end 272, :position nil}) (features useq))))
       (is (= nil
-             (println (with-biosequences-in-file [l ufile]
+             (println (with-biosequences [l ufile]
                         (println (fasta-string (first l)))
                         (println (fasta-string (second l)))))))
       (is (= "/Users/jason/Dropbox/clj-biosequence/test-files/uniprot-s-mansoni-20121217.xml" (file-path ufile)))
@@ -124,7 +125,7 @@
 (deftest genbank
   (testing "Genbank"
     (let [pgfile (gb/init-genbank-file "/Users/jason/Dropbox/clj-biosequence/test-files/protein-gb.xml")
-          pgseq (with-biosequences-in-file [l pgfile]
+          pgseq (with-biosequences [l pgfile]
                   (first l))
           pgstore (gb/index-genbank-file pgfile)
           pgstorep (with-connection-to-store [pgstore]
@@ -136,7 +137,7 @@
       (is (= clj_biosequence.genbank.genbankStore (class pgstore)))
       (is (= '("sp|B3EWH7.1|CYCM_PETHY" "gi|408407585")
              (accessions pgstorep)))
-      (is (= 8 (with-biosequences-in-file [l pgfile]
+      (is (= 8 (with-biosequences [l pgfile]
                  (count l))))
       (is (= "B3EWH7" (accession pgseq)))
       (is (= '("sp|B3EWH7.1|CYCM_PETHY" "gi|408407585") (accessions pgseq)))
@@ -173,7 +174,7 @@
 (deftest genbank-nuc
   (testing "Genbank nucleotide"
     (let [ngfile (gb/init-genbank-file "/Users/jason/Dropbox/clj-biosequence/test-files/nucleotide-gb.xml")
-          ngseq (with-biosequences-in-file [l ngfile]
+          ngseq (with-biosequences [l ngfile]
                   (second l))
           ngstore (gb/index-genbank-file ngfile)
           ngstoren (with-connection-to-store [ngstore]
@@ -185,7 +186,7 @@
       (is (= clj_biosequence.genbank.genbankStore (class ngstore)))
       (is (= '("gb|GAAZ01003035.1|" "gnl|TSA:GAAZ01|Chorr_CTL-10" "gi|521752463")
              (accessions ngstoren)))
-      (is (= 8 (with-biosequences-in-file [l ngfile]
+      (is (= 8 (with-biosequences [l ngfile]
                  (count l))))
       (is (= "GAAZ01003035" (accession ngseq)))
       (is (= '("gb|GAAZ01003035.1|" "gnl|TSA:GAAZ01|Chorr_CTL-10" "gi|521752463")
@@ -218,11 +219,11 @@
 (deftest genbank-genome
   (testing "Genbank genome"
     (let [gfile (gb/init-genbank-file "/Users/jason/Dropbox/clj-biosequence/test-files/akata-sequence.xml")
-          gseq (with-biosequences-in-file [l gfile]
+          gseq (with-biosequences [l gfile]
                  (first l))
           gfeat (first (filter #(= (gb/feature-type %) "CDS")
                                (gb/feature-seq gseq)))]
-      (is (= 1 (with-biosequences-in-file [l gfile]
+      (is (= 1 (with-biosequences [l gfile]
                  (count l))))
       (is (= 402 (count (gb/feature-seq gseq))))
       (let [f (filter #(= (gb/feature-type %)

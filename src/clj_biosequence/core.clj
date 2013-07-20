@@ -18,36 +18,43 @@
       ~@code)))
 
 (defmacro with-biosequences
-  "Provides a handle to a lazy list of biosequences in a biosequence store object."
+  "Provides a handle to a lazy list of biosequences in a biosequence store or
+   file. Also works with collections of biosequences."
   [[handle sink] & body]
-  `(if (satisfies? biosequenceFile ~sink)
-     (with-open [rdr# (java.io.PushbackReader. (io/reader (:file ~sink)))]
-       (let [~handle (biosequence-seq-file ~sink rdr#)]
-         ~@body))
-     (with-connection-to-store [~sink]
-       (sql/with-query-results res#
-         ["select * from sequence"]
-         {:fetch-size 10 :concurrency :read-only :result-type :forward-only}
-         (let [~handle (map #(assoc (declob (:src %))
-                               :db (:db ~sink))
-                            res#)]
-           ~@body)))))
+  `(cond (satisfies? biosequenceFile ~sink)
+         (with-open [rdr# (java.io.PushbackReader. (io/reader (:file ~sink)))]
+           (let [~handle (biosequence-seq-file ~sink rdr#)]
+             ~@body))
+         (seq? ~sink)
+         (let [~handle ~sink]
+           ~@body)
+         :else
+         (with-connection-to-store [~sink]
+           (sql/with-query-results res#
+             ["select * from sequence"]
+             {:fetch-size 10 :concurrency :read-only :result-type :forward-only}
+             (let [~handle (map #(assoc (declob (:src %))
+                                   :db (:db ~sink))
+                                res#)]
+               ~@body)))))
 
 (defmacro with-fasta-file
   "Provides a handle to a temporary fasta file containing the biosequences
-   contained in a biosequence file or store."
+   contained in a biosequence file, store or collection."
   [[handle sink] & code]
   `(if (= fastaFile (class ~sink))
-     (let [~handle (init-fasta-file (fs/copy (file-path ~sink)
-                                             (fs/temp-file "fasta"))
-                                    (:type ~sink))]
-       (try ~@code (catch Exception e# (throw e#))
-            (finally (fs/delete ~handle))))
+     (try (let [~handle (init-fasta-file (fs/copy (file-path ~sink)
+                                                  (fs/temp-file "fasta"))
+                                         (:type ~sink))]
+            ~@code)
+          (catch Exception e# (throw e#))
+          (finally (fs/delete ~handle)))
      (let [~handle (init-fasta-file (fs/temp-file "fasta") (sink-type ~sink))]
-       (with-biosequences [l# ~sink]
-         (doseq [s# l#]
-           (spit (:file ~handle) (fasta-string s#) :append true)))
-       (try ~@code (catch Exception e# (throw e#))
+       (try (do (with-biosequences [l# ~sink]
+                  (doseq [s# l#]
+                    (spit (:file ~handle) (fasta-string s#) :append true)))
+                ~@code)
+            (catch Exception e# (throw e#))
             (finally (fs/delete (:file ~handle)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -68,10 +75,9 @@
   (accession [this]
     "Returns the accession of a biosequence.")
   (accessions [this]
-    "Returns a list of strings describing the accessions of a uniprot. 
-     Ordered from most recent to oldest.")
+    "Returns a list of strings describing the accessions of a biosequence object.")
   (def-line [this]
-    "Returns the description of a biosequence.")
+    "Returns a description for a biosequence object.")
   (sequence-string [this]
     "Returns the sequence of a biosequence as a string.")
   (fasta-string [this]
@@ -123,10 +129,12 @@
 
 (defn sink-type
   [sink]
-  (with-biosequences [l sink]
-    (if (protein? (first l))
-      :protein
-      :nucleotide)))
+  (if (seq? sink)
+    (if (protein? (first sink)) :protein :nucleotide)
+   (with-biosequences [l sink]
+     (if (protein? (first l))
+       :protein
+       :nucleotide))))
 
 ;; persistance
 
@@ -342,13 +350,6 @@
 
 (defrecord fastaStore [file type])
 
-(extend-protocol biosequenceStore
-
-  fastaStore
-  
-  (store-type [this]
-    (:type this)))
-
 (defn index-fasta-file
   "Indexes a fastaFile object and returns a fastaStore object."
   ([fastafile] (index-fasta-file fastafile false))
@@ -393,7 +394,7 @@
 
    There is a 100,000 limit on accessions in a single query imposed by Uniprot."
   [ids from to email]
-  (let [i (if (coll? ids)
+  (let [i (if (seq? ids)
             ids (list ids))]
     (if (<= (count ids) 100000)
       (let [param {:from from :to to :format "tab" 

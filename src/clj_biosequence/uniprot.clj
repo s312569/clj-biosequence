@@ -10,7 +10,7 @@
             [fs.core :as fs]
             [clojure.java.jdbc :as sql]))
 
-(declare prot-names prot-name process-feature process-sequence process-cites process-dbref text? init-uniprot-store meta-data amino-acids nomenclature organism-name uniprot-process-request uniprot-sequence-helper read-up-xml-from-stream)
+(declare prot-names prot-name process-feature process-sequence process-cites init-uniprot-store meta-data amino-acids nomenclature organism-name uniprot-process-request uniprot-sequence-helper read-up-xml-from-stream)
 
 ;; protein
 
@@ -26,16 +26,34 @@
   (accession
     [this]
     (first (bios/accessions this)))
+ 
+  (org-scientific-name [this]
+    (zf/xml1-> (zip/xml-zip (organism this))
+               :name
+               (zf/attr= :type "scientific")
+               zf/text))
 
   (def-line [this]
-    (str (string/join " | " (map #(:fullname %) 
-                                 (flatten (vals (nomenclature this)))))
-         " ["
-         (first (:scientific (organism-name this)))
-         "]"))
+    (let [nom (zip/xml-zip (nomenclature this))]
+      (str " | "
+           (zf/xml1-> nom
+                      :recommendedName
+                      :fullName
+                      zf/text)
+           " | "
+           (zf/xml1-> nom
+                      :alternativeName
+                      :fullName
+                      zf/text)
+           " ["
+           (bios/org-scientific-name this)
+           "]")))
 
   (sequence-string [this]
-    (:amino-acids (amino-acids this)))
+    (apply str
+           (remove {\space\newline}
+                   (zf/xml1-> (zip/xml-zip (amino-acids this))
+                              zf/text))))
 
   (fasta-string [this]
     (let [db (condp = (:dataset (meta-data this))
@@ -47,14 +65,11 @@
            (prot-name this)
            " " (bios/def-line this)
            \newline
-           (:amino-acids (amino-acids this))
+           (bios/sequence-string this)
            \newline)))
 
   (protein? [this] true)
-  
-  (org-scientific-name [this]
-    (first (:scientific (organism-name this))))
-
+ 
   (created [this]
     (:created (meta-data this)))
   
@@ -75,24 +90,12 @@
 
 ;; uniprot
 
-(defn organism-name
-  "Returns a map with keys - :scientific, :common, :full, :synonym, :abbreviation 
-   and :ncbi-taxid. Values are lists of names attributed to the organism, except 
-   :ncbi-taxid which is an integer."
+(defn organism
+  "Returns organism information from Uniprot biosequence as xml elements.
+   Includes organism name and taxonomy information."
   [uniprot]
-  (let [values '("scientific" "common" "full" "synonym" "abbreviation")
-        s (zip/xml-zip (:src uniprot))]
-    (assoc (zipmap (map #(keyword %) values)
-                   (map #(zf/xml-> s
-                                   :organism
-                                   :name
-                                   (zf/attr= :type %)
-                                   zf/text) values))
-      :ncbi-taxid (read-string (zf/xml1-> s
-                                          :organism
-                                          :dbReference
-                                          (zf/attr= :type "NCBI Taxonomy")
-                                          (zf/attr :id))))))
+  (zip/node (zf/xml1-> (zip/xml-zip (:src uniprot))
+                       :organism)))
 
 (defn prot-name
   "Returns the name of a uniprot as a string."
@@ -100,186 +103,110 @@
   (zf/xml1-> (zip/xml-zip (:src uniprot)) :name zf/text))
 
 (defn amino-acids
-  "Returns a map with the keys - :mass, :checksum, :modified, :version, :amino-acids.
-   All are strings except :mass, which is a long, and :version, which is an integer."
+  "Returns sequence information as xml elements. Information includes mass, 
+   checksum, modified, version and amino-acids."
   [uniprot]
-  (zf/xml1-> (zip/xml-zip (:src uniprot))
-             :sequence
-             process-sequence))
+  (zip/node (zf/xml1-> (zip/xml-zip (:src uniprot))
+                       :sequence)))
 
 (defn nomenclature
-  "Returns a map of descriptions. Keys - :recommended, :alternate, :submitted, :allergen.
-   Values of each is a list of maps with keys - :fullname, :shortname and :ecnumber. All 
-   values are strings except for :recommended which is map with the keys :fullname, 
-   :shortname and :ecnumber."
+  "Returns protein naming information as xml elements. Includes information on
+   recommended, submitted, alternative, allergen, biotech, cdantigen names."
   [uniprot]
-  (let [s (zip/xml-zip (:src uniprot))
-        rec (zf/xml-> s :protein :recommendedName prot-names)
-        sub (zf/xml-> s :protein :submittedName prot-names)
-        alt (zf/xml-> s :protein :alternativeName prot-names)
-        all (zf/xml-> s :protein :allergenName zf/text)
-        bio (zf/xml-> s :protein :biotechName zf/text)
-        cd (zf/xml-> s :protein :cdAntigenName zf/text)
-        inn (zf/xml-> s :protein :innName zf/text)]
-    (merge {}
-           (if (not (empty? rec)) {:recommended rec})
-           (if (not (empty? alt)) {:alternate alt})
-           (if (not (empty? sub)) {:submitted sub})
-           (if (not (empty? all)) {:allergen all})
-           (if (not (empty? bio)) {:allergen bio})
-           (if (not (empty? cd)) {:allergen cd})
-           (if (not (empty? inn)) {:allergen inn}))))
+  (zip/node (zf/xml1-> (zip/xml-zip (:src uniprot))
+                       :protein)))
 
 (defn gene
-  "Returns a map with gene information from a uniprot. Keys - :type and :name. Values 
-   are strings."
+  "Returns gene information as a list of xml elements. Includes type and name 
+   information."
   [uniprot]
-  (let [item (zf/xml-> (zip/xml-zip (:src uniprot)) :gene :name)]
-    (map #(assoc {}
-            :type (zf/attr % :type)
-            :name (zf/text %)) item)))
+  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot)) :gene)))
 
 (defn gene-location
-  "Returns a map of gene location information from a uniprot."
+  "Returns gene location information as a list of xml elements."
   [uniprot]
-  (let [values '("apicoplast" "chloroplast" "organellar chromatophore" "cyanelle" "hydrogenosome"
-                 "mitochondrion" "non photosynthetic plastid" "nucleomorph" "plasmid" "plastid")]
-    (zipmap (map #(keyword (string/replace % " " "-"))  values)
-            (map #(zf/xml-> (zip/xml-zip (:src uniprot))
-                            :geneLocation
-                            (zf/attr= :type %)
-                            :name
-                            zf/text) values))))
+  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
+                          :geneLocation)))
 
 (defn citations
-  "Returns a list of citations from a uniprot. Each citation is a map with the keys
-   - :country, :last (page), :date, :pubmed, :institute, :name (journal), :first 
-     (page), :title, :city, :scope, :type, :consortium, :number, :authors, :source,
-     :editors, :publisher, :volume, :db. All are strings, except for :scope, 
-     :editor, :strain and :author, which are lists of strings. The value of :source
-     is a map with the keys - :tissue, :transposons, :plasmid and :strain which are
-     all lists of strings."
+  "Returns citation information as a list of xml elements. Contains information
+   country, last (page), date, pubmed, institute, name (journal), first 
+   (page), title, city, scope, type, consortium, number, authors, source,
+   editors, publisher, volume and db."
   [uniprot]
-  (zf/xml-> (zip/xml-zip (:src uniprot))
-            :reference
-            process-cites))
+  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
+                          :reference)))
 
 (defn subcellular-location
-  "Returns a list of maps specifying the sub-cellualr location of a uniprot. Eahc map has
-   the keys - :comments, :orientation, :topology, :location and :evidence. All of which are
-   strings."
+  "Returns subcellular location information as a list of xml elements. Information
+   includes comments, orientation, topology, location and evidence."
   [uniprot]
-  (let [items (zf/xml-> (zip/xml-zip (:src uniprot))
-                        :comment
-                        (zf/attr= :type "subcellular location")
-                        :subcellularLocation)]
-    (map #(assoc {}
-            :evidence (zf/xml1-> % :location (zf/attr :status))
-            :location (zf/xml1-> % :location zf/text)
-            :topology (zf/xml1-> % :topology zf/text)
-            :orientation (zf/xml1-> % :orientation zf/text)
-            :comments (zf/xml1-> % :text zf/text)) items)))
+  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
+                          :comment
+                          (zf/attr= :type "subcellular location"))))
 
 (defn alternative-products
-  "Returns a list of maps describing alternative products of a uniprot. Each map has the keys
-   - :event, :isoform-id, :isoform-name and :comments. All of which are lists of strings except
-   :comments which is a string."
+  "Returns alternative product information as a list of xml elements."
   [uniprot]
-  (let [items (zf/xml-> (zip/xml-zip (:src uniprot))
-                        :comment
-                        (zf/attr= :type "alternative products"))]
-    (map #(assoc {}
-            :event (zf/xml-> % :event (zf/attr :type))
-            :isoform-id (zf/xml-> % :isoform :id zf/text)
-            :isoform-name (zf/xml-> % :isoform :name zf/text)
-            :comments (zf/xml1-> % :text zf/text))
-         items)))
+  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
+                          :comment
+                          (zf/attr= :type "alternative products"))))
 
 (defn interactions
-  "Returns a list of maps describing interactions of a uniprot. Each map has the keys - :id,
-  :label, :interactors, :experiments, :comments. All of whcih are lists of strings, except 
-  :experiments and :comments which are strings."
+  "Returns interaction data as a list of xml elements."
   [uniprot]
-  (let [items (zf/xml-> (zip/xml-zip (:src uniprot))
-                        :comment
-                        (zf/attr= :type "interaction"))]
-    (map #(assoc {}
-            :id (zf/xml-> % :id zf/text)
-            :label (zf/xml-> % :label zf/text)
-            :interactors (zf/xml-> % :interactant (zf/attr :type))
-            :experiments (zf/xml1-> % :experiments (zf/attr :type))
-            :comments (zf/xml1-> % :text zf/text))
-         items)))
+  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
+                          :comment
+                          (zf/attr= :type "interaction"))))
 
 (defn mass-spectroscopy
-  "Returns a list of maps describing the mass spectroscopy of a uniprot. Each map has the keys
-   - :mass, :error, :method, :begin, :end and :comments. "
+  "Returns mass spectroscopy data as a list of xml elements."
   [uniprot]
-  (let [items (zf/xml-> (zip/xml-zip (:src uniprot))
-                        :comment
-                        (zf/attr= :type "mass spectrometry"))]
-    (map #(assoc {}
-            :mass (read-string (zf/xml1-> % (zf/attr :mass)))
-            :error (read-string (zf/xml1-> % (zf/attr :error)))
-            :method (zf/xml1-> % (zf/attr :method))
-            :begin (zf/xml1-> % :location :begin (zf/attr :position))
-            :end (zf/xml1-> % :location :end (zf/attr :position))
-            :comments (zf/xml1-> % :text zf/text))
-         items)))
+  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
+                          :comment
+                          (zf/attr= :type "mass spectrometry"))))
 
 (defn comments
-  "Returns a map of comments describing a uniprot. Keys - :similarity and :function both of
-   which have strings as values."
+  "Returns all comments as a list of xml elements."
   [uniprot]
-  (let [s (zip/xml-zip (:src uniprot))]
-    (zipmap
-     (map #(keyword (string/replace % " " "-"))
-          (zf/xml-> s
-                    :comment
-                    text?
-                    (zf/attr :type)))
-     (zf/xml-> s
-               :comment
-               :text
-               zf/text))))
+  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
+                          :comment)))
 
 (defn db-references
-  "Returns a list of maps describing database cross-references of a uniprot. Each map has
-   the keys :data, which has a map as a value with a range of different keys corresponding
-   to the xml file, :db, a string describing the database, :id, a string of the id of the 
-   cross-ref."
+  "Returns all db-references as a list of xml elements."
   [uniprot]
-  (zf/xml-> (zip/xml-zip (:src uniprot))
-            :dbReference
-            process-dbref))
+  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
+                          :dbReference)))
 
 (defn existence
-  "Returns a list of strings describing the evidence for the existence of a uniprot."
+  "Protein existence evidence as a list of xml elements."
   [uniprot]
-  (zf/xml-> (zip/xml-zip (:src uniprot))
-            :proteinExistence
-            (zf/attr :type)))
+  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
+                          :proteinExistence)))
 
 (defn keywords
-  "A map of uniprot keywords. Keys are the keyword id with a string value of the keyword."
+  "Keywords as a list of xml elements."
   [uniprot]
-  (let [s (zip/xml-zip (:src uniprot))] 
-    (zipmap
-     (zf/xml-> s
-               :keyword
-               (zf/attr :id)
-               keyword)
-     (zf/xml-> s
-               :keyword
-               zf/text))))
+  (map zip/node
+       (zf/xml-> (zip/xml-zip (:src uniprot))
+                 :keyword)))
 
 (defn features
-  "A list of maps describing the features of a uniprot. Each map has the keys - :id, :description,
-  :type, :begin, :end. All have string values except :begin and :end which are integers."
+  "Features as a list of xml elements."
   [uniprot]
-  (zf/xml-> (zip/xml-zip (:src uniprot))
-            :feature
-            process-feature))
+  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
+                          :feature)))
+
+(defn meta-data
+  "Returns a map with uniprot meta-data. Keys - :dataset, :created, :modified
+   and :version. All values are strings except :version, which is an integer."
+  [uniprot]
+  (let [s (zip/xml-zip (:src uniprot))]
+    {:dataset (zf/attr s :dataset)
+     :created (zf/attr s :created)
+     :modified (zf/attr s :modified)
+     :version (if-let [f (zf/attr s :version)]
+                (Integer. f))}))
 
 ;; file
 
@@ -456,105 +383,3 @@
     (bios/init-in-mem-store (->uniprotStore 'in-memory))
     (bios/init-store
      (->uniprotStore (bios/index-file-name (bios/file-path file))))))
-
-(defn- text?
-  "Checks if an element has a text tag."
-  [zipper]
-  (some #(= :text (:tag %)) (zip/children zipper)))
-
-(defn- process-dbref
-  [zipper]
-  (assoc {:db (zf/attr zipper :type)
-          :id (zf/attr zipper :id)}
-    :data (zipmap 
-           (zf/xml-> zipper
-                     :property
-                     (zf/attr :type))
-           (zf/xml-> zipper
-                     :property
-                     (zf/attr :value)))))
-
-(defn- process-cites
-  [zipper]
-  {:title (zf/xml1-> zipper :citation :title zf/text)
-   :type (zf/xml1-> zipper :citation (zf/attr :type))
-   :date (zf/xml1-> zipper :citation (zf/attr :date))
-   :name (zf/xml1-> zipper :citation (zf/attr :name))
-   :db (zf/xml1-> zipper :citation (zf/attr :db))
-   :publisher (zf/xml1-> zipper :citation (zf/attr :publisher))
-   :city (zf/xml1-> zipper :citation (zf/attr :city))
-   :number (zf/xml1-> zipper :citation (zf/attr :number))
-   :institute (zf/xml1-> zipper :citation (zf/attr :institute))
-   :country (zf/xml1-> zipper :citation (zf/attr :country))
-   :volume (zf/xml1-> zipper :citation (zf/attr :volume))
-   :first (zf/xml1-> zipper :citation (zf/attr :first))
-   :last (zf/xml1-> zipper :citation (zf/attr :last))
-   :source (let [values '(:strain :plasmid :transposon :tissue)]
-             (zipmap values
-                     (map #(zf/xml-> zipper
-                                     :source
-                                     %
-                                     zf/text) values)))
-   :authors (zf/xml-> zipper
-                      :citation
-                      :authorList 
-                      :person 
-                      (zf/attr :name))
-   :editors (zf/xml-> zipper
-                      :citation
-                      :editorList 
-                      :person 
-                      (zf/attr :name))
-   :consortium (zf/xml-> zipper
-                      :citation
-                      :consortium
-                      :person 
-                      (zf/attr :name))
-   :pubmed (zf/xml1-> zipper
-                      :citation
-                      :dbReference 
-                      (zf/attr= :type "PubMed")
-                      (zf/attr :id))
-   :scope (zf/xml-> zipper :scope zf/text)})
-
-(defn- process-feature
-  [zipper]
-  {:id (zf/attr zipper :id)
-   :description (zf/attr zipper :description)
-   :type (zf/attr zipper :type)
-   :begin (if-let [f (zf/xml1-> zipper :location :begin (zf/attr :position))]
-            (Integer. f))
-   :end (if-let [f (zf/xml1-> zipper :location :end (zf/attr :position))]
-          (Integer. f))
-   :position (if-let [f (zf/xml1-> zipper :location :position (zf/attr :position))]
-               (Integer. f))})
-
-(defn- process-sequence
-  [zipper]
-  {:mass (if-let [f (zf/attr zipper :mass)]
-           (read-string f))
-   :checksum (zf/attr zipper :checksum)
-   :modified (zf/attr zipper :modified)
-   :version (if-let [f (zf/attr zipper :version)]
-              (Integer. f))
-   :amino-acids (string/replace (zf/text zipper)
-                                " "
-                                "")})
-
-(defn- prot-names 
-  [zipper]
-  {:fullname (zf/xml1-> zipper :fullName zf/text)
-   :shortname (zf/xml1-> zipper :shortName zf/text)
-   :ecnumber (zf/xml1-> zipper :ecNumber zf/text)})
-
-
-(defn- meta-data
-  "Returns a map with uniprot meta-data. Keys - :dataset, :created, :modified and :version. 
-   All values are strings except :version, which is an integer."
-  [uniprot]
-  (let [s (zip/xml-zip (:src uniprot))]
-    {:dataset (zf/attr s :dataset)
-     :created (zf/attr s :created)
-     :modified (zf/attr s :modified)
-     :version (if-let [f (zf/attr s :version)]
-                (Integer. f))}))
