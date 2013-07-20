@@ -97,12 +97,13 @@
    correct protein sequence. This value is accessed through the :frame keyword for
    each interval. These values will have no meaning if the sequence is a protein."
   [gb-feature]
-  (let [ints (map #(->genbankInterval %)
-                  (:content (zip/node (zf/xml1-> (zip/xml-zip (:src gb-feature))
-                                                 :GBFeature_intervals))))]
+  (let [ints (map #(->genbankInterval (zip/node %))
+                  (zf/xml-> (zip/xml-zip (:src gb-feature))
+                            :GBFeature_intervals
+                            :GBInterval))]
     (loop [i ints
            f 1
-           acc nil]
+           acc ()]
       (if (empty? i)
         (reverse acc)
         (let [s (start (first i))

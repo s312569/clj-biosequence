@@ -182,7 +182,11 @@ The same core functionality is available for Genbank as is available for Uniprot
 
 In addition to these `moltype` and `gb-locus` are defined and return the molecule type and locus of the biosequence.
 
-To access features of a Genbank sequence `feature-seq` is defined and returns a lazy list of feature objects. To retrieve information from feature objects `feature-type` and `qualifier-extract` can be used. `feature-type` returns the type of featuer --- protein, Region, Site, CDS etc. `qualifier-extract` can be used to retrieve values from the 'GBFeature_quals' elements of a feature by supplying a qualifier name. Otherwise, further information can be obtained from the feature `:src` which is an xml element and can be accessed as described above. Examples:
+To access features of a Genbank sequence `feature-seq` is defined and returns a lazy list of feature objects. To retrieve information from feature objects `feature-type` and `qualifier-extract` can be used. `feature-type` returns the type of featuer --- protein, Region, Site, CDS etc. `qualifier-extract` can be used to retrieve values from the 'GBFeature_quals' elements of a feature by supplying a qualifier name. Otherwise, further information can be obtained from the contents of `:src`, which is an xml element containing the feature and which can be accessed as described above.
+
+The sequence corresponding to a feature can be returned using `get-feature-sequence` which takes a feature and its parent sequence and returns a fastaSequence object containing the seqeunce of the feature.
+
+Intervals of a feature object can be accessed using `interval-seq` which provides a non-lazy list of intervals. `get-interval-sequence` can be used to obtain interval sequences in the same way as described above for `get-feature-sequence`.
 
 ```clojure
 ;; get a genbank sequence from the file defined above
@@ -210,6 +214,23 @@ Bond
 bond(5,21)
 bond(9,23)
 bond(14,28)
+
+;; intervals
+
+(doseq [f (feature-seq gbs)]
+  (print (str (feature-type f) ": "))
+    (doseq [i (interval-seq f)]
+		(println (str (start i) " - " (end i)))))
+source: 1 - 32
+Protein: 1 - 32
+Region: 1 - 32
+Site: 1 - 1
+unsure: 3 - 3
+Bond: Bond: unsure: 12 - 12
+Bond: unsure: 18 - 18
+unsure: 19 - 19
+unsure: 29 - 29
+
 ```
 
 
