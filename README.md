@@ -246,7 +246,7 @@ The parameters argument is a hash-map with two mandatory keys, :db and :program,
 
 (def bdb (init-blast-db "/Users/jason/Dropbox/clj-biosequence/test-files/toxins.fasta" :protein))
 
-;; define a fasta file
+;; initialise a fasta file
 
 (def ffile (init-fasta-file "/Users/jason/Dropbox/clj-biosequence/test-files/bl-test.fa" :protein))
 
