@@ -91,7 +91,7 @@ All sequence objects are records so extra information can be associated with a s
 
 (with-biosequences-in-file [l ufile]
         (accession (first l)))
--> "C4PYP8"
+"C4PYP8"
 ```
 
 `uniprotProtein` objects implement the protocol described above as well as a few specific functions for extracting information from a uniprot biosequence. All of the following return either a `clojure.data.xml.Element` or a list of these elements. Information can then be accessed using the `clojure.data.xml`, `clojure.data.zip.xml` and `clojure.zip` libraries.
@@ -125,12 +125,12 @@ All sequence objects are records so extra information can be associated with a s
 
 (take 10 (wget-uniprot-search "taxonomy:6183 AND keyword:1185 AND go:0031224"))
 
-->("Q26597" "Q8MZK8" "C4Q533" "C4PYI6" "C4PYZ0" "Q27779" "Q26586" "Q86D97" "C4PY08" "Q26579")
+("Q26597" "Q8MZK8" "C4Q533" "C4PYI6" "C4PYZ0" "Q27779" "Q26586" "Q86D97" "C4PY08" "Q26579")
 
 ;; or all reviewed human sequences
 
 (count (wget-uniprot-search "reviewed:yes AND organism:9606"))
-->20264
+20264
 ```
 A lazy list of sequences can be obtained from uniprot using the macro `with-wget-uniprot-sequence`. This macro provides a handle to a lazy list of biosequences from Uniprot corresponding to those specified in the list of accessions provided as an argument. Sequences can be returned as `uniprotProtein` or `fastaSequence` objects:
 
@@ -160,6 +160,29 @@ clj_biosequence.core.fastaSequence
 ```
 
 Downloaded sequences can be streamed to a file or a persistent store.
+
+### Genbank
+
+`clj-biosequence.uniprot` provides an interface to Genbank sequences in the GenbankXML format.
+
+The same core functionality is available for Genbank as is available for Uniprot. For example:
+
+```clojure
+
+;; initialise a genbank XML file
+
+(def gb (init-genbank-file "/Users/jason/Dropbox/clj-biosequence/test-files/protein-gb.xml"))
+
+;; access sequences using `with-biosequences`
+
+(with-biosequences [l gb]
+  (println (version (first l))))
+1
+```
+
+Genbank specific functions return `clojure.data.xml.Element` or lists thereof, as is the case with the uniprot interface:
+
+
 
 ## License
 
