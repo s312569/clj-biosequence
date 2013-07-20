@@ -226,8 +226,8 @@ Protein: 1 - 32
 Region: 1 - 32
 Site: 1 - 1
 unsure: 3 - 3
-Bond: Bond: unsure: 12 - 12
-Bond: unsure: 18 - 18
+unsure: 12 - 12
+unsure: 18 - 18
 unsure: 19 - 19
 unsure: 29 - 29
 ```
