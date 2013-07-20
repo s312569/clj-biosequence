@@ -238,7 +238,23 @@ The function and macro `wget-genbank-search` and `with-wget-genbank-sequences` p
 
 A wrapper for BLAST provides one function and two macros for running BLAST and providing access to the results. The core function `blast` takes a biosequence file, store (see below) or collection of biosequences and will BLAST every biosequence against the specified database using the specified parameters. Results of the serch are written to the specified outfile and a blast Search object is returned initialised with the file path.
 
-The parameters argument is a hash-map with two mandatory keys, :db and :program, which specifiy the database to be searched and the program (blastp etc) to search it with. An optional key :params contains another hash-map of BLAST parameters for changing the default parameters. They keys being BLAST command line parameters and the values the value of the argument.
+The parameters argument is a hash-map with two mandatory keys, :db and :program, which specifiy the database to be searched and the program (blastp etc) to search it with. An optional key :options contains another hash-map of BLAST parameters for changing the default parameters. They keys being BLAST command line parameters and the values the value of the argument.
+
+```clojure
+
+;; initialise a blast database
+
+(def bdb (init-blast-db "/Users/jason/Dropbox/clj-biosequence/test-files/toxins.fasta" :protein))
+
+;; define a fasta file
+
+(def ffile (init-fasta-file "/Users/jason/Dropbox/clj-biosequence/test-files/bl-test.fa" :protein))
+
+;; run blast
+
+(blast ffile "/Users/jason/Dropbox/clj-biosequence/test-files/blast.txt" {:db bdb :program "blastp" :options {"-evalue" "10"}})
+#clj_biosequence.blast.blastSearch{:src "/Users/jason/Dropbox/clj-biosequence/test-files/blast.txt"}
+```
 
 The macro `with-blast-results` provides a handle to a lazy list of search results without the worry of specifying an out-file. Once the macro exits the results are deleted so they should be stored elsewhere, for example in a biosequence store, if they will be needed again.
 
