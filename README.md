@@ -236,7 +236,11 @@ The function and macro `wget-genbank-search` and `with-wget-genbank-sequences` p
 
 ### BLAST
 
-A wrapper for BLAST provides one function and two macros for running BLAST and providing access to the results. The core function `blast` takes a biosequence file, store (see below) or collection of biosequences and will BLAST every biosequence against the specified database using the specified parameters and return a blastSearch object initialised with the BLAST output in the specified outfile. The parameters argument is a hash-map with two mandatory keys, :db and :program, which specifiy the database to be searched and the program (blastp etc) to search it with. An optional key :params contains another hash-map of BLAST parameters for changing the default parameters. They keys being BLAST command line parameters and the values the value of the argument.
+A wrapper for BLAST provides one function and two macros for running BLAST and providing access to the results. The core function `blast` takes a biosequence file, store (see below) or collection of biosequences and will BLAST every biosequence against the specified database using the specified parameters. Results of the serch are written to the specified outfile and a blast Search object is returned initialised with the file path.
+
+The parameters argument is a hash-map with two mandatory keys, :db and :program, which specifiy the database to be searched and the program (blastp etc) to search it with. An optional key :params contains another hash-map of BLAST parameters for changing the default parameters. They keys being BLAST command line parameters and the values the value of the argument.
+
+The macro `with-blast-results` provides a handle to a lazy list of search results without the worry of specifying an out-file. Once the macro exits the results are deleted so they should be stored elsewhere, for example in a biosequence store, if they will be needed again.
 
 ## License
 
