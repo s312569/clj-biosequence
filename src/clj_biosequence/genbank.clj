@@ -121,9 +121,9 @@
                  (cons (assoc (first i) :frame f) acc)))))))
 
 (defn get-feature-sequence
-  "Returns a fastaSequence object containing the sequence specified in a genbankFeature
-   object from a genbankSequence object. Designed for applying intervals to the sequence
-   entry they originate from."
+  "Returns a fastaSequence object containing the sequence specified in a 
+   genbankFeature object from a genbankSequence object. Designed for applying
+   intervals to the sequence entry they originate from."
   [gb-feat gbseq]
   (let [intervals (interval-seq gb-feat)]
     (bs/init-fasta-sequence
@@ -140,6 +140,14 @@
                     (subs (bs/sequence-string gbseq)
                           (- (start %) 1)
                           (end %))) intervals)))))
+
+(defn feature-location
+  "Returns the value corresponding to the 'GBFeature_location' element of a 
+   genbank feature element."
+  [feature]
+  (zf/xml1-> (zip/xml-zip (:src feature))
+             :GBFeature_location
+             zf/text))
 
 ; sequence
 
@@ -342,7 +350,7 @@
     (throw (Throwable. (str "'" ~db "' " "not allowed. Only :protein, :nucleotide, :nucest, :nuccore, :nucgss and :popset are acceptable database arguments. See the documentation for 'wget-genbank-search' for an explanation of the different databases.")))))
 
 (defn wget-genbank-search
-  "Returns a lazy list of result ids from NCBI for a particular search term and
+  "Returns a non-lazy list of result ids from NCBI for a particular search term and
    database. Search term syntax is the same as is used at the NCBI. For example,
    to retreive all Schistosoma mansoni protein sequences the 'db' argument would
    be 'protein' and the search term 'txid6183[Organism:noexp]'. Database arguments

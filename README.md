@@ -180,7 +180,40 @@ The same core functionality is available for Genbank as is available for Uniprot
 1
 ```
 
-Genbank specific functions return `clojure.data.xml.Element` or lists thereof, as is the case with the uniprot interface:
+In addition to these `moltype` and `gb-locus` are defined and return the molecule type and locus of the biosequence.
+
+To access features of a Genbank sequence `feature-seq` is defined and returns a lazy list of feature objects. To retrieve information from feature objects `feature-type` and `qualifier-extract` can be used. `feature-type` returns the type of featuer --- protein, Region, Site, CDS etc. `qualifier-extract` can be used to retrieve values from the 'GBFeature_quals' elements of a feature by supplying a qualifier name. Otherwise, further information can be obtained from the feature `:src` which is an xml element and can be accessed as described above. Examples:
+
+```clojure
+;; get a genbank sequence from the file defined above
+
+(def gbs (with-biosequences [l gb]
+           (first l)))
+
+;; feature types in the sequence
+
+(doseq [f (feature-seq gbs)]
+  (println (feature-type f)))
+source
+Protein
+Region
+Site
+Bond
+Bond
+Bond
+
+;; disulfide bonds
+
+(doseq [b (filter #(= (feature-type %) "Bond") (feature-seq gbs))]
+  (if (= "disulfide" (qualifier-extract b "bond_type"))
+   (println (feature-location b))))
+bond(5,21)
+bond(9,23)
+bond(14,28)
+```
+
+
+
 
 
 
