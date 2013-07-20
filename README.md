@@ -256,6 +256,49 @@ The parameters argument is a hash-map with two mandatory keys, :db and :program,
 #clj_biosequence.blast.blastSearch{:src "/Users/jason/Dropbox/clj-biosequence/test-files/blast.txt"}
 ```
 
+The macro `with-iterations-in-search` provides a handle to a lazy list of blast results from a blastSearch object. One iteration corresponding to one of the biosequences from the file, store or collection of biosequences. Which biosequence a search belongs to can be determined using `iteration-query-id`. BLAST hits and high-scoring segment pairs can be accessed using `hit-seq` on iteration objects and `hsp-seq` on blastHit objects respectively.
+
+```clojure
+
+;; produce a blastResult object
+
+(def bs (blast ffile "/Users/jason/Dropbox/clj-biosequence/test-files/blast.txt" {:db bdb :program "blastp" :options {"-evalue" "10"}})
+
+;; access iterations using `with-iterations-in-search`
+
+(with-iterations-in-search [l bs]
+  (doseq [i l]
+    (println (iteration-query-id i))))
+sp|P84001|29C0_ANCSP
+sp|P84027|32C7_ANCSP
+sp|C1IC47|3FN3_WALAE
+sp|C1IC48|3FN4_WALAE
+sp|C1IC49|3FN5_WALAE
+sp|P84028|45C1_ANCSP
+sp|C0JAT4|A1H1_LOXHI
+sp|P0CE78|A1H1_LOXRE
+sp|C0JAT9|A1H1_LOXSP
+sp|C0JAT5|A1H2_LOXHI
+
+;; access blast hits using `hit-seq`. The function `get-hit-value` provides access
+;; to various hit values corresponding to values in blast xml. Common keys are
+;; :Hit_id, :Hit_len, :Hit_accession, :Hit_def, :Hit_num
+
+(with-iterations-in-search [l bs]
+  (doseq [i l]
+    (println (get-hit-value (second (hit-seq i)) :Hit_id))))
+sp|B3EWT5|TXC20_CUPSA
+sp|P33034|TOG3A_AGEAP
+sp|Q5UFR8|NXS1_ACAPE
+sp|C1IC47|3FN3_WALAE
+sp|Q53B61|TXW72_OPHHA
+sp|O76199|TX25_PHONI
+sp|C0JAT6|A1H3_LOXHI
+sp|P0CE79|A1H2_LOXRE
+sp|C0JAU1|A1H2_LOXSP
+sp|C0JAT6|A1H3_LOXHI
+```
+
 The macro `with-blast-results` provides a handle to a lazy list of search results without the worry of specifying an out-file. Once the macro exits the results are deleted so they should be stored elsewhere, for example in a biosequence store, if they will be needed again.
 
 ## License
