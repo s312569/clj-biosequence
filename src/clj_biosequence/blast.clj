@@ -28,6 +28,10 @@
        ~@body)))
 
 (defmacro with-blast-results
+  "Takes a biosequence file, store or a collection of biosequences, runs BLAST 
+   and returns a handle to the iterations in the resulting BLAST search. Basically
+   a wrapper for `blast` and `with-iterations-in-search` to run BLAST without 
+   worrying about output file creation and deletion."
   [[handle bioseqs params] & code]
   `(let [f# (fs/temp-file "blast")
          b# (blast ~bioseqs f# ~params)]
