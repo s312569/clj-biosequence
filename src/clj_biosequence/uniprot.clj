@@ -6,11 +6,12 @@
             [clojure.java.io :as io]
             [clojure.pprint :as pp]
             [clj-biosequence.core :as bios]
+            [clojure.string :as st]
             [clj-http.client :as client]
             [fs.core :as fs]
             [clojure.java.jdbc :as sql]))
 
-(declare prot-names prot-name process-feature process-sequence process-cites init-uniprot-store meta-data amino-acids nomenclature organism-name uniprot-process-request uniprot-sequence-helper read-up-xml-from-stream)
+(declare prot-names prot-name process-feature process-sequence process-cites init-uniprot-store meta-data amino-acids nomenclature organism uniprot-process-request uniprot-sequence-helper read-up-xml-from-stream)
 
 ;; protein
 
@@ -86,7 +87,7 @@
     (zf/xml-> (zip/xml-zip (:src this)) :organism :lineage :taxon zf/text))
   
   (taxid [this]
-    (:ncbi-taxid (organism-name this))))
+    (:ncbi-taxid (organism this))))
 
 ;; uniprot
 
@@ -177,6 +178,20 @@
   [uniprot]
   (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
                           :dbReference)))
+
+(defn go-terms
+  [uniprot]
+  (zf/xml-> (zip/xml-zip (:src uniprot))
+            :dbReference
+            (zf/attr= :type "GO")
+            :property
+            (zf/attr= :type "term")
+            (zf/attr :value)))
+
+(defn location-terms
+  [uniprot]
+  (filter #(= (first (st/split % #":")) "C")
+          (go-terms uniprot)))
 
 (defn existence
   "Protein existence evidence as a list of xml elements."
