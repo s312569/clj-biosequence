@@ -9,3 +9,5 @@ pom.xml
 .lein-failures
 .lein-plugins
 project.clj~
+README.md~ 
+project.clj~
