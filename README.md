@@ -306,8 +306,8 @@ The macro `with-blast-results` provides a handle to a lazy list of search result
 If you have the program `signalp`
 ([SignalP](http://www.cbs.dtu.dk/services/SignalP/)) in your path,
 `clj-biosequence` provides a wrapper consisting of two functions. The
-firs, `signalp`, takes any type of biosequence and an optional
-paramter hash-map and returns a `signalpResult` object containing the
+first, `signalp`, takes any type of biosequence and an optional
+parameter hash-map and returns a `signalpResult` object containing the
 results of the analysis. The function `signalp?` function returns true
 or false depending on the value of the `:result` parameter from a
 signalP search. Throws an exception if the biosequence is not a
