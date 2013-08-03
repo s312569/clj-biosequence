@@ -315,17 +315,26 @@ biosequence is not a protein (ie. the biosequence returns false from
 the function `protein?`). Example:
 
 ```clojure
+
+;; initialise a fasta file
+
 user> (def ffile (init-fasta-file "/Users/jason/Dropbox/clj-biosequence/test-files/toxins.fasta" :protein))
 
 #'user/ffile
+
+;; define a protein sequence
 
 user> (def prot (with-biosequences [l ffile]
                   (first l)))
 #'user/prot
 
+;; run signalp on the protein
+
 user> (signalp prot)
 
 #clj_biosequence.signalp.signalpResult{:name "P84001", :cmax 0.11, :cpos 38, :ymax 0.116, :ypos 3, :smax 0.134, :spos 2, :smean 0.132, :D 0.125, :result "N", :Dmaxcut 0.45, :network "SignalP-noTM"}
+
+;; does the sequence have a signal seqeunce
 
 user> (signalp? prot)
 false
@@ -346,17 +355,26 @@ to a keyword argument. At the moment the only key it accepts is
 `:standard` which returns the standard codon table.
 
 ```clojure
+
+;; initialise a fasta file
+
 user> (def ffile (init-fasta-file "/Users/jason/Dropbox/clj-biosequence/test-files/nuc-sequences.fasta" :protein))
 
 #'user/ffile
 
+;; define a nucleotide
+
 user> (def nucl (with-biosequences [l ffile]
                   (first l)))
-#'user/prot
+#'user/nucl
+
+;; show the nucleotide biosequence
 
 user> nucl
 
 #clj_biosequence.core.fastaSequence{:accession "gi|116025203|gb|EG339215.1|EG339215", :description "KAAN-aaa29f08.b1 Platypus_EST_Cell_line_1.0-4.0kb Ornithorhynchus anatinus cDNA similar to ref|NP_005715.1| tetraspan 3; tetraspanin TM4-A; tetraspan TM4SF; transmembrane 4 superfamily, member 8; tetraspanin 3 [Homo sapiens] sp|O60637|T4S8_HUMAN Transmembrane 4 superfamily, member 8 (Tetraspanin 3) (Tspan-3) (Tetraspanin TM4-A) pir|A592, mRNA sequence", :type :nucleotide, :sequence "GTACAAAAAAGTTGGCCCAGGCAGGACCGGCAGCAACAGGAGGAGGAGCCGCCGCCGCCGCCGCCGCCGCCGCCGCCGCCATTTCACCCCGCGCCGCCGCCGCCGCTGCCGCCGCCGCCATGGGCCAGTGCGGCATCACCTCGTCCAAGACGGTGCTGGTTTTCCTCAACCTCATCTTCTGGGCGGCAGCAGGCATCCTGTGCTACGTGGGAGCCTATGTCTTCATTACTTACGACGACTACGATCATTTCTTTGAAGACGTGTACACGCTCATTCCCGCCGTTGTGATCATAGCTGTAGGCACGCTCCTTTTCATCATCGGACTTATCGGATGCTGTGCCACAATCCGAGAAAGCCGTTGTGGACTAGCAACGTTTGTGATCATCCTCCTCTTGGTTTTTGTCACAGAAGTTGTCGTCGTGGTTTTGGGTTACATTTACCGAGCAAAGGTGGAAAACGAGGTCGACCGCAGCATCGAGAAGGTGTACAGGGCCTATAATGAAACCTCCTCTGACGCTGCCCGTCTAGCTATTGATTA"}
+
+;; translate it in third frame
 
 user> (translate-biosequence nucl 3)
 
