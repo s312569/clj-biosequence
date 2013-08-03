@@ -24,19 +24,26 @@
    {'-t' 'euk' (euk, gram+, gram-; default euk)}"
   ([bioseq] (signalp bioseq {}))
   ([bioseq params]
-     (let [in (fs/temp-file "signalp-")
-           defs (flatten (vec (signal-default-parameters params)))]
-     (spit in (bios/fasta-string bioseq))
-     (let [args (conj (vec (cons "signalp" defs))
-                      (fs/absolute-path in))
-           sp @(exec/sh args)]
-       (if (= 0 (:exit sp))
-         (make-signal-result (string/split
-                              (first (rest (rest (string/split-lines (:out sp)))))
-                              #"\s+"))
-         (if (:err sp)
-           (throw (Throwable. (str "SignalP error: " (:err sp))))
-           (throw (Throwable. (str "Exception: " (:exception sp))))))))))
+     (if (bios/protein? bioseq)
+      (let [in (fs/temp-file "signalp-")
+            defs (flatten (vec (signal-default-parameters params)))]
+        (spit in (bios/fasta-string bioseq))
+        (let [args (conj (vec (cons "signalp" defs))
+                         (fs/absolute-path in))
+              sp @(exec/sh args)]
+          (if (= 0 (:exit sp))
+            (make-signal-result (string/split
+                                 (first (rest (rest (string/split-lines (:out sp)))))
+                                 #"\s+"))
+            (if (:err sp)
+              (throw (Throwable. (str "SignalP error: " (:err sp))))
+              (throw (Throwable. (str "Exception: " (:exception sp))))))))
+      (throw (Throwable. "Only protein sequences can be analysed for signal sequence.")))))
+
+(defn signalp?
+  "Returns true if sequence contains signal sequence, false otherwise."
+  [prot]
+  (= (:result (signalp prot)) "Y"))
 
 ;; private
 

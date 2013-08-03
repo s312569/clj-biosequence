@@ -89,7 +89,7 @@ All sequence objects are records so extra information can be associated with a s
 ;; use `with-biosequences` as above to access a lazy list of uniprotProtein
 ;; objects.
 
-(with-biosequences-in-file [l ufile]
+(with-biosequences [l ufile]
         (accession (first l)))
 "C4PYP8"
 ```
@@ -180,7 +180,7 @@ The same core functionality is available for Genbank as is available for Uniprot
 1
 ```
 
-In addition to these `moltype` and `gb-locus` are defined and return the molecule type and locus of the biosequence.
+In addition to these, the functions `moltype` and `gb-locus` are defined and return the molecule type and locus of the biosequence.
 
 To access features of a Genbank sequence `feature-seq` is defined and returns a lazy list of feature objects. To retrieve information from feature objects `feature-type` and `qualifier-extract` can be used. `feature-type` returns the type of featuer --- protein, Region, Site, CDS etc. `qualifier-extract` can be used to retrieve values from the 'GBFeature_quals' elements of a feature by supplying a qualifier name. Otherwise, further information can be obtained from the contents of `:src`, which is an xml element containing the feature and which can be accessed as described above.
 
@@ -236,7 +236,7 @@ The function and macro `wget-genbank-search` and `with-wget-genbank-sequences` p
 
 ### BLAST
 
-A wrapper for BLAST provides one function and two macros for running BLAST and providing access to the results. The core function `blast` takes a biosequence file, store (see below) or collection of biosequences and will BLAST every biosequence against the specified database using the specified parameters. Results of the serch are written to the specified outfile and a blast Search object is returned initialised with the file path.
+A wrapper for BLAST provides one function and two macros for running BLAST and providing access to the results. The core function `blast` takes a biosequence file, store (see below) or collection of biosequences and will BLAST every biosequence against the specified database using the specified parameters. Results of the search are written to the specified outfile and a blast Search object is returned initialised with the file path.
 
 The parameters argument is a hash-map with two mandatory keys, :db and :program, which specifiy the database to be searched and the program (blastp etc) to search it with. An optional key :options contains another hash-map of BLAST parameters for changing the default parameters. They keys being BLAST command line parameters and the values the value of the argument.
 
@@ -300,6 +300,27 @@ sp|C0JAT6|A1H3_LOXHI
 ```
 
 The macro `with-blast-results` provides a handle to a lazy list of search results without the worry of specifying an out-file. Once the macro exits the results are deleted so they should be stored elsewhere, for example in a biosequence store, if they will be needed again.
+
+## SignalP
+
+If you have the program `signalp` ([SignalP](http://www.cbs.dtu.dk/services/SignalP/)) in your path, `clj-biosequence` provides a wrapper consisting of two functions. The first `signalp` takes any type of biosequence and returns a `signalpResult` onject containing the results of the analysis. The function `signalp` function returns true or false depending on the value of the `:result` parameter from a signalP search. Throws an exception if the biosequence is not a protein (ie. returns false from the function `protein?`). Example:
+
+```clojure
+(def ffile (init-fasta-file "/Users/jason/Dropbox/clj-biosequence/test-files/toxins.fasta" :protein))
+
+#'user/ffile
+
+(def prot (with-biosequences [l ffile]
+            (first l)))
+#'user/prot
+
+(signalp prot)
+
+#clj_biosequence.signalp.signalpResult{:name "P84001", :cmax 0.11, :cpos 38, :ymax 0.116, :ypos 3, :smax 0.134, :spos 2, :smean 0.132, :D 0.125, :result "N", :Dmaxcut 0.45, :network "SignalP-noTM"}
+
+(signalp? prot)
+false
+```
 
 ## License
 
