@@ -16,11 +16,12 @@
 (defrecord signalpResult [name cmax cpos ymax ypos smax spos smean D result Dmaxcut network])
 
 (defn signalp
-  "Returns a hash-map of the results of analysing a biosequence with signalP. The
-   return hash-map keys are: :name, :cmax, :cpos, :ymax, :ypos, :smax, :spos, :smean, 
-   :D, :result, :Dmaxcut and :network. All are standard outputs from signalP. Params 
-   is a hash-map mapping signalP parameters to values. They are the same as the command
-    version of the program. The only one that should need changing is the organism type:
+  "Returns a hash-map of the results of analysing a biosequence with signalP. 
+   The return hash-map keys are: :name, :cmax, :cpos, :ymax, :ypos, :smax, 
+   :spos, :smean, :D, :result, :Dmaxcut and :network. All are standard outputs
+   from signalP. Params is a hash-map mapping signalP parameters to values. 
+   They are the same as the command version of the program. The only one that
+   should need changing is the organism type: 
    {'-t' 'euk' (euk, gram+, gram-; default euk)}"
   ([bioseq] (signalp bioseq {}))
   ([bioseq params]
@@ -56,7 +57,7 @@
   (merge {"-f" "short" ;Setting the output format ('short', 'long', 'summary' or 'all')
           "-g" "Off"   ;Graphics 'png' or 'png+eps'. Default: 'Off'
           "-k" "Off"   ;Keep temporary directory. Default: 'Off'
-          "-s" "best" ;Signal peptide networks to use ('best' or 'notm'). Default: 'best'
+          "-s" "best"  ;Signal peptide networks to use ('best' or 'notm'). Default: 'best'
           "-t" "euk"  ;Organism type> (euk, gram+, gram-). Default: 'euk'
           "-m" "Off" ;Make fasta file with mature sequence. Default: 'Off'
           "-n" "Off" ;Make gff file of processed sequences. Default: 'Off'
