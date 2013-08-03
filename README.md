@@ -139,8 +139,8 @@ A lazy list of sequences can be obtained from uniprot using the macro `with-wget
 ;;  and returns a handle to a lazy list of sequence objects from Uniprot.
 
 user> (with-wget-uniprot-sequence [l (take 10 (wget-uniprot-search "taxonomy:6183 AND keyword:1185 AND go:0031224")) :xml "jason.mulvenna@gmail.com"]
-    (doseq [seq l]
-      (println (accession seq))))
+        (doseq [seq l]
+          (println (accession seq))))
 Q26597
 Q8MZK8
 C4Q533
