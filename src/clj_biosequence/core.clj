@@ -38,25 +38,6 @@
                                 res#)]
                ~@body)))))
 
-(defmacro with-fasta-file
-  "Provides a handle to a temporary fasta file containing the biosequences
-   contained in a biosequence file, store or collection."
-  [[handle sink] & code]
-  `(if (= fastaFile (class ~sink))
-     (try (let [~handle (init-fasta-file (fs/copy (file-path ~sink)
-                                                  (fs/temp-file "fasta"))
-                                         (:type ~sink))]
-            ~@code)
-          (catch Exception e# (throw e#))
-          (finally (fs/delete ~handle)))
-     (let [~handle (init-fasta-file (fs/temp-file "fasta") (sink-type ~sink))]
-       (try (do (with-biosequences [l# ~sink]
-                  (doseq [s# l#]
-                    (spit (:file ~handle) (fasta-string s#) :append true)))
-                ~@code)
-            (catch Exception e# (throw e#))
-            (finally (fs/delete (:file ~handle)))))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; biosequence protocol
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

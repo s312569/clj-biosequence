@@ -236,7 +236,7 @@ The function and macro `wget-genbank-search` and `with-wget-genbank-sequences` p
 
 ### BLAST
 
-A wrapper for BLAST provides one function and two macros for running BLAST and providing access to the results. The core function `blast` takes a biosequence file, store (see below) or collection of biosequences and will BLAST every biosequence against the specified database using the specified parameters. Results of the search are written to the specified outfile and a blast Search object is returned initialised with the file path.
+The `clj-bioseqeunce.blast` package provides one function and two macros for running BLAST and providing access to the results. The core function `blast` takes a biosequence file, store (see below) or collection of biosequences and will BLAST every biosequence against the specified database using the specified parameters. Results of the search are written to the specified outfile and a blast Search object is returned initialised with the file path.
 
 The parameters argument is a hash-map with two mandatory keys, :db and :program, which specifiy the database to be searched and the program (blastp etc) to search it with. An optional key :options contains another hash-map of BLAST parameters for changing the default parameters. They keys being BLAST command line parameters and the values the value of the argument.
 
@@ -305,14 +305,14 @@ The macro `with-blast-results` provides a handle to a lazy list of search result
 
 If you have the program `signalp`
 ([SignalP](http://www.cbs.dtu.dk/services/SignalP/)) in your path,
-`clj-biosequence` provides a wrapper consisting of two functions. The
-first, `signalp`, takes any type of biosequence and an optional
-parameter hash-map and returns a `signalpResult` object containing the
-results of the analysis. The function `signalp?` function returns true
-or false depending on the value of the `:result` parameter from a
-signalP search. Throws an exception if the biosequence is not a
-protein (ie. the biosequence returns false from the function
-`protein?`). Example:
+`clj-biosequence.core` provides a wrapper consisting of two
+functions. The first, `signalp`, takes any type of biosequence and an
+optional parameter hash-map and returns a `signalpResult` object
+containing the results of the analysis. The function `signalp?`
+function returns true or false depending on the value of the `:result`
+parameter from a signalP search. Throws an exception if the
+biosequence is not a protein (ie. the biosequence returns false from
+the function `protein?`). Example:
 
 ```clojure
 (def ffile (init-fasta-file "/Users/jason/Dropbox/clj-biosequence/test-files/toxins.fasta" :protein))
@@ -330,6 +330,37 @@ protein (ie. the biosequence returns false from the function
 (signalp? prot)
 false
 ```
+
+## Translation
+
+Any nucleotide biosequence can be translated using the
+`translate-biosequence` function in `clj-biosequence.core`. The
+function takes a biosequence and an integer frame argument and returns
+a new `fastaSequence` object containing the translated sequence (using
+the standard translation table) and annotated definition line etc. The
+function also takes an optional argument which is a nested list
+representing a codon table.
+
+The function `codon-table` returns pre-prepared codon tables according
+to a keyword argument. At the moment the only key it accepts is
+`:standard` which returns the standard codon table.
+
+```clojure
+(def ffile (init-fasta-file "/Users/jason/Dropbox/clj-biosequence/test-files/nuc-sequences.fasta" :protein))
+
+#'user/ffile
+
+(def nucl (with-biosequences [l ffile]
+            (first l)))
+#'user/prot
+
+nucl
+
+#clj_biosequence.core.fastaSequence{:accession "gi|116025203|gb|EG339215.1|EG339215", :description "KAAN-aaa29f08.b1 Platypus_EST_Cell_line_1.0-4.0kb Ornithorhynchus anatinus cDNA similar to ref|NP_005715.1| tetraspan 3; tetraspanin TM4-A; tetraspan TM4SF; transmembrane 4 superfamily, member 8; tetraspanin 3 [Homo sapiens] sp|O60637|T4S8_HUMAN Transmembrane 4 superfamily, member 8 (Tetraspanin 3) (Tspan-3) (Tetraspanin TM4-A) pir|A592, mRNA sequence", :type :nucleotide, :sequence "GTACAAAAAAGTTGGCCCAGGCAGGACCGGCAGCAACAGGAGGAGGAGCCGCCGCCGCCGCCGCCGCCGCCGCCGCCGCCATTTCACCCCGCGCCGCCGCCGCCGCTGCCGCCGCCGCCATGGGCCAGTGCGGCATCACCTCGTCCAAGACGGTGCTGGTTTTCCTCAACCTCATCTTCTGGGCGGCAGCAGGCATCCTGTGCTACGTGGGAGCCTATGTCTTCATTACTTACGACGACTACGATCATTTCTTTGAAGACGTGTACACGCTCATTCCCGCCGTTGTGATCATAGCTGTAGGCACGCTCCTTTTCATCATCGGACTTATCGGATGCTGTGCCACAATCCGAGAAAGCCGTTGTGGACTAGCAACGTTTGTGATCATCCTCCTCTTGGTTTTTGTCACAGAAGTTGTCGTCGTGGTTTTGGGTTACATTTACCGAGCAAAGGTGGAAAACGAGGTCGACCGCAGCATCGAGAAGGTGTACAGGGCCTATAATGAAACCTCCTCTGACGCTGCCCGTCTAGCTATTGATTA"}
+
+(translate-biosequence nucl 3)
+
+#clj_biosequence.core.fastaSequence{:accession "gi|116025203|gb|EG339215.1|EG339215-3", :description "KAAN-aaa29f08.b1 Platypus_EST_Cell_line_1.0-4.0kb Ornithorhynchus anatinus cDNA similar to ref|NP_005715.1| tetraspan 3; tetraspanin TM4-A; tetraspan TM4SF; transmembrane 4 superfamily, member 8; tetraspanin 3 [Homo sapiens] sp|O60637|T4S8_HUMAN Transmembrane 4 superfamily, member 8 (Tetraspanin 3) (Tspan-3) (Tetraspanin TM4-A) pir|A592, mRNA sequence - Translated frame: 3", :type :protein, :sequence "TKKLAQAGPAATGGGAAAAAAAAAAAISPRAAAAAAAAAMGQCGITSSKTVLVFLNLIFWAAAGILCYVGAYVFITYDDYDHFFEDVYTLIPAVVIIAVGTLLFIIGLIGCCATIRESRCGLATFVIILLLVFVTEVVVVVLGYIYRAKVENEVDRSIEKVYRAYNETSSDAARLAIDX"}
 
 ## License
 
