@@ -381,6 +381,15 @@ user> (translate-biosequence nucl 3)
 #clj_biosequence.core.fastaSequence{:accession "gi|116025203|gb|EG339215.1|EG339215-3", :description "KAAN-aaa29f08.b1 Platypus_EST_Cell_line_1.0-4.0kb Ornithorhynchus anatinus cDNA similar to ref|NP_005715.1| tetraspan 3; tetraspanin TM4-A; tetraspan TM4SF; transmembrane 4 superfamily, member 8; tetraspanin 3 [Homo sapiens] sp|O60637|T4S8_HUMAN Transmembrane 4 superfamily, member 8 (Tetraspanin 3) (Tspan-3) (Tetraspanin TM4-A) pir|A592, mRNA sequence - Translated frame: 3", :type :protein, :sequence "TKKLAQAGPAATGGGAAAAAAAAAAAISPRAAAAAAAAAMGQCGITSSKTVLVFLNLIFWAAAGILCYVGAYVFITYDDYDHFFEDVYTLIPAVVIIAVGTLLFIIGLIGCCATIRESRCGLATFVIILLLVFVTEVVVVVLGYIYRAKVENEVDRSIEKVYRAYNETSSDAARLAIDX"}
 ```
 
+## ID mapping
+
+`clj-biosequence.core` provides an interface to the Uniprot ID mapping
+service. It is an online service so web access is needed for it to work. One function, `id-convert`, provides access to this service and takes a list of accessions and a `from` and `to` argument. The latter two arguments specify the databse the accession is from and the target database. These arguments use the same values as the Uniprot mapping service. See [this](http://www.uniprot.org/manual/accession_numbers) website for details or the document string for some examples. Uniprot requires an email address and this can be provided with the `email` argument to `id-convert`. Returns a hash-map with the query IDs the key and the converted ID the value. Example usage:
+
+```clojure
+> (id-convert '("A2BC19" "P12345") "ACC" "P_GI" "jason.mulvenna@gmail.com")
+{"A2BC19" "122702455", "P12345" "112986"}
+```
 
 ## License
 
