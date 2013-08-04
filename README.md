@@ -384,7 +384,7 @@ user> (translate-biosequence nucl 3)
 ## ID mapping
 
 `clj-biosequence.core` provides an interface to the Uniprot ID mapping
-service. It is an online service so web access is needed for it to work. One function, `id-convert`, provides access to this service and takes a list of accessions to be converted, a `from` and `to` argument and an `email` argument (required by Uniprot). The `from` and `to` arguments specify the database of origin and database for which the corresponding ID is required. These arguments use the same values as the Uniprot mapping service. See the [Uniprot](http://www.uniprot.org/manual/accession_numbers) website for details or the document string for some examples. Returns a hash-map with the query IDs the key and the converted ID the value. Example usage:
+service. It is an online service so web access is needed for it to work. One function, `id-convert`, provides access to this service and takes a list of accessions to be converted, a `from` and `to` argument and an `email` argument (required by Uniprot). The `from` and `to` arguments specify the database of origin and database for which the corresponding ID is required. These arguments use the same values as the Uniprot mapping service. See the [Uniprot](http://www.uniprot.org/manual/accession_numbers) website for details or the document string for some examples. Returns a hash-map with the query IDs as keys and the converted IDs as values. Example usage:
 
 ```clojure
 > (id-convert '("A2BC19" "P12345") "ACC" "P_GI" "jason.mulvenna@gmail.com")
