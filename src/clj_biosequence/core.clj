@@ -173,7 +173,6 @@
                   (make-mem-db-connection))]
     (sql/with-connection (:db db)
       (sql/transaction
-       (println db)
        (sql/create-table :sequence
                          [:id "varchar(255)" "PRIMARY KEY" "NOT NULL"]
                          [:src :clob])))
