@@ -4,53 +4,17 @@
             [fs.core :as fs]
             [clojure.pprint :as pp]
             [clj-http.client :as client]
-            [clojure.string :as string]))
+            [clojure.string :as string]
+            [clj-biosequence.alphabet :as ala]
+            [clj-biosequence.persistence :as ps]))
 
-(declare codon-tables declob with-connection-to-store read-seq pb-read-line init-fasta-store translate translate-string adjust-dna-frame map-frame sink-type)
+(declare read-seq pb-read-line init-fasta-store init-fasta-sequence translate translate-string adjust-dna-frame map-frame)
 
-; macros
+(defprotocol biosequenceIO
+  (bs-reader [this]))
 
-(defmacro with-connection-to-store
-  "Provides a connection to a biosequence store."
-  [[store] & code]
-  `(sql/with-connection (:db ~store)
-     (sql/transaction
-      ~@code)))
-
-(defmacro with-biosequences
-  "Provides a handle to a lazy list of biosequences in a biosequence store or
-   file. Also works with collections of biosequences."
-  [[handle sink] & body]
-  `(cond (satisfies? biosequenceFile ~sink)
-         (with-open [rdr# (java.io.PushbackReader. (io/reader (:file ~sink)))]
-           (let [~handle (biosequence-seq-file ~sink rdr#)]
-             ~@body))
-         (seq? ~sink)
-         (let [~handle ~sink]
-           ~@body)
-         :else
-         (with-connection-to-store [~sink]
-           (sql/with-query-results res#
-             ["select * from sequence"]
-             {:fetch-size 10 :concurrency :read-only :result-type :forward-only}
-             (let [~handle (map #(assoc (declob (:src %))
-                                   :db (:db ~sink))
-                                res#)]
-               ~@body)))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; biosequence protocol
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-; file
-
-(defprotocol biosequenceFile
-  (biosequence-seq-file [this rdr]
-    "Returns a lazy sequence of biosequences from a biosequence file object.")
-  (file-path [this]
-    "Returns the path of a biosequence file."))
-
-; biosequence
+(defprotocol biosequenceReader
+  (biosequence-seq [this]))
 
 (defprotocol Biosequence
   (accession [this]
@@ -59,295 +23,258 @@
     "Returns a list of strings describing the accessions of a biosequence object.")
   (def-line [this]
     "Returns a description for a biosequence object.")
-  (sequence-string [this]
-    "Returns the sequence of a biosequence as a string.")
+  (bs-seq [this]
+    "Returns the sequence of a biosequence as a vector.")
   (fasta-string [this]
     "Returns the biosequence as a string in fasta format.")
   (protein? [this]
-    "Returns true if a protein and false otherwise.")
-  (org-scientific-name [this]
-    "Returns the scientific name of the organism possessing the sequence as a string.")
-  (created [this]
-    "Date sequence created.")
-  (modified [this]
-    "Date sequence modified.")
-  (version [this]
-    "Version of the sequence (Integer).")
-  (database [this]
-    "Returns the database that contains the sequence.")
-  (taxonomy [this]
-    "Returns the lineage from a uniprot as a list of strings. Strings in order from kingdom to species.")
-  (taxid [this]
-    "Returns the taxid of a sequence (Integer)."))
+    "Returns true if a protein and false otherwise."))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn get-biosequence [accession]
-  "Returns a biosequence object from a store implementing the biosequence"
-  (sql/with-query-results row
-    ["select * from sequence where id=?" accession]
-    {:fetch-size 1}
-    (if-not (empty? row)
-      (declob (:src (first row))))))
+; store
 
-(defn translate-biosequence
+(defn save-biosequence
+  "Saves an object to a store."
+  [store obj]
+  (ps/save-object store (accession obj) obj))
+
+(defmacro with-biosequences-in-store
+  "Provides a handle to a lazy list of biosequences in an object store."
+  [[handle store] & code]
+  `(ps/with-objects [~handle ~store]
+     ~@code))
+
+(defn update-biosequence 
+  "Updates an object in the store with a current connection."
+  [store obj]
+  (ps/update-object store (accession obj) obj))
+
+(defn update-biosequence-by-accession
+  "Takes an accession number and key value pairs. If the biosequence exists in
+   the current store it will be updated with the key value pairs and saved. 
+   Throws an exception if a corresponding object is not found in the store."
+  [store accession & args]
+  (ps/update-object-by-id store accession args))
+
+(defn get-biosequence [store accession]
+  "Returns a biosequence object from a store implementing the biosequence"
+  (ps/get-object store accession))
+
+; other
+
+(defn bioseq->string
+  [bs]
+  (apply str (bs-seq bs)))
+
+(defn residue-frequencies
+  [bs]
+  (frequencies (bs-seq bs)))
+
+(defn sub-bioseq
+  "Returns a new fasta sequence object with the sequence corresponding to
+   'beg' (inclusive) and 'end' (exclusive) of 'bs'. If no 'end' argument 
+   returns from 'start' to the end of the sequence. Indexes start at zero."
+  ([bs beg] (sub-bioseq bs beg nil))
+  ([bs beg end]
+     (init-fasta-sequence (accession bs)
+                          (str (def-line bs)
+                               "[" beg " - "
+                               (if end end "End") "]")
+                          (:alphabet bs)
+                          (if end
+                            (subvec (bs-seq bs) beg end)
+                            (subvec (bs-seq bs) beg)))))
+
+(defn partition-bioseq
+  "Partitions a sequence into a lazy list of lists of 'n' size. Default
+   partition size is 3."
+  ([bs] (partition-bioseq bs 3))
+  ([bs n]
+     (partition-all n (bs-seq bs))))
+
+(defn concat-bioseqs
+  [s1 s2]
+  (if (= (:alphabet s1) (:alphabet s2))
+    (init-fasta-sequence (str (accession s1) "/" (accession s2))
+                         (str (def-line s1) "/" (def-line s2))
+                         (:alphabet s1)
+                         (vec (concat (bs-seq s1) (bs-seq s2))))
+    (throw (Throwable. "Incompatible alphabets for concatenation of biosequence."))))
+
+(defn revcom-bioseq
+  [bs]
+  (if (protein? bs)
+    (throw (Throwable. "Can't reverse/complement a protein sequence."))
+    (init-fasta-sequence (accession bs)
+                         (str (def-line bs) " - reverse-comp")
+                         (:alphabet bs)
+                         (ala/revcom (bs-seq bs)))))
+
+(defn translate
   "Returns a fastaSequence object corresponding to the protein translation 
    of the sequence in the specified frame."
-  ([nucleotide frame] 
-     (translate-biosequence nucleotide frame (codon-tables :standard)))
-  ([nucleotide frame table]
-     (translate nucleotide frame table)))
+  ([bs frame] (translate bs frame (ala/codon-tables 1)))
+  ([bs frame table]
+     (cond (protein? bs)
+           (throw (Throwable. "Can't translate a protein sequence!"))
+           (not (#{1 2 3 4 5 6 -1 -2 -3} frame))
+           (throw (Throwable. "Invalid frame."))
+           :else
+           (init-fasta-sequence (str (accession bs) "-"  frame)
+                                (str (def-line bs) " - Translated frame: " frame)
+                                :iupacAminoAcids
+                                (let [v (cond (#{1 2 3} frame)
+                                              (sub-bioseq bs (- frame 1))
+                                              (#{-1 -2 -3} frame)
+                                              (-> (revcom-bioseq bs)
+                                                  (sub-bioseq (- (* -1 frame) 1)))
+                                              (#{4 5 6} frame)
+                                              (-> (revcom-bioseq bs)
+                                                  (sub-bioseq ( - frame 4))))]
+                                  (vec (map #(ala/codon->aa % table)
+                                            (partition-bioseq v 3))))))))
 
 (defn six-frame-translation
   "Returns a lazy list of fastaSequence objects representing translations of
    a nucleotide biosequence object in six frames."
-  ([nucleotide] (six-frame-translation nucleotide (codon-tables :standard)))
+  ([nucleotide] (six-frame-translation nucleotide (ala/codon-tables 1)))
   ([nucleotide table]
      (map #(translate nucleotide % table)
           '(1 2 3 -1 -2 -3))))
-
-(defn sink-type
-  [sink]
-  (if (seq? sink)
-    (if (protein? (first sink)) :protein :nucleotide)
-   (with-biosequences [l sink]
-     (if (protein? (first l))
-       :protein
-       :nucleotide))))
-
-;; persistance
-
-(defn declob [^java.sql.Clob clob]
-  "Turn a Derby 10.6.1.0 EmbedClob into a String"
-  (binding [*read-eval* false]
-    (read-string 
-     (with-open [rdr (java.io.BufferedReader. (.getCharacterStream clob))]
-       (apply str (line-seq rdr))))))
-
-(defn make-db-connection 
-  "Takes a file path and returns a specification for a database based on that file.
-   Exists is a boolean and specifies whether an error is signalled if file already exists."
-  [file exists]
-  {
-   :classname   "org.h2.Driver"
-   :subprotocol "h2:file"
-   :subname     (str file ";IFEXISTS=" exists)
-   :user        "sa"
-   :password    ""
-   })
-
-(defn make-mem-db-connection
-  "Returns a in-memory database specification."
-  []
-  {:classname   "org.h2.Driver"
-   :subprotocol "h2:mem:test"
-   :subname     ";DB_CLOSE_DELAY=-1"
-   :user        "sa"
-   :password    ""
-   })
-
-(defn init-store
-  "Initialises a permanent store."
-  [store]
-  (let [db (assoc store :db
-                  (make-db-connection (:file store) false))]
-    (try
-      (do
-        (sql/with-connection (:db db)
-          (sql/create-table :sequence
-                            [:id "varchar(255)" "PRIMARY KEY" "NOT NULL"]
-                            [:src :clob])
-          (sql/create-table :meta
-                            [:id "varchar(50)" "PRIMARY KEY" "NOT NULL"]
-                            [:src :clob]))
-        db)
-      (catch Exception e
-        (fs/delete-dir (fs/parent (:file store)))))))
-
-(defn init-in-mem-store
-  "Initialises an in-memory permanent store"
-  [store]
-  (let [db (assoc store :db
-                  (make-mem-db-connection))]
-    (sql/with-connection (:db db)
-      (sql/transaction
-       (sql/create-table :sequence
-                         [:id "varchar(255)" "PRIMARY KEY" "NOT NULL"]
-                         [:src :clob])))
-    db))
-
-(defn save-object [obj]
-  "Saves an object to the currently opened store."
-  (sql/insert-record :sequence
-                     {:id (accession obj)
-                      :src (pr-str obj)}))
-
-(defn update-object [obj]
-  "Updates an object in the store with a current connection."
-  (if (get-biosequence (accession obj))
-    (do (sql/update-values :sequence 
-                           ["id=?" (accession obj)]
-                           {:src (pr-str obj)})
-        obj)
-    (throw (Throwable. "Object not currently in database."))))
-
-(defn update-object-by-accession
-  "Takes an accession number and key value pairs. If the object exists in
-   the current store the object with the corresponding accession number
-   will be updated with the key value pairs and saved. Throws an exception
-   if a corresponding object is not found in the store."
-  [accession & args]
-  (if-let [seq (get-biosequence accession)]
-    (update-object (apply assoc seq args))
-    (throw (Throwable. (str "No object found with accession: " accession)))))
-
-(defn index-file-name
-  "Returns a path suitable for a persistent store."
-  [file]
-  (let [dir (if (string? file)
-              (str file ".ind")
-              (str (:file file) ".ind"))]
-    (if (.exists (io/file dir))
-      (throw (Throwable. (str "Index directory already exists: " dir)))
-      (str dir "/" (fs/base-name (if (string? file)
-                                   file
-                                   (:file file)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; an implementation of biosequence for fasta sequences
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord fastaSequence [accession description type sequence])
+(defrecord fastaSequence [accession description alphabet sequence]
 
-(defn init-fasta-sequence
-  "Returns a fastaSequence object with the specified information."
-  [accession description type sequence]
-  (->fastaSequence accession description type
-                   (string/replace sequence #"[^a-z|A-Z|*]" "")))
-
-(extend-protocol Biosequence
+  Biosequence
   
-  fastaSequence
-
   (accession [this]
     (:accession this))
 
   (accessions [this]
     (list (:accession this)))
-  
-  (sequence-string [this]
+
+  (bs-seq [this]
     (:sequence this))
-  
+
   (def-line [this]
     (:description this))
 
   (protein? [this]
-    (if (= :protein (:type this))
-      true))
+    (if (= :iupacAminoAcids (:alphabet this))
+      true
+      false))
   
   (fasta-string [this]
-    (if (:description this)
+    (if (:description this) 
       (pp/cl-format nil ">~A ~A~%~A~%"
                     (:accession this)
                     (:description this)
-                    (:sequence this))
+                    (apply str (:sequence this)))
       (pp/cl-format nil ">~A~%~A~%"
                     (:accession this)
-                    (:sequence this))))
+                    (apply str (:sequence this))))))
 
-  (org-scientific-name [this]
-    nil)
+(defn init-fasta-sequence
+  "Returns a fastaSequence object with the specified information. Alphabet can be
+   one of :iupacNucleicAcids or :iupacAminoAcids."
+  [accession description alphabet sequence]
+  (->fastaSequence accession description alphabet sequence))
 
-  (created [this]
-    nil)
 
-  (modified [this]
-    nil)
+;; reader
 
-  (version [this]
-    nil)
+(defrecord fastaReader [strm alphabet]
 
-  (database [this]
-    nil)
-
-  (taxonomy [this]
-    nil)
+  biosequenceReader
   
-  (taxid [this]
-    nil))
+  (biosequence-seq [this]
+    (letfn [(process [x]
+              (if (empty? x)
+                nil
+                (let [s (first x)]
+                  (lazy-seq (cons (fastaSequence. (first s)
+                                                   (second s)
+                                                   alphabet
+                                                   (vec (nth s 2)))
+                                  (process (rest x)))))))]
+      (process (take-while (complement nil?)
+                           (repeatedly #(read-seq (:strm this)))))))
 
-;; files
+  java.io.Closeable
 
-(defn read-fasta-from-stream
-  [rdr type]
-  (letfn [(process [x]
-            (if (empty? x)
-              nil
-              (let [s (first x)]
-                (lazy-seq (cons (->fastaSequence (first s) 
-                                             (second s)
-                                             type
-                                             (nth s 2))
-                                (process (rest x)))))))]
-    (process (take-while (complement nil?)
-                         (repeatedly #(read-seq rdr))))))
+  (close [this]
+    (.close (:strm this))))
 
-(defrecord fastaFile [file type])
+;; files and strings
 
-(extend-protocol biosequenceFile
-  
-  fastaFile
+(defrecord fastaFile [file alphabet]
 
-  (file-path [this]
-    (:file this))
+  biosequenceIO
 
-  (biosequence-seq-file [this rdr]
-    (read-fasta-from-stream rdr (:type this)))
+  (bs-reader [this]
+    (->fastaReader
+     (java.io.PushbackReader.
+      (java.io.BufferedReader.
+       (java.io.FileReader. (:file this))))
+     (:alphabet this))))
 
-  (file-type [this]
-    (:type this)))
+(defrecord fastaString [str alphabet]
+
+  biosequenceIO
+
+  (bs-reader [this]
+    (->fastaReader
+     (java.io.PushbackReader.
+      (java.io.StringReader. (:str this)))
+     (:alphabet this))))
 
 (defn init-fasta-file
-  "Initialises fasta protein file. Accession numbers and description are processed by splitting 
-   the string on the first space, the accession being the first value and description the second."
-  [path type]
-  (if-not (or (= :protein type) (= :nucleotide type))
-    (throw (Throwable. "Fasta file type can be :protein or :nucleotide only."))
+  "Initialises fasta protein file. Accession numbers and description are 
+   processed by splitting the string on the first space, the accession 
+   being the first value and description the second."
+  [path alphabet]
+  (if-not (ala/alphabet? alphabet)
+    (throw (Throwable. "Unrecognised alphabet keyword. Currently :iupacNucleicAcids :iupacAminoAcids are allowed."))
     (if (fs/exists? path)
-      (->fastaFile path type)
+      (->fastaFile path alphabet)
       (throw (Throwable. (str "File not found: " path))))))
 
-(defn fasta-seq-string
-  "Returns a non-lazy list of fastaSequence objects from a string."
-  [string type]
-  (with-in-str string
-    (with-open [rdr (java.io.PushbackReader. *in*)]
-      (doall (read-fasta-from-stream rdr type)))))
+(defn init-fasta-string
+  "Initialises a fasta string."
+  [str alphabet]
+  (if-not (ala/alphabet? alphabet)
+    (throw (Throwable. "Unrecognised alphabet keyword. Currently :iupacNucleicAcids :iupacAminoAcids are allowed."))
+    (->fastaString str alphabet)))
 
 ;; persistence
 
-(defrecord fastaStore [file type])
+(defrecord fastaStore [file])
 
 (defn index-fasta-file
   "Indexes a fastaFile object and returns a fastaStore object."
-  ([fastafile] (index-fasta-file fastafile false))
-  ([fastafile memory]
-     (let [st (init-fasta-store fastafile memory)]
-       (with-connection-to-store [st]
-         (with-biosequences [l fastafile]
-           (dorun (pmap #(save-object %) l))))
-       st)))
+  [fastafile]
+  (let [st (ps/init-store (->fastaStore 
+                           (ps/index-file-name (:file fastafile))))]
+    (with-open [rdr (io/reader fastafile)]
+      (let [seqs (biosequence-seq rdr)]
+        (doseq [s seqs]
+          (save-biosequence st s))))
+    st))
 
 (defn load-fasta-store
   "Loads a fastaStore."
-  [dir type]
+  [dir]
   (let [file (first (fs/glob (str dir "/" "*.h2.db")))
         db-file (second (re-find  #"(.+)\.h2.db" (fs/absolute-path file)))]
     (if (not (nil? db-file))
-      (assoc (->fastaStore db-file type) :db
-             (make-db-connection db-file false))
+      (assoc (->fastaStore db-file) :db
+             (ps/make-db-connection db-file false))
       (throw (Throwable. "DB file not found!")))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -411,18 +338,6 @@
          nf
          (time-stamped-file base ext)))))
 
-(defn- init-fasta-store
-  "Initialises a fasta store."
-  [fastafile memory]
-  (if memory
-    (init-in-mem-store (assoc 
-                           (->fastaStore 
-                            'in-memory 
-                            (:type fastafile))))
-    (init-store (->fastaStore 
-                 (index-file-name (file-path fastafile)) 
-                 (:type fastafile)))))
-
 (defn- read-seq
   [^java.io.PushbackReader strm]
   (let [c (.read strm)]
@@ -455,94 +370,11 @@
 
 ;; translation
 
-(defn- translate
-  [seq frame table]
-  (if (protein? seq)
-    (throw (Throwable. "Can't translate a protein sequence!"))
-    (let [trans (translate-string
-                 (adjust-dna-frame 
-                  (sequence-string seq) frame)
-                 table)]
-      (->fastaSequence (str (accession seq) "-"  (map-frame frame))
-                       (str (def-line seq) " - Translated frame: " frame)
-                       :protein
-                       trans))))
 
-(defn codon-tables
-  "Returns a codon table suitable for use as an argument in the functions 
-  'translate-biosequence' and 'six-frame-translation'. Takes a keyword argument
-   to denote different codon tables. So far only provides the standard (:standard)
-   codon table but further are planned."
-  [key]
-  (key {:standard
-        '((\T
-           (\T (\T \C "F") (\A \G "L"))
-           (\C "S")
-           (\A (\T \C "Y") (\A \G "*"))
-           (\G (\T \C "C") (\A "*") (\G "W")))
-          (\C
-           (\T "L")
-           (\C "P")
-           (\A (\T \C "H") (\A \G "Q"))
-           (\G "R"))
-          (\A
-           (\T (\T \C \A "I") (\G "M"))
-           (\C "T")
-           (\A (\T \C "N") (\A \G "K"))
-           (\G (\T \C "S") (\A \G "R")))
-          (\G
-           (\T "V")
-           (\C "A")
-           (\A (\T \C "D") (\A \G "E"))
-           (\G "G")))}))
 
-(defn- get-amino-acid
-  [lst table]
-  (loop [l lst
-         t table]
-    (if (not (list? (last t)))
-      (if (empty? t) "X" (last t))
-      (recur (rest l)
-             (remove #(nil? %)
-                     (mapcat #(if (list? %)
-                                (if (some #{(first l)} %) (rest %))
-                                (if (= (first l) %) (rest %)))
-                             t))))))
 
-(defn- translate-string
-  [string table]
-  (let [s (string/upper-case (apply str (remove #{\space\newline} string)))]
-    (apply str (map #(get-amino-acid % table) (partition-all 3 s)))))
 
-(defn revcom-dna-string
-  "Provides the reverse, complement of a string representing a DNA sequence. 
-   Converts all 'U's to 'T's and upcases the string."
-  [string]
-  (apply str (map #(condp = %
-                     \A \T
-                     \T \A
-                     \G \C
-                     \C \G
-                     \X) (reverse (string/replace (string/upper-case string)
-                                                  #"U" "T")))))
 
-(defn- map-frame
-  [frame]
-  (if (> frame 0)
-    frame
-    (condp = frame
-      -1 4
-      -2 5
-      -3 6
-      :else (throw (Throwable. "Frame out of bounds")))))
 
-(defn- adjust-dna-frame
-  [string frame]
-  (let [s (string/upper-case string)]
-    (cond
-     (= frame 1) s
-     (= frame -1) (revcom-dna-string s)
-     (> frame 0) (subs s (- frame 1))
-     (< frame 0) (subs (revcom-dna-string s) (- (* -1 frame) 1))
-     :else (throw (Throwable. "Frame out of bounds")))))
+
 

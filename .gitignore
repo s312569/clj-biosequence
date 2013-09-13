@@ -11,3 +11,6 @@ pom.xml
 project.clj~
 README.md~ 
 project.clj~
+src/clj_biosequence/persistence.clj~
+.gitignore~
+src/clj_biosequence/alphabet.clj~

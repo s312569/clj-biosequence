@@ -258,15 +258,28 @@
 
 (defrecord genbankFile [file])
 
+(extend-protocol io/IOFactory
+
+  genbankFile
+
+  (make-reader [this opts]
+    (io/reader (:file this)))
+
+  (make-writer [this opts]
+    (io/writer (:file this)))
+
+  (make-input-stream [this opts]
+    (throw (Throwable. "Not implmented for fastaFiles.")))
+
+  (make-output-stream [this opts]
+    (throw (Throwable. "Not implmented for fastaFiles."))))
+
 (extend-protocol bs/biosequenceFile
 
   genbankFile
 
-  (biosequence-seq-file [this rdr]
-    (read-gb-xml-from-stream rdr))
-  
-  (file-path [this]
-    (:file this)))
+  (biosequence-seq [this rdr]
+    (read-gb-xml-from-stream rdr)))
 
 (defn init-genbank-file
   [file]
@@ -283,9 +296,10 @@
   ([genbankfile] (index-genbank-file genbankfile false))
   ([genbankfile memory]
      (let [st (init-genbank-store genbankfile memory)]
-       (bs/with-connection-to-store [st]
-         (bs/with-biosequences [l genbankfile]
-           (dorun (map #(bs/save-object %) l))))
+       (with-open [rdr (io/reader genbankfile)]
+         (dorun
+          (pmap #(bs/save-biosequence st %)
+                (biosequence-seq ))))
        st)))
 
 (defn load-genbank-store
