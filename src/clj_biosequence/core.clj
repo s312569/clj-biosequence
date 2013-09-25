@@ -1,14 +1,12 @@
 (ns clj-biosequence.core
   (:require [clojure.java.io :as io]
-            [clojure.java.jdbc :as sql]
             [fs.core :as fs]
-            [clojure.pprint :as pp]
             [clj-http.client :as client]
             [clojure.string :as string]
             [clj-biosequence.alphabet :as ala]
             [clj-biosequence.persistence :as ps]))
 
-(declare read-seq pb-read-line init-fasta-store init-fasta-sequence translate translate-string adjust-dna-frame map-frame)
+(declare init-fasta-store init-fasta-sequence translate)
 
 (defprotocol biosequenceIO
   (bs-reader [this]))
@@ -28,7 +26,11 @@
   (fasta-string [this]
     "Returns the biosequence as a string in fasta format.")
   (protein? [this]
-    "Returns true if a protein and false otherwise."))
+    "Returns true if a protein and false otherwise.")
+  (reverse-seq [this]
+    "Returns a new biosequence with the reversed sequence of the original.")
+  (reverse-comp [this]
+    "Returns a new biosequence with the reverse complement of the original."))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions
@@ -38,8 +40,8 @@
 
 (defn save-biosequence
   "Saves an object to a store."
-  [store obj]
-  (ps/save-object store (accession obj) obj))
+  [obj]
+  (ps/save-object (accession obj) obj))
 
 (defmacro with-biosequences-in-store
   "Provides a handle to a lazy list of biosequences in an object store."
@@ -49,8 +51,8 @@
 
 (defn update-biosequence 
   "Updates an object in the store with a current connection."
-  [store obj]
-  (ps/update-object store (accession obj) obj))
+  [obj]
+  (ps/update-object (accession obj) obj))
 
 (defn update-biosequence-by-accession
   "Takes an accession number and key value pairs. If the biosequence exists in
@@ -59,9 +61,9 @@
   [store accession & args]
   (ps/update-object-by-id store accession args))
 
-(defn get-biosequence [store accession]
+(defn get-biosequence [accession]
   "Returns a biosequence object from a store implementing the biosequence"
-  (ps/get-object store accession))
+  (ps/get-object accession))
 
 ; other
 
@@ -104,15 +106,6 @@
                          (vec (concat (bs-seq s1) (bs-seq s2))))
     (throw (Throwable. "Incompatible alphabets for concatenation of biosequence."))))
 
-(defn revcom-bioseq
-  [bs]
-  (if (protein? bs)
-    (throw (Throwable. "Can't reverse/complement a protein sequence."))
-    (init-fasta-sequence (accession bs)
-                         (str (def-line bs) " - reverse-comp")
-                         (:alphabet bs)
-                         (ala/revcom (bs-seq bs)))))
-
 (defn translate
   "Returns a fastaSequence object corresponding to the protein translation 
    of the sequence in the specified frame."
@@ -129,10 +122,10 @@
                                 (let [v (cond (#{1 2 3} frame)
                                               (sub-bioseq bs (- frame 1))
                                               (#{-1 -2 -3} frame)
-                                              (-> (revcom-bioseq bs)
+                                              (-> (reverse-comp bs)
                                                   (sub-bioseq (- (* -1 frame) 1)))
                                               (#{4 5 6} frame)
-                                              (-> (revcom-bioseq bs)
+                                              (-> (reverse-comp bs)
                                                   (sub-bioseq ( - frame 4))))]
                                   (vec (map #(ala/codon->aa % table)
                                             (partition-bioseq v 3))))))))
@@ -169,16 +162,24 @@
     (if (= :iupacAminoAcids (:alphabet this))
       true
       false))
+
+  (reverse-comp [this]
+    (if (protein? this)
+      (throw (Throwable. "Can't reverse/complement a protein sequence."))
+      (init-fasta-sequence (accession this)
+                           (str (def-line this) " - reverse-comp")
+                           (:alphabet this)
+                           (ala/revcom (bs-seq this)))))
+
+  (reverse-seq [this]
+    (init-fasta-sequence (accession this)
+                         (str (def-line this) " - reverse")
+                         (:alphabet this)
+                         (vec (reverse (bs-seq this)))))
   
   (fasta-string [this]
-    (if (:description this) 
-      (pp/cl-format nil ">~A ~A~%~A~%"
-                    (:accession this)
-                    (:description this)
-                    (apply str (:sequence this)))
-      (pp/cl-format nil ">~A~%~A~%"
-                    (:accession this)
-                    (apply str (:sequence this))))))
+    (if (:description this)
+      (str ">" (:accession this) " " (def-line this) "\n" (bioseq->string this) "\n"))))
 
 (defn init-fasta-sequence
   "Returns a fastaSequence object with the specified information. Alphabet can be
@@ -194,17 +195,18 @@
   biosequenceReader
   
   (biosequence-seq [this]
-    (letfn [(process [x]
-              (if (empty? x)
-                nil
-                (let [s (first x)]
-                  (lazy-seq (cons (fastaSequence. (first s)
-                                                   (second s)
-                                                   alphabet
-                                                   (vec (nth s 2)))
-                                  (process (rest x)))))))]
-      (process (take-while (complement nil?)
-                           (repeatedly #(read-seq (:strm this)))))))
+    (map (fn [[[d] s]]
+           (init-fasta-sequence (second (re-find #"^>([^\s]+)" d))
+                                (second (re-find #">[^\s]+\s+(.+)" d))
+                                (:alphabet this)
+                                (->> (apply str s)
+                                     vec
+                                     (remove (complement
+                                              (-> (ala/alphabet (:alphabet this))
+                                                  keys
+                                                  set)))
+                                     vec)))
+         (partition 2 (partition-by #(re-find #"^>" %) (line-seq (:strm this))))))
 
   java.io.Closeable
 
@@ -219,9 +221,8 @@
 
   (bs-reader [this]
     (->fastaReader
-     (java.io.PushbackReader.
-      (java.io.BufferedReader.
-       (java.io.FileReader. (:file this))))
+     (java.io.BufferedReader.
+      (java.io.FileReader. (:file this)))
      (:alphabet this))))
 
 (defrecord fastaString [str alphabet]
@@ -230,7 +231,7 @@
 
   (bs-reader [this]
     (->fastaReader
-     (java.io.PushbackReader.
+     (java.io.BufferedReader.
       (java.io.StringReader. (:str this)))
      (:alphabet this))))
 
@@ -261,11 +262,12 @@
   [fastafile]
   (let [st (ps/init-store (->fastaStore 
                            (ps/index-file-name (:file fastafile))))]
-    (with-open [rdr (io/reader fastafile)]
-      (let [seqs (biosequence-seq rdr)]
-        (doseq [s seqs]
-          (save-biosequence st s))))
-    st))
+    (ps/with-store [st]
+      (with-open [rdr (bs-reader fastafile)]
+        (dorun
+         (pmap #(save-biosequence %)
+               (biosequence-seq rdr))))
+      st)))
 
 (defn load-fasta-store
   "Loads a fastaStore."
@@ -337,44 +339,4 @@
        (if-not (fs/exists? nf)
          nf
          (time-stamped-file base ext)))))
-
-(defn- read-seq
-  [^java.io.PushbackReader strm]
-  (let [c (.read strm)]
-    (cond (= c -1) nil
-          (= (char c) \>)
-          (let [d (pb-read-line strm)]
-            (vector (get (re-find #"^([^\s]+)" d) 1)
-                    (get (re-find #"^[^\s]+\s+(.+)" d) 1)
-                    (loop [e (.read strm)
-                           acc []]
-                      (cond (= e -1) (apply str acc)
-                            (= (char e) \>) (do
-                                              (.unread strm e)
-                                              (apply str acc))
-                            :else
-                            (recur (.read strm) (if (= (char e) \newline)
-                                                  acc
-                                                  (conj acc (char e))))))))
-          :else
-          (do (println (char c))
-              (throw (Throwable. "Format error in fasta file."))))))
-
-(defn- pb-read-line
-  [^java.io.PushbackReader strm]
-  (loop [c (char (.read strm))
-         acc []]
-    (if (= c \newline)
-      (apply str acc)
-      (recur (char (.read strm)) (conj acc c)))))
-
-;; translation
-
-
-
-
-
-
-
-
 

@@ -15,4 +15,5 @@
                  [org.biojava/biojava3-core "3.0.6"]]
   :plugins [[codox "0.6.4"]]
   :codox {:src-dir-uri "https://github.com/s312569/clj-biosequence/blob/master/"
-          :src-linenum-anchor-prefix "L"})
+          :src-linenum-anchor-prefix "L"}
+  :jvm-opts ["-Xmx1000M"])

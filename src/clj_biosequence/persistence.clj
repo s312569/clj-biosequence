@@ -62,29 +62,26 @@
       (catch Exception e
         (fs/delete-dir (fs/parent (:file store)))))))
 
-(defn get-object [store id]
+(defn get-object [id]
   "Returns an object from the currently open store."
-  (with-store [store]
-    (sql/with-query-results row
-      ["select * from object where id=?" id]
-      {:fetch-size 1}
-      (if-not (empty? row)
-        (declob (:src (first row)))))))
+  (sql/with-query-results row
+    ["select * from object where id=?" id]
+    {:fetch-size 1}
+    (if-not (empty? row)
+      (declob (:src (first row))))))
 
-(defn save-object [store id obj]
+(defn save-object [id obj]
   "Saves an object to the currently opened store."
-  (with-store [store]
-    (sql/insert-record :object
-                       {:id id
-                        :src (pr-str obj)})))
+  (sql/insert-record :object
+                     {:id id
+                      :src (pr-str obj)}))
 
-(defn update-object [store id obj]
+(defn update-object [id obj]
   "Updates an object in the store with a current connection. Returns
    the object."
-  (with-store [store]
-    (sql/update-values :object
-                       ["id=?" id]
-                       {:src (pr-str obj)}))
+  (sql/update-values :object
+                     ["id=?" id]
+                     {:src (pr-str obj)})
   obj)
 
 (defn update-object-by-id

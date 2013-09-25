@@ -1,5 +1,4 @@
-(ns clj-biosequence.alphabet
-  (:require [clojure.string :as string]))
+(ns clj-biosequence.alphabet)
 
 (def iupacNucleicAcids
   {\A {:longname "Adenine" :complement \T}
@@ -215,6 +214,8 @@
 ;; functions
 
 (defn codon->aa
+  "Takes a seq of three chars representing nucleic acid residues and returns a
+   char representing the encoded amino acid."
   [lst table]
   (let [v {\T 0 \U 0 \C 1 \A 2 \G 3}]
     (if (or (not (empty? (remove (set (keys v)) lst)))
@@ -222,9 +223,11 @@
       \X
       (nth (:ncbieaa table) (+ (* (v (first lst)) 16)
                                (* (v (second lst)) 4)
-                               (v (last lst)))))))
+                               (v (nth lst 2)))))))
 
 (defn revcom
+  "Takes a seq of chars representing nucleic acids and returns a vector of the
+   reverse complement."
   [v]
   (vec (reverse (map #(let [c (iupacNucleicAcids %)]
                         (if c
@@ -234,31 +237,13 @@
 
 (defn alphabet?
   [k]
+  "Takes a keyword and returns the keyword if it is a recognised alphabet. Returns
+   nil otherwise."
   (#{:iupacNucleicAcids :iupacAminoAcids} k))
 
-;; utilities
+(defn alphabet
+  "Takes a keyword and returns tha corresponding alphabet hash."
+  [k]
+  ({:iupacAminoAcids iupacAminoAcids
+    :iupacNucleicAcids iupacNucleicAcids} k))
 
-(defn- translate-string
-  [string table]
-  (let [s (string/upper-case (apply str (remove #{\space\newline} string)))]
-    (apply str (map #(codon->aa % table) (partition-all 3 s)))))
-
-(defn- map-frame
-  [frame]
-  (if (> frame 0)
-    frame
-    (condp = frame
-      -1 4
-      -2 5
-      -3 6
-      :else (throw (Throwable. "Frame out of bounds")))))
-
-(defn- adjust-dna-frame
-  [string frame]
-  (let [s (string/upper-case string)]
-    (cond
-     (= frame 1) s
-     (= frame -1) (revcom s)
-     (> frame 0) (subs s (- frame 1))
-     (< frame 0) (subs (revcom s) (- (* -1 frame) 1))
-     :else (throw (Throwable. "Frame out of bounds")))))
