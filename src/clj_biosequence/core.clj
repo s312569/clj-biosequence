@@ -195,17 +195,23 @@
   biosequenceReader
   
   (biosequence-seq [this]
-    (map (fn [[[d] s]]
-           (init-fasta-sequence (second (re-find #"^>([^\s]+)" d))
-                                (second (re-find #">[^\s]+\s+(.+)" d))
-                                (:alphabet this)
-                                (->> (apply str s)
-                                     vec
-                                     (remove (complement
-                                              (-> (ala/alphabet (:alphabet this))
-                                                  keys
-                                                  set)))
-                                     vec)))
+    (map (fn [[d s]]
+           (let [seqs (apply str s)]
+             (cond (not (re-find #"^>" (first d)))
+                   (throw (Throwable. (str "Data corrupted at " (first d))))
+                   (> (count d) 1)
+                   (throw (Throwable. (str "No seqeunce for entry " (first d))))
+                   :else
+                   (init-fasta-sequence (second (re-find #"^>([^\s]+)" (first d)))
+                                        (second (re-find #">[^\s]+\s+(.+)" (first d)))
+                                        (:alphabet this)
+                                        (->> seqs
+                                             vec
+                                             (remove (complement
+                                                      (-> (ala/alphabet (:alphabet this))
+                                                          keys
+                                                          set)))
+                                             vec)))))
          (partition 2 (partition-by #(re-find #"^>" %) (line-seq (:strm this))))))
 
   java.io.Closeable
