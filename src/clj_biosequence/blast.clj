@@ -184,22 +184,20 @@
   java.io.Closeable
 
   (close [this]
-    (.close (:strm this))))
+    (.close ^java.io.BufferedReader (:strm this))))
 
 (defrecord blastSearch [file]
 
   bios/biosequenceIO
 
   (bs-reader [this]
-    (->blastReader
-     (java.io.BufferedReader.
-      (java.io.FileReader. (:file this))))))
+    (->blastReader (io/reader (:file this)))))
 
 (defn get-iteration-by-id
   "Returns the blastIteration object for the specified biosequence from
      a blastSearch object."
   [this accession]
-  (with-open [r (bios/bs-reader (:src this))]
+  (with-open [^java.io.BufferedReader r (bios/bs-reader (:src this))]
     (some #(if (= accession (iteration-query-id %))
              %)
           (bios/biosequence-seq r))))

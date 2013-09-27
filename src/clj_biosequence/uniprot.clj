@@ -1,17 +1,15 @@
 (ns clj-biosequence.uniprot
   (:require [clojure.data.xml :as xml]
             [clojure.data.zip.xml :as zf]
+            [clojure.java.io :as io]
             [clojure.zip :as zip]
             [clojure.string :as string]
-            [clojure.java.io :as io]
-            [clojure.pprint :as pp]
             [clj-biosequence.core :as bios]
-            [clojure.string :as st]
+            [clj-biosequence.persistence :as ps]
             [clj-http.client :as client]
-            [fs.core :as fs]
-            [clojure.java.jdbc :as sql]))
+            [fs.core :as fs]))
 
-(declare prot-names prot-name process-feature process-sequence process-cites init-uniprot-store meta-data amino-acids nomenclature organism uniprot-process-request uniprot-sequence-helper read-up-xml-from-stream org-scientific-name)
+(declare prot-name meta-data amino-acids nomenclature uniprot-process-request get-uniprot-stream)
 
 ;; protein
 
@@ -28,8 +26,7 @@
 
   (def-line [this]
     (let [nom (zip/xml-zip (nomenclature this))]
-      (str " | "
-           (zf/xml1-> nom
+      (str (zf/xml1-> nom
                       :recommendedName
                       :fullName
                       zf/text)
@@ -39,7 +36,10 @@
                       :fullName
                       zf/text)
            " ["
-           (org-scientific-name this)
+           (zf/xml1-> (zip/xml-zip (organism this))
+                      :name
+                      (zf/attr= :type "scientific")
+                      zf/text)
            "]")))
 
   (bs-seq [this]
@@ -69,114 +69,100 @@
                               (reverse (bios/bs-seq this))))
 
   (reverse-comp [this]
-    (throw (Throwable. "Action not defined for protein sequence."))))
+    (throw (Throwable. "Action not defined for protein sequence.")))
 
-;; file
+  (alphabet [this]
+    :iupacAminoAcids))
 
-(defn read-up-xml-from-stream
-  [rdr]
-  (letfn [(process [x]
-            (if (empty? x)
-              nil
-              (lazy-seq (cons (->uniprotProtein (first x))
-                              (process (rest x))))))]
-    (let [xml (xml/parse rdr)]
-      (if (= (:tag xml) :uniprot)
-        (process (filter #(= (:tag %) :entry)
-                         (:content xml)))
-        (throw (Throwable. "Doesn't appear to be a uniprot XML file."))))))
+;; IO
 
-(defrecord uniprotXmlFile [file])
+(defrecord uniprotReader [strm]
 
-(extend-protocol bios/biosequenceFile
+  bios/biosequenceReader
 
-  uniprotXmlFile
-  
-  (biosequence-seq-file [this rdr]
-    (read-up-xml-from-stream rdr))
+  (bios/biosequence-seq [this]
+    (let [xml (xml/parse (:strm this))]
+      (map (fn [x]
+             (->uniprotProtein x))
+           (filter #(= (:tag %) :entry)
+                   (:content xml)))))
 
-  (file-path [this]
-    (:file this)))
+  java.io.Closeable
+
+  (close [this]
+    (.close ^java.io.BufferedReader (:strm this))))
+
+(defn init-uniprot-reader
+  [strm]
+  (->uniprotReader strm))
+
+(defrecord uniprotFile [file]
+
+  bios/biosequenceIO
+
+  (bs-reader [this]
+    (init-uniprot-reader (io/reader (:file this)))))
+
+(defrecord uniprotString [str]
+
+  bios/biosequenceIO
+
+  (bs-reader [this]
+    (init-uniprot-reader (io/reader (:str this)))))
+
+(defrecord uniprotConnection [acc-list retype email]
+
+  bios/biosequenceIO
+
+  (bs-reader [this]
+    (let [s (get-uniprot-stream (:acc-list this) (:retype this) (:email this))]
+      (condp = (:retype this)
+        :xml (init-uniprot-reader (io/reader s))
+        :fasta (bios/init-fasta-reader (io/reader s) :iupacAminoAcids)))))
 
 (defn init-uniprotxml-file
   "Initialises a uniprotXmlFile object."
   [path]
-  (->uniprotXmlFile path))
+  (if (fs/exists? path)
+    (->uniprotFile path)
+    (throw (Throwable. (str "File not found: " path)))))
+
+(defn init-uniprot-string
+  [str]
+  (->uniprotString str))
+
+(defn init-uniprot-connection
+  [accessions retype email]
+  (if (#{:xml :fasta} retype)
+    (let [l (if (coll? accessions) accessions (list accessions))]
+      (->uniprotConnection l retype email))
+    (throw (Throwable. (str retype " not allowed. "
+                            "Only :xml and :fasta are allowed retype values.")))))
 
 ;; persistence
 
 (defrecord uniprotStore [file])
 
-(defn index-uniprotxml-file
+(defrecord uniprotStoreDir [dir]
+
+  bios/biosequenceStoreDir
+
+  (load-store [this dbfile]
+    (->uniprotStore dbfile)))
+
+(defn index-uniprot-file
   "Indexes a uniprotXmlFile and returns a uniprotStore object."
-  ([uniprotfile] (index-uniprotxml-file uniprotfile false))
-  ([uniprotfile memory]
-     (let [st (init-uniprot-store uniprotfile memory)]
-       (bios/with-connection-to-store [st]
-         (bios/with-biosequences [l uniprotfile]
-           (dorun (pmap #(bios/save-object %) l))))
-       st)))
+  [uniprotfile]
+  (let [st (ps/init-store (->uniprotStore
+                           (ps/index-file-name (:file uniprotfile))))]
+    (bios/index-biosequence-file uniprotfile st)))
 
 (defn load-uniprot-store
   "Loads a uniprotStore."
   [dir]
-  (let [file (first (fs/glob (str dir "/" "*.h2.db")))
-        db-file (second (re-find  #"(.+)\.h2.db" (fs/absolute-path file)))]
-    (if (not (nil? db-file))
-      (assoc (->uniprotStore db-file) :db (bios/make-db-connection db-file true))
-      (throw (Throwable. "DB file not found!")))))
+  (bios/load-biosequence-store (->uniprotStoreDir dir)))
 
-;; web
-
-(defn get-uniprot-stream
-  "Returns a GZIPInputStream from Uniprot with the results of a batch fetch 
-   command for the sequences in a collection of accessions."
-  [accessions class email]
-  (if (empty? accessions)
-    nil
-    (let [f (let [file (fs/temp-file "up-seq-")]
-              (doseq [s accessions]
-                (spit file (str s "\n") :append true))
-              file)]
-      (try
-        (:body
-         (uniprot-process-request
-          "http://www.uniprot.org/batch/"
-          {:client-params {"http.useragent"
-                           (str "clj-http " email)}
-           :multipart [{:name "file" :content f}
-                       {:name "format" :content (name class)}]
-           :follow-redirects false}
-          f))
-        (catch Exception e
-          (throw e))
-        (finally (fs/delete f))))))
-
-(defmacro with-wget-uniprot-sequence
-  "Takes a list of accessions and returns a lazy list of sequences corresponding
-   to the accession numbers. The type of sequence entry is specified by 'retype'
-   and can be either :xml for a uniprotProtein object or :fasta for a fastaSequence,
-   no other values are allowed. Uniprot requires an email address so one should 
-   be provided in the 'email' argument."
-  [[handle accessions retype email] & code]
-  `(if (not (some #(= ~retype %) '(:xml :fasta)))
-     (throw (Throwable. (str ~retype
-                             " not allowed. "
-                             "Only :xml and :fasta are allowed retype values.")))
-     (let [rdr# (get-uniprot-stream (if (coll? ~accessions)
-                                      ~accessions
-                                      (list ~accessions))
-                                    ~retype ~email)]
-       (with-open [str# (java.io.PushbackReader. (io/reader rdr#))]
-         (let [~handle (condp = ~retype
-                         :xml (read-up-xml-from-stream str#)
-                         :fasta (bios/read-fasta-from-stream str# :protein))]
-           (try
-             ~@code
-             (catch Exception e#
-               (throw (Throwable. e#)))
-             (finally
-               (.close rdr#))))))))
+;; web search
 
 (defn wget-uniprot-search
   "Returns a non-lazy list of uniprot accession numbers satisfying the search term. 
@@ -190,10 +176,8 @@
      'taxonomy:6183 AND keyword:1185 AND go:0031224'
    - get all reviewed human entries:
      'reviewed:yes AND organism:9606'
-   And so on. Returns an empty list if no matches found. Offset refers to the
-   start of the retrieved results and may be of use if a download fails. Uniprot
+   And so on. Returns an empty list if no matches found. Uniprot
    requires an email so an email can be supplied using the email argument."
-  ([term] (wget-uniprot-search term "" 0))
   ([term email] (wget-uniprot-search term email 0))
   ([term email offset]
      (let [r (remove #(= % "")
@@ -316,7 +300,7 @@
      :created (zf/attr s :created)
      :modified (zf/attr s :modified)
      :version (if-let [f (zf/attr s :version)]
-                (Integer. f))}))
+                (Integer. ^String f))}))
 
 ;; utilities
 
@@ -344,13 +328,28 @@
           (if (get (:headers p) "retry-after")
             (Thread/sleep (read-string (get (:headers p) "retry-after"))))
           (check (get (:headers p) "location") 0))
-        (throw (Throwable. (str "Error in sequence retrieval"
-                                p)))))))
+        (throw (Throwable. (str "Error in sequence retrieval" p)))))))
 
-(defn- init-uniprot-store
-  [file memory]
-  (if memory
-    (bios/init-in-mem-store (->uniprotStore 'in-memory))
-    (bios/init-store
-     (->uniprotStore (bios/index-file-name (bios/file-path file))))))
-
+(defn- get-uniprot-stream
+  "Returns a GZIPInputStream from Uniprot with the results of a batch fetch 
+   command for the sequences in a collection of accessions."
+  [accessions class email]
+  (if (empty? accessions)
+    nil
+    (let [f (let [file (fs/temp-file "up-seq-")]
+              (doseq [s accessions]
+                (spit file (str s "\n") :append true))
+              file)]
+      (try
+        (:body
+         (uniprot-process-request
+          "http://www.uniprot.org/batch/"
+          {:client-params {"http.useragent"
+                           (str "clj-http " email)}
+           :multipart [{:name "file" :content f}
+                       {:name "format" :content (name class)}]
+           :follow-redirects false}
+          f))
+        (catch Exception e
+          (throw e))
+        (finally (fs/delete f))))))

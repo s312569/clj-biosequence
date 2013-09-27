@@ -27,10 +27,15 @@
     "Returns the biosequence as a string in fasta format.")
   (protein? [this]
     "Returns true if a protein and false otherwise.")
+  (alphabet [this]
+    "Returns the alphabet of a biosequence.")
   (reverse-seq [this]
     "Returns a new fastaBiosequence with the reversed sequence of the original.")
   (reverse-comp [this]
     "Returns a new fastaBiosequence with the reverse complement of the original."))
+
+(defprotocol biosequenceStoreDir
+  (load-store [this dbfile]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions
@@ -65,6 +70,36 @@
   "Returns a biosequence object from a store implementing the biosequence"
   (ps/get-object accession))
 
+(defn index-biosequence-file
+  [file store]
+  (ps/with-store [store]
+    (with-open [^java.io.BufferedReader rdr (bs-reader file)]
+      (dorun
+       (pmap #(save-biosequence %)
+             (biosequence-seq rdr))))
+    store))
+
+(defmacro with-biosequences
+  [[handle store] & code]
+  `(ps/with-objects [~handle ~store]
+     ~@code))
+
+(defmacro with-biosequence-store
+  [[store] & code]
+  `(ps/with-store [store]
+     ~@code))
+
+(defn load-biosequence-store
+  "Loads a fastaStore."
+  [dir]
+  (let [file (first (fs/glob (str (:dir dir) "/" "*.h2.db")))
+        db-file (second (re-find  #"(.+)\.h2.db" (fs/absolute-path file)))
+        d (load-store dir db-file)]
+    (if (not (nil? db-file))
+      (assoc d :db
+             (ps/make-db-connection db-file false))
+      (throw (Throwable. "DB file not found!")))))
+
 ; other
 
 (defn bioseq->string
@@ -85,7 +120,7 @@
                           (str (def-line bs)
                                "[" beg " - "
                                (if end end "End") "]")
-                          (:alphabet bs)
+                          (alphabet bs)
                           (if end
                             (subvec (bs-seq bs) beg end)
                             (subvec (bs-seq bs) beg)))))
@@ -99,10 +134,10 @@
 
 (defn concat-bioseqs
   [s1 s2]
-  (if (= (:alphabet s1) (:alphabet s2))
+  (if (= (alphabet s1) (alphabet s2))
     (init-fasta-sequence (str (accession s1) "/" (accession s2))
                          (str (def-line s1) "/" (def-line s2))
-                         (:alphabet s1)
+                         (alphabet s1)
                          (vec (concat (bs-seq s1) (bs-seq s2))))
     (throw (Throwable. "Incompatible alphabets for concatenation of biosequence."))))
 
@@ -168,18 +203,21 @@
       (throw (Throwable. "Can't reverse/complement a protein sequence."))
       (init-fasta-sequence (accession this)
                            (str (def-line this) " - reverse-comp")
-                           (:alphabet this)
+                           (alphabet this)
                            (ala/revcom (bs-seq this)))))
 
   (reverse-seq [this]
     (init-fasta-sequence (accession this)
                          (str (def-line this) " - reverse")
-                         (:alphabet this)
+                         (alphabet this)
                          (vec (reverse (bs-seq this)))))
-  
+
   (fasta-string [this]
     (if (:description this)
-      (str ">" (:accession this) " " (def-line this) "\n" (bioseq->string this) "\n"))))
+      (str ">" (:accession this) " " (def-line this) "\n" (bioseq->string this) "\n")))
+
+  (alphabet [this]
+    (:alphabet this)))
 
 (defn init-fasta-sequence
   "Returns a fastaSequence object with the specified information. Alphabet can be
@@ -187,8 +225,7 @@
   [accession description alphabet sequence]
   (->fastaSequence accession description alphabet sequence))
 
-
-;; reader
+;; IO
 
 (defrecord fastaReader [strm alphabet]
 
@@ -217,29 +254,27 @@
   java.io.Closeable
 
   (close [this]
-    (.close (:strm this))))
+    (.close ^java.io.BufferedReader (:strm this))))
 
-;; files and strings
+(defn init-fasta-reader
+  [strm alphabet]
+  (->fastaReader strm alphabet))
 
 (defrecord fastaFile [file alphabet]
 
   biosequenceIO
 
   (bs-reader [this]
-    (->fastaReader
-     (java.io.BufferedReader.
-      (java.io.FileReader. (:file this)))
-     (:alphabet this))))
+    (init-fasta-reader (io/reader (:file this))
+                       (alphabet this))))
 
 (defrecord fastaString [str alphabet]
 
   biosequenceIO
 
   (bs-reader [this]
-    (->fastaReader
-     (java.io.BufferedReader.
-      (java.io.StringReader. (:str this)))
-     (:alphabet this))))
+    (init-fasta-reader (io/reader (:str this))
+                       (alphabet this))))
 
 (defn init-fasta-file
   "Initialises fasta protein file. Accession numbers and description are 
@@ -268,22 +303,19 @@
   [fastafile]
   (let [st (ps/init-store (->fastaStore 
                            (ps/index-file-name (:file fastafile))))]
-    (ps/with-store [st]
-      (with-open [rdr (bs-reader fastafile)]
-        (dorun
-         (pmap #(save-biosequence %)
-               (biosequence-seq rdr))))
-      st)))
+    (index-biosequence-file fastafile st)))
+
+(defrecord fastaStoreDir [dir]
+
+  biosequenceStoreDir
+
+  (load-store [this dbfile]
+    (->fastaStore dbfile)))
 
 (defn load-fasta-store
   "Loads a fastaStore."
   [dir]
-  (let [file (first (fs/glob (str dir "/" "*.h2.db")))
-        db-file (second (re-find  #"(.+)\.h2.db" (fs/absolute-path file)))]
-    (if (not (nil? db-file))
-      (assoc (->fastaStore db-file) :db
-             (ps/make-db-connection db-file false))
-      (throw (Throwable. "DB file not found!")))))
+  (load-biosequence-store (->fastaStoreDir dir)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; id mapping
