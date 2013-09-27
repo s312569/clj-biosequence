@@ -166,11 +166,14 @@
 
 ;; blastSearch
 
+(defprotocol blastReaderIO
+  (iteration-seq [this] "Returns a lazy sequence of iterations from a blast reader."))
+
 (defrecord blastReader [strm]
 
-  bios/biosequenceReader
+  blastReaderIO
 
-  (biosequence-seq [this]
+  (iteration-seq [this]
     (->> (:content (xml/parse (:strm this)))
          (filter #(= :BlastOutput_iterations (:tag %)))
          first

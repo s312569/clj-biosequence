@@ -11,28 +11,20 @@
             [fs.core :as fs]
             [clojure.java.jdbc :as sql]))
 
-(declare prot-names prot-name process-feature process-sequence process-cites init-uniprot-store meta-data amino-acids nomenclature organism uniprot-process-request uniprot-sequence-helper read-up-xml-from-stream)
+(declare prot-names prot-name process-feature process-sequence process-cites init-uniprot-store meta-data amino-acids nomenclature organism uniprot-process-request uniprot-sequence-helper read-up-xml-from-stream org-scientific-name)
 
 ;; protein
 
-(defrecord uniprotProtein [src])
+(defrecord uniprotProtein [src]
 
-(extend-protocol bios/Biosequence
+  bios/Biosequence
   
-  uniprotProtein
-
   (accessions [uniprot]
     (zf/xml-> (zip/xml-zip (:src uniprot)) :accession zf/text))
 
   (accession
     [this]
     (first (bios/accessions this)))
- 
-  (org-scientific-name [this]
-    (zf/xml1-> (zip/xml-zip (organism this))
-               :name
-               (zf/attr= :type "scientific")
-               zf/text))
 
   (def-line [this]
     (let [nom (zip/xml-zip (nomenclature this))]
@@ -47,181 +39,37 @@
                       :fullName
                       zf/text)
            " ["
-           (bios/org-scientific-name this)
+           (org-scientific-name this)
            "]")))
 
-  (sequence-string [this]
-    (apply str
-           (remove {\space\newline}
-                   (zf/xml1-> (zip/xml-zip (amino-acids this))
-                              zf/text))))
+  (bs-seq [this]
+    (vec (apply str
+                (remove {\space\newline}
+                        (zf/xml1-> (zip/xml-zip (amino-acids this))
+                                   zf/text)))))
 
   (fasta-string [this]
     (let [db (condp = (:dataset (meta-data this))
                "Swiss-Prot" "sp"
-               "TrEMBL" "tr")]
-      (str ">" db "|"
-           (string/join "|" (take 2 (bios/accessions this)))
-           "|"
+               "TrEMBL" "tr"
+               "bs")]
+      (str ">" db "|" (bios/accession this) "|"
            (prot-name this)
            " " (bios/def-line this)
            \newline
-           (bios/sequence-string this)
+           (apply str (bios/bs-seq this))
            \newline)))
 
   (protein? [this] true)
- 
-  (created [this]
-    (:created (meta-data this)))
-  
-  (modified [this]
-    (:modified (meta-data this)))
-  
-  (version [this]
-    (:version (meta-data this)))
 
-  (database [this]
-    (:dataset (meta-data this)))
+  (reverse-seq [this]
+    (bios/init-fasta-sequence (bios/accession this)
+                              (bios/def-line this)
+                              :iupacAminoAcids
+                              (reverse (bios/bs-seq this))))
 
-  (taxonomy [this]
-    (zf/xml-> (zip/xml-zip (:src this)) :organism :lineage :taxon zf/text))
-  
-  (taxid [this]
-    (:ncbi-taxid (organism this))))
-
-;; uniprot
-
-(defn organism
-  "Returns organism information from Uniprot biosequence as xml elements.
-   Includes organism name and taxonomy information."
-  [uniprot]
-  (zip/node (zf/xml1-> (zip/xml-zip (:src uniprot))
-                       :organism)))
-
-(defn prot-name
-  "Returns the name of a uniprot as a string."
-  [uniprot]
-  (zf/xml1-> (zip/xml-zip (:src uniprot)) :name zf/text))
-
-(defn amino-acids
-  "Returns sequence information as xml elements. Information includes mass, 
-   checksum, modified, version and amino-acids."
-  [uniprot]
-  (zip/node (zf/xml1-> (zip/xml-zip (:src uniprot))
-                       :sequence)))
-
-(defn nomenclature
-  "Returns protein naming information as xml elements. Includes information on
-   recommended, submitted, alternative, allergen, biotech, cdantigen names."
-  [uniprot]
-  (zip/node (zf/xml1-> (zip/xml-zip (:src uniprot))
-                       :protein)))
-
-(defn gene
-  "Returns gene information as a list of xml elements. Includes type and name 
-   information."
-  [uniprot]
-  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot)) :gene)))
-
-(defn gene-location
-  "Returns gene location information as a list of xml elements."
-  [uniprot]
-  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
-                          :geneLocation)))
-
-(defn citations
-  "Returns citation information as a list of xml elements. Contains information
-   country, last (page), date, pubmed, institute, name (journal), first 
-   (page), title, city, scope, type, consortium, number, authors, source,
-   editors, publisher, volume and db."
-  [uniprot]
-  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
-                          :reference)))
-
-(defn subcellular-location
-  "Returns subcellular location information as a list of xml elements. Information
-   includes comments, orientation, topology, location and evidence."
-  [uniprot]
-  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
-                          :comment
-                          (zf/attr= :type "subcellular location"))))
-
-(defn alternative-products
-  "Returns alternative product information as a list of xml elements."
-  [uniprot]
-  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
-                          :comment
-                          (zf/attr= :type "alternative products"))))
-
-(defn interactions
-  "Returns interaction data as a list of xml elements."
-  [uniprot]
-  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
-                          :comment
-                          (zf/attr= :type "interaction"))))
-
-(defn mass-spectroscopy
-  "Returns mass spectroscopy data as a list of xml elements."
-  [uniprot]
-  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
-                          :comment
-                          (zf/attr= :type "mass spectrometry"))))
-
-(defn comments
-  "Returns all comments as a list of xml elements."
-  [uniprot]
-  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
-                          :comment)))
-
-(defn db-references
-  "Returns all db-references as a list of xml elements."
-  [uniprot]
-  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
-                          :dbReference)))
-
-(defn go-terms
-  [uniprot]
-  (zf/xml-> (zip/xml-zip (:src uniprot))
-            :dbReference
-            (zf/attr= :type "GO")
-            :property
-            (zf/attr= :type "term")
-            (zf/attr :value)))
-
-(defn location-terms
-  [uniprot]
-  (filter #(= (first (st/split % #":")) "C")
-          (go-terms uniprot)))
-
-(defn existence
-  "Protein existence evidence as a list of xml elements."
-  [uniprot]
-  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
-                          :proteinExistence)))
-
-(defn keywords
-  "Keywords as a list of xml elements."
-  [uniprot]
-  (map zip/node
-       (zf/xml-> (zip/xml-zip (:src uniprot))
-                 :keyword)))
-
-(defn features
-  "Features as a list of xml elements."
-  [uniprot]
-  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
-                          :feature)))
-
-(defn meta-data
-  "Returns a map with uniprot meta-data. Keys - :dataset, :created, :modified
-   and :version. All values are strings except :version, which is an integer."
-  [uniprot]
-  (let [s (zip/xml-zip (:src uniprot))]
-    {:dataset (zf/attr s :dataset)
-     :created (zf/attr s :created)
-     :modified (zf/attr s :modified)
-     :version (if-let [f (zf/attr s :version)]
-                (Integer. f))}))
+  (reverse-comp [this]
+    (throw (Throwable. "Action not defined for protein sequence."))))
 
 ;; file
 
@@ -363,6 +211,113 @@
          nil
          (lazy-cat r (wget-uniprot-search term email (+ offset 1000)))))))
 
+;; uniprot convienence functions
+
+(defn organism
+  "Returns organism information from Uniprot biosequence as xml elements.
+   Includes organism name and taxonomy information."
+  [uniprot]
+  (zip/node (zf/xml1-> (zip/xml-zip (:src uniprot))
+                       :organism)))
+
+(defn prot-name
+  "Returns the name of a uniprot as a string."
+  [uniprot]
+  (zf/xml1-> (zip/xml-zip (:src uniprot)) :name zf/text))
+
+(defn amino-acids
+  "Returns sequence information as xml elements. Information includes mass, 
+   checksum, modified, version and amino-acids."
+  [uniprot]
+  (zip/node (zf/xml1-> (zip/xml-zip (:src uniprot))
+                       :sequence)))
+
+(defn nomenclature
+  "Returns protein naming information as xml elements. Includes information on
+   recommended, submitted, alternative, allergen, biotech, cdantigen names."
+  [uniprot]
+  (zip/node (zf/xml1-> (zip/xml-zip (:src uniprot))
+                       :protein)))
+
+(defn gene
+  "Returns gene information as a list of xml elements. Includes type and name 
+   information."
+  [uniprot]
+  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot)) :gene)))
+
+(defn gene-location
+  "Returns gene location information as a list of xml elements."
+  [uniprot]
+  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
+                          :geneLocation)))
+
+(defn citations
+  "Returns citation information as a list of xml elements. Contains information
+   country, last (page), date, pubmed, institute, name (journal), first 
+   (page), title, city, scope, type, consortium, number, authors, source,
+   editors, publisher, volume and db."
+  [uniprot]
+  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
+                          :reference)))
+
+(defn comment-value
+  "'subcellular location', 'alternative products', 'interactions', 'mass spectrometry', "
+  [uniprot comment]
+  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
+                          :comment
+                          (zf/attr= :type comment))))
+
+(defn comments
+  "Change this to list all comment keys."
+  [uniprot]
+  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
+                          :comment)))
+
+(defn db-references
+  "Returns all db-references as a list of xml elements."
+  [uniprot]
+  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
+                          :dbReference)))
+
+(defn go-terms
+  [uniprot]
+  (zf/xml-> (zip/xml-zip (:src uniprot))
+            :dbReference
+            (zf/attr= :type "GO")
+            :property
+            (zf/attr= :type "term")
+            (zf/attr :value)))
+
+(defn existence
+  "Protein existence evidence as a list of xml elements."
+  [uniprot]
+  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
+                          :proteinExistence)))
+
+(defn keywords
+  "Keywords as a list of xml elements."
+  [uniprot]
+  (map zip/node
+       (zf/xml-> (zip/xml-zip (:src uniprot))
+                 :keyword)))
+
+(defn features
+  "Features as a list of xml elements."
+  [uniprot]
+  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
+                          :feature)))
+
+(defn meta-data
+  "Returns a map with uniprot meta-data. Keys - :dataset, :created, :modified
+   and :version. All values are strings except :version, which is an integer."
+  [uniprot]
+  (let [s (zip/xml-zip (:src uniprot))]
+    {:dataset (zf/attr s :dataset)
+     :created (zf/attr s :created)
+     :modified (zf/attr s :modified)
+     :version (if-let [f (zf/attr s :version)]
+                (Integer. f))}))
+
 ;; utilities
 
 (defn- uniprot-process-request
@@ -398,3 +353,4 @@
     (bios/init-in-mem-store (->uniprotStore 'in-memory))
     (bios/init-store
      (->uniprotStore (bios/index-file-name (bios/file-path file))))))
+

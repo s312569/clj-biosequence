@@ -28,9 +28,9 @@
   (protein? [this]
     "Returns true if a protein and false otherwise.")
   (reverse-seq [this]
-    "Returns a new biosequence with the reversed sequence of the original.")
+    "Returns a new fastaBiosequence with the reversed sequence of the original.")
   (reverse-comp [this]
-    "Returns a new biosequence with the reverse complement of the original."))
+    "Returns a new fastaBiosequence with the reverse complement of the original."))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions
