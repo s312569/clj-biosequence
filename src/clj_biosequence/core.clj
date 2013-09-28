@@ -4,6 +4,7 @@
             [clj-http.client :as client]
             [clojure.string :as string]
             [clj-biosequence.alphabet :as ala]
+            [miner.tagged :as tag]
             [clj-biosequence.persistence :as ps]))
 
 (declare init-fasta-store init-fasta-sequence translate)
@@ -70,23 +71,23 @@
   "Returns a biosequence object from a store implementing the biosequence"
   (ps/get-object accession))
 
+(defmacro with-biosequence-store
+  [[st] & code]
+  `(ps/with-store [~st]
+     ~@code))
+
 (defn index-biosequence-file
   [file store]
-  (ps/with-store [store]
-    (with-open [^java.io.BufferedReader rdr (bs-reader file)]
+  (with-biosequence-store [store]
+    (with-open [rdr (bs-reader file)]
       (dorun
        (pmap #(save-biosequence %)
              (biosequence-seq rdr))))
     store))
 
 (defmacro with-biosequences
-  [[handle store] & code]
-  `(ps/with-objects [~handle ~store]
-     ~@code))
-
-(defmacro with-biosequence-store
-  [[store] & code]
-  `(ps/with-store [store]
+  [[handle st] & code]
+  `(ps/with-objects [~handle ~st]
      ~@code))
 
 (defn load-biosequence-store
@@ -177,27 +178,21 @@
 ;; an implementation of biosequence for fasta sequences
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord fastaSequence [accession description alphabet sequence]
+(defrecord fastaSequence [acc description alphabet sequence]
 
   Biosequence
-  
   (accession [this]
-    (:accession this))
-
+    (:acc this))
   (accessions [this]
-    (list (:accession this)))
-
+    (list (:acc this)))
   (bs-seq [this]
     (:sequence this))
-
   (def-line [this]
     (:description this))
-
   (protein? [this]
     (if (= :iupacAminoAcids (:alphabet this))
       true
       false))
-
   (reverse-comp [this]
     (if (protein? this)
       (throw (Throwable. "Can't reverse/complement a protein sequence."))
@@ -205,19 +200,20 @@
                            (str (def-line this) " - reverse-comp")
                            (alphabet this)
                            (ala/revcom (bs-seq this)))))
-
   (reverse-seq [this]
     (init-fasta-sequence (accession this)
                          (str (def-line this) " - reverse")
-                         (alphabet this)
+                         (alphabet this) 
                          (vec (reverse (bs-seq this)))))
-
   (fasta-string [this]
     (if (:description this)
-      (str ">" (:accession this) " " (def-line this) "\n" (bioseq->string this) "\n")))
-
+      (str ">" (accession this) " " (def-line this) "\n" (bioseq->string this) "\n")))
   (alphabet [this]
     (:alphabet this)))
+
+(defmethod print-method clj_biosequence.core.fastaSequence
+  [this w]
+  (tag/pr-tagged-record-on this w))
 
 (defn init-fasta-sequence
   "Returns a fastaSequence object with the specified information. Alphabet can be

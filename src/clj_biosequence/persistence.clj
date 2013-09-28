@@ -1,6 +1,7 @@
 (ns clj-biosequence.persistence
   (:require [clojure.java.jdbc :as sql]
             [fs.core :as fs]
+            [clojure.data.xml :as xml]
             [clojure.java.io :as io]
             [clojure.edn :as ed]))
 
@@ -20,17 +21,31 @@
      (sql/with-query-results res#
        ["select * from object"]
        {:fetch-size 10 :concurrency :read-only :result-type :forward-only}
-       (let [~handle (map #(assoc (declob (:src %))
-                             :db (:db ~store))
+       (let [~handle (map #(declob (:src %))
                           res#)]
          ~@code))))
 
+(defn my-tag->factory
+  "Returns the map-style record factory for the `tag` symbol.  Returns nil if `tag` does not
+  refer to a record. Blatantly copied from miner.tagged."
+  [tag]
+  (when (namespace tag)
+    (resolve (symbol (str (namespace tag) "/map->" (name tag))))))
+
+(defn default-reader
+  [tag value]
+  (if-let [factory (and (map? value)
+                     (my-tag->factory tag))]
+    (factory value)
+    (throw (Throwable. (str "Record not supported: " tag)))))
+
 (defn declob [^java.sql.Clob clob]
   "Turn a Derby 10.6.1.0 EmbedClob into a String"
-  (binding [*read-eval* false]
-    (ed/read-string
-     (with-open [rdr (java.io.BufferedReader. (.getCharacterStream clob))]
-       (apply str (line-seq rdr))))))
+  (ed/read-string
+   {:default #'default-reader
+    :readers {'clojure.data.xml.Element clojure.data.xml/map->Element}}
+   (with-open [rdr (java.io.BufferedReader. (.getCharacterStream clob))]
+     (apply str (line-seq rdr)))))
 
 (defn make-db-connection 
   "Takes a file path and returns a specification for a database based on 
@@ -91,10 +106,9 @@
    will be updated with the key value pairs and saved. Throws an exception
    if a corresponding object is not found in the store."
   [store id & args]
-  (with-store [store]
-    (if-let [obj (get-object id)]
-      (update-object (apply assoc obj args))
-      (throw (Throwable. (str "No object found with id: " id))))))
+  (if-let [obj (get-object id)]
+    (update-object (apply assoc obj args))
+    (throw (Throwable. (str "No object found with id: " id)))))
 
 (defn index-file-name
   "Returns a path suitable for a persistent store."
