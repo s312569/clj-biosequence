@@ -1,7 +1,8 @@
 (ns clj-biosequence.persistence
   (:require [clojure.java.jdbc :as sql]
             [fs.core :as fs]
-            [clojure.java.io :as io]))
+            [clojure.java.io :as io]
+            [clojure.edn :as ed]))
 
 ;; persistance
 
@@ -27,7 +28,7 @@
 (defn declob [^java.sql.Clob clob]
   "Turn a Derby 10.6.1.0 EmbedClob into a String"
   (binding [*read-eval* false]
-    (read-string 
+    (ed/read-string
      (with-open [rdr (java.io.BufferedReader. (.getCharacterStream clob))]
        (apply str (line-seq rdr))))))
 
