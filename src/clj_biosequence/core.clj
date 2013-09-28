@@ -266,7 +266,7 @@
 
   (bs-reader [this]
     (init-fasta-reader (io/reader (:file this))
-                       (alphabet this))))
+                       (:alphabet this))))
 
 (defrecord fastaString [str alphabet]
 
