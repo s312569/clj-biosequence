@@ -9,7 +9,7 @@
             [clj-http.client :as client]
             [fs.core :as fs]))
 
-(declare prot-name meta-data amino-acids nomenclature uniprot-process-request get-uniprot-stream)
+(declare prot-name meta-data amino-acids nomenclature uniprot-process-request get-uniprot-stream organism)
 
 ;; protein
 
@@ -138,29 +138,6 @@
       (->uniprotConnection l retype email))
     (throw (Throwable. (str retype " not allowed. "
                             "Only :xml and :fasta are allowed retype values.")))))
-
-;; persistence
-
-(defrecord uniprotStore [file])
-
-(defrecord uniprotStoreDir [dir]
-
-  bios/biosequenceStoreDir
-
-  (load-store [this dbfile]
-    (->uniprotStore dbfile)))
-
-(defn index-uniprot-file
-  "Indexes a uniprotXmlFile and returns a uniprotStore object."
-  [uniprotfile]
-  (let [st (ps/init-store (->uniprotStore
-                           (ps/index-file-name (:file uniprotfile))))]
-    (bios/index-biosequence-file uniprotfile st)))
-
-(defn load-uniprot-store
-  "Loads a uniprotStore."
-  [dir]
-  (bios/load-biosequence-store (->uniprotStoreDir dir)))
 
 ;; web search
 

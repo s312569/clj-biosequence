@@ -5,7 +5,19 @@
             [clojure.java.io :as io]
             [clojure.edn :as ed]))
 
-;; persistance
+(defn store-connection
+  [spec]
+  (sql/get-connection spec))
+
+(defn store-statement
+  [conn]
+  (.createStatement conn))
+
+(defn store-result-map
+  [s q]
+  (try
+    (sql/result-set-seq (.executeQuery s q))
+    (catch java.sql.SQLException e (str "SQL error: " (.getMessage e)))))
 
 (defmacro with-store
   "Provides a connection to an object store."
@@ -64,7 +76,7 @@
   "Initialises a permanent store."
   [store]
   (let [db (assoc store :db
-                  (make-db-connection (:file store) false))]
+                  (make-db-connection (:path store) false))]
     (try
       (do
         (sql/with-connection (:db db)
@@ -76,7 +88,7 @@
                             [:src :clob]))
         db)
       (catch Exception e
-        (fs/delete-dir (fs/parent (:file store)))))))
+        (fs/delete-dir (fs/parent (:path store)))))))
 
 (defn get-object [id]
   "Returns an object from the currently open store."

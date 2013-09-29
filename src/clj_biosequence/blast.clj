@@ -19,6 +19,10 @@
 
 (defrecord blastHSP [src])
 
+(defmethod print-method clj_biosequence.blast.blastHSP
+  [this ^java.io.Writer w]
+  (bios/print-tagged this w))
+
 (defn get-hsp-value
   "Takes a blastHSP object and returns the value corresponding to key.
      Keys are the keyword version of the XML nodes in the BLAST xml output. 
@@ -73,6 +77,10 @@
 ;; blast hit
 
 (defrecord blastHit [src])
+
+(defmethod print-method clj_biosequence.blast.blastHit
+  [this ^java.io.Writer w]
+  (bios/print-tagged this w))
 
 (defn get-hit-value
   "Takes a blastHit object and returns the value corresponding to key. 
@@ -140,6 +148,10 @@
 ;; blast iteration
 
 (defrecord blastIteration [src])
+
+(defmethod print-method clj_biosequence.blast.blastIteration
+  [this ^java.io.Writer w]
+  (bios/print-tagged this w))
 
 (defn iteration-query-id
   "Takes a blastIteration object and returns the query ID."

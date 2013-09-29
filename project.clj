@@ -11,9 +11,8 @@
                  [org.clojure/java.jdbc "0.3.0-alpha4"]
                  [clj-http "0.7.7"]
                  [fs "1.3.3"]
-                 [org.clojars.hozumi/clj-commons-exec "1.0.6"]
-                 [org.biojava/biojava3-core "3.0.6"]
-                 [com.velisco/tagged "0.3.0"]]
+                 [com.velisco/tagged "0.3.0"]
+                 [org.clojars.hozumi/clj-commons-exec "1.0.6"]]
   :plugins [[codox "0.6.4"]]
   :codox {:src-dir-uri "https://github.com/s312569/clj-biosequence/blob/master/"
           :src-linenum-anchor-prefix "L"}

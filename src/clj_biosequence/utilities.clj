@@ -1,9 +1,20 @@
-(ns clj-biosequence.utilities
-  (:require [clojure.java.io :as io]
-            [clojure.string :as string]
-            [fs.core :as fs]
-            [clojure.pprint :as pp]))
+(in-ns 'clj-biosequence.core)
 
+;; file things
+
+(defn now
+  []
+  (.getTime (java.util.Date.)))
+
+(defn time-stamped-file
+  ([base] (time-stamped-file base nil))
+  ([base ext]
+     (let [nf (if ext
+                (fs/file (str base "-" (now) "." ext))
+                (fs/file (str base "-" (now))))]
+       (if-not (fs/exists? nf)
+         nf
+         (time-stamped-file base ext)))))
 
 ;; protein mass
 
