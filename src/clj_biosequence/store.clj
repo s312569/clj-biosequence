@@ -34,8 +34,9 @@
   (let [file (first (fs/glob (str dir "/" "*.h2.db")))
         db-file (second (re-find  #"(.+)\.h2.db" (fs/absolute-path file)))]
     (if (not (nil? db-file))
-      (->biosequenceStore
-       (ps/make-db-connection db-file false))
+      (assoc (->biosequenceStore dir)
+        :db
+        (ps/make-db-connection db-file false))
       (throw (Throwable. "DB file not found!")))))
 
 (defn get-biosequence [a s]
