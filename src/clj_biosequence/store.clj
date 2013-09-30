@@ -38,42 +38,31 @@
        (ps/make-db-connection db-file false))
       (throw (Throwable. "DB file not found!")))))
 
-(defn save-biosequence
-  "Saves an object to a store."
-  [obj]
-  (ps/save-object (accession obj) obj))
-
-(defn update-biosequence 
-  "Updates an object in the store with a current connection."
-  [obj]
-  (ps/update-object (accession obj) obj))
-
-(defn update-biosequence-by-accession
-  "Takes an accession number and key value pairs. If the biosequence exists in
-   the current store it will be updated with the key value pairs and saved. 
-   Throws an exception if a corresponding object is not found in the store."
-  [store accession & args]
-  (ps/update-object-by-id store accession args))
-
-(defn get-biosequence [accession]
+(defn get-biosequence [a s]
   "Returns a biosequence object from a store implementing the biosequence"
-  (ps/get-object accession))
+  (ps/get-object a s))
 
-(defmacro with-biosequence-store
-  [[st] & code]
-  `(ps/with-store [~st]
-     ~@code))
+(defn update-biosequences
+  "Updates an object in the store with a current connection."
+  [l s]
+  (ps/update-records (pmap #(hash-map :id (accession %)
+                                      :src (pr-str %))
+                           l) s))
+
+(defn save-biosequences
+  "Saves an object to a store."
+  [l s]
+  (if (seq? l)
+    (ps/save-records (pmap #(hash-map :id (accession %)
+                                     :src (pr-str %))
+                           l)
+                     s)
+    (throw (Throwable. (str "Argument " l " is not a sequence.")))))
 
 (defn index-biosequence-file
-  [file store]
-  (with-biosequence-store [store]
-    (with-open [rdr (bs-reader file)]
-      (dorun
-       (pmap #(save-biosequence %)
-             (biosequence-seq rdr))))
+  [file]
+  (let [store (new-store file)]
+    (with-open [r (bs-reader file)]
+      (save-biosequences (biosequence-seq r) store))
     store))
 
-(defmacro with-biosequences
-  [[handle st] & code]
-  `(ps/with-objects [~handle ~st]
-     ~@code))

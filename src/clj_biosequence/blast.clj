@@ -151,7 +151,7 @@
 
 (defmethod print-method clj_biosequence.blast.blastIteration
   [this ^java.io.Writer w]
-  (bios/print-tagged this w))
+  (ps/print-tagged this w))
 
 (defn iteration-query-id
   "Takes a blastIteration object and returns the query ID."

@@ -19,24 +19,6 @@
     (sql/result-set-seq (.executeQuery s q))
     (catch java.sql.SQLException e (str "SQL error: " (.getMessage e)))))
 
-(defmacro with-store
-  "Provides a connection to an object store."
-  [[store] & code]
-  `(sql/with-connection (:db ~store)
-     (sql/transaction
-      ~@code)))
-
-(defmacro with-objects
-  "Provides a handle to a lazy list of all objects in a store."
-  [[handle store] & code]
-  `(with-store [~store]
-     (sql/with-query-results res#
-       ["select * from object"]
-       {:fetch-size 10 :concurrency :read-only :result-type :forward-only}
-       (let [~handle (map #(declob (:src %))
-                          res#)]
-         ~@code))))
-
 (defn my-tag->factory
   "Returns the map-style record factory for the `tag` symbol.  Returns nil if `tag` does not
   refer to a record. Blatantly copied from miner.tagged."
@@ -90,37 +72,28 @@
       (catch Exception e
         (fs/delete-dir (fs/parent (:path store)))))))
 
-(defn get-object [id]
-  "Returns an object from the currently open store."
-  (sql/with-query-results row
-    ["select * from object where id=?" id]
-    {:fetch-size 1}
-    (if-not (empty? row)
-      (declob (:src (first row))))))
+(defn get-object [a s]
+  "Returns an object from the currently open store. Returns nil if not found."
+  (let [r (-> (sql/query (:db s)
+                         ["select * from object where id=?" a]
+                         :row-fn (fn [x] (declob (second x)))
+                         :as-arrays? true))]
+    (second r)))
 
-(defn save-object [id obj]
-  "Saves an object to the currently opened store."
-  (sql/insert-record :object
-                     {:id id
-                      :src (pr-str obj)}))
+(defn save-records
+  [l s]
+  (sql/db-transaction
+   [tcon (:db s)]
+   (apply sql/insert! tcon :object l)))
 
-(defn update-object [id obj]
-  "Updates an object in the store with a current connection. Returns
-   the object."
-  (sql/update-values :object
-                     ["id=?" id]
-                     {:src (pr-str obj)})
-  obj)
-
-(defn update-object-by-id
-  "Takes an accession number and key value pairs. If the object exists in
-   the current store the object with the corresponding accession number
-   will be updated with the key value pairs and saved. Throws an exception
-   if a corresponding object is not found in the store."
-  [store id & args]
-  (if-let [obj (get-object id)]
-    (update-object (apply assoc obj args))
-    (throw (Throwable. (str "No object found with id: " id)))))
+(defn update-records
+  "Updates an object in the store with a current connection."
+  [l s]
+  (letfn [(ud [x]
+            (sql/update! (:db s) :object x ["id=?" (:id x)]))]
+    (sql/db-transaction
+     [tcon (:db s)]
+     (dorun (map ud l)))))
 
 (defn index-file-name
   "Returns a path suitable for a persistent store."

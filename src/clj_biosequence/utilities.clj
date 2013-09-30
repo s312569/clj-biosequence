@@ -1,5 +1,11 @@
 (in-ns 'clj-biosequence.core)
 
+;; for print-method defs
+
+(defn print-tagged
+  [obj w]
+  (tag/pr-tagged-record-on obj w))
+
 ;; file things
 
 (defn now
