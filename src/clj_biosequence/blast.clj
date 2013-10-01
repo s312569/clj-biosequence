@@ -321,8 +321,6 @@
    (remove #(nil? %)
            (flatten (seq (merge {"-evalue" "10"
                                  "-outfmt" "5"
-                                 "-num_descriptions" "10"
-                                 "-num_alignments" "10"
                                  "-max_target_seqs" "1"
                                  "-query"
                                  in-file
