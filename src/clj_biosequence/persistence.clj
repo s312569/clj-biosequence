@@ -84,7 +84,7 @@
   [l s]
   (sql/db-transaction
    [tcon (:db s)]
-   (apply sql/insert! tcon :object l)))
+   (doall (pmap #(sql/insert! tcon :object %) l))))
 
 (defn update-records
   "Updates an object in the store with a current connection."
