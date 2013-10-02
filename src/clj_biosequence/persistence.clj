@@ -81,19 +81,22 @@
     (second r)))
 
 (defn save-records
-  [l s]
-  (sql/db-transaction
-   [tcon (:db s)]
-   (dorun (pmap #(sql/insert! tcon :object %) l))))
+  ([l s] (save-records l s true))
+  ([l s t]
+     (if t
+       (sql/db-transaction
+        [tcon (:db s)]
+        (dorun (pmap #(sql/insert! (:db s) :object %) l)))
+       (with-open [c (sql/get-connection (:db s))]
+         (dorun (pmap #(sql/insert! (:db s) :object %) l))))))
 
 (defn update-records
   "Updates an object in the store with a current connection."
   [l s]
   (letfn [(ud [x]
             (sql/update! (:db s) :object x ["id=?" (:id x)]))]
-    (sql/db-transaction
-     [tcon (:db s)]
-     (dorun (map ud l)))))
+    (with-open [c (sql/get-connection (:db s))]
+      (dorun (map ud l)))))
 
 (defn index-file-name
   "Returns a path suitable for a persistent store."

@@ -22,12 +22,10 @@
     (let [c (ps/store-connection (:db this))]
       (->storeReader c
                      (ps/store-statement c)))))
-
 (defn new-store
   [path]
   (ps/init-store (->biosequenceStore
                   (ps/index-file-name path))))
-
 (defn load-store
   "Loads a fastaStore."
   [dir]
@@ -52,18 +50,22 @@
 
 (defn save-biosequences
   "Saves an object to a store."
-  [l s]
-  (if (seq? l)
-    (ps/save-records (pmap #(hash-map :id (accession %)
-                                     :src (pr-str %))
-                           l)
-                     s)
-    (throw (Throwable. (str "Argument " l " is not a sequence.")))))
+  ([l s] (save-biosequences l s true))
+  ([l s t]
+   (if (seq? l)
+     (ps/save-records (pmap #(hash-map :id (accession %)
+                                       :src (pr-str %)) l)
+                      s t)
+     (throw (Throwable. (str "Argument " l " is not a sequence."))))))
 
 (defn index-biosequence-file
   [file]
-  (let [store (new-store file)]
-    (with-open [r (bs-reader file)]
-      (save-biosequences (biosequence-seq r) store))
-    store))
-
+  (let [s (new-store file)]
+    (try
+      (do
+        (with-open [r (bs-reader file)]
+          (save-biosequences (biosequence-seq r) s false))
+        s)
+      (catch Exception e
+        (println e)
+        (fs/delete-dir (fs/parent (:path s)))))))
