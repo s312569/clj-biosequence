@@ -117,8 +117,15 @@
    in the hit. Returns 0 if the blastHit was empty."
   [this]
   (if (:src this)
-    (read-string (get-hsp-value (top-hsp this) :Hsp_bit-score))
+    (Float/parseFloat (get-hsp-value (top-hsp this) :Hsp_bit-score))
     0))
+
+(defn hit-e-value
+  "Takes a blastHit object and returns the bit score of the top scoring HSP
+   in the hit. Returns 0 if the blastHit was empty."
+  [this]
+  (if (:src this)
+    (Float/parseFloat (get-hsp-value (top-hsp this) :Hsp_evalue))))
 
 (defn hit-string
   "A convenience function that takes a blastHit object and returns a formatted
@@ -147,7 +154,12 @@
 
 ;; blast iteration
 
-(defrecord blastIteration [src])
+(defrecord blastIteration [src]
+
+  bios/Biosequence
+
+  (accession [this]
+    (iteration-query-id this)))
 
 (defmethod print-method clj_biosequence.blast.blastIteration
   [this ^java.io.Writer w]
@@ -193,6 +205,16 @@
          (filter #(= :Iteration (:tag %)))
          (map #(->blastIteration %))))
 
+  bios/biosequenceReader
+
+  (biosequence-seq [this]
+    (->> (:content (xml/parse (:strm this)))
+         (filter #(= :BlastOutput_iterations (:tag %)))
+         first
+         :content
+         (filter #(= :Iteration (:tag %)))
+         (map #(->blastIteration %))))
+
   java.io.Closeable
 
   (close [this]
@@ -204,6 +226,10 @@
 
   (bs-reader [this]
     (->blastReader (io/reader (:file this)))))
+
+(defn init-blast-search
+  [file]
+  (->blastSearch file))
 
 (defn get-iteration-by-id
   "Returns the blastIteration object for the specified biosequence from
