@@ -241,93 +241,65 @@
        (:content (some #(if (= (:tag %) :GBSeq_feature-table)
                           %) (:content (:src gbseq))))))
 
-; file
+; IO
 
-(defn read-gb-xml-from-stream
-  [rdr]
-  (letfn [(process [x]
-            (if (empty? x)
-              nil
-              (lazy-seq (cons (->genbankSequence (first x))
-                              (process (rest x))))))]
-    (let [xml (xml/parse rdr)]
-      (if (= (:tag xml) :GBSet)
-        (process (filter #(= (:tag %) :GBSeq)
-                         (:content xml)))
-        (throw (Throwable. "Doesn't appear to be a GenBank XML file."))))))
+(defrecord genbankReader [strm]
 
-(defrecord genbankFile [file])
+  bios/biosequenceReader
 
-(extend-protocol io/IOFactory
+  (biosequence-seq [this]
+    (let [xml (xml/parse (:strm this))]
+      (map (fn [x]
+             (->genbankSequence x))
+           (filter #(= (:tag %) :GBSeq)
+                   (:content xml)))))
 
-  genbankFile
+  java.io.Closeable
 
-  (make-reader [this opts]
-    (io/reader (:file this)))
+  (close [this]
+    (.close (:strm this))))
 
-  (make-writer [this opts]
-    (io/writer (:file this)))
+(defn init-genbank-reader
+  [strm]
+  (->genbankReader strm))
 
-  (make-input-stream [this opts]
-    (throw (Throwable. "Not implmented for fastaFiles.")))
+(defrecord genbankFile [file]
+  
+  bios/biosequenceIO
 
-  (make-output-stream [this opts]
-    (throw (Throwable. "Not implmented for fastaFiles."))))
+  (bs-reader [this]
+    (init-genbank-reader (io/reader (:file this)))))
 
-(extend-protocol bs/biosequenceFile
+(defrecord genbankString [str]
 
-  genbankFile
+  bios/biosequenceIO
 
-  (biosequence-seq [this rdr]
-    (read-gb-xml-from-stream rdr)))
+  (bs-reader [this]
+    (init-genbank-reader (io/reader (:str this)))))
+
+(defrecord genbankConnection [acc-list db retype]
+
+  bios/biosequenceIO
+
+  (bs-reader [this]
+    (let [s (get-genbank-stream (:acc-list this)
+                                (:db this)
+                                (:retype this))]
+      (condp = (:retype this)
+        :xml (init-genbank-reader (io/reader s))
+        :fasta (bios/init-fasta-reader (io/reader s) :iupacNucleicAcids)))))
 
 (defn init-genbank-file
   [file]
-  (->genbankFile file))
+  (if (fs/exists? file)
+    (->genbankFile file)
+    (throw (Throwable. (str "File not found: " file)))))
 
-;; persistance
-
-(defrecord genbankStore [file])
-
-(defn index-genbank-file
-  "Indexes a genbankFile object and returns a uniprotStore object. Duplicate 
-   primary accessions in the file will cause a 'Unique index or primary key 
-   violation'."
-  ([genbankfile] (index-genbank-file genbankfile false))
-  ([genbankfile memory]
-     (let [st (init-genbank-store genbankfile memory)]
-       (with-open [rdr (io/reader genbankfile)]
-         (dorun
-          (pmap #(bs/save-biosequence st %)
-                (biosequence-seq ))))
-       st)))
-
-(defn load-genbank-store
-  [dir]
-  (let [file (first (fs/glob (str dir "/" "*.h2.db")))
-        db-file (second (re-find  #"(.+)\.h2.db" (fs/absolute-path file)))]
-    (if (not (nil? db-file))
-      (assoc (->genbankStore db-file) :db (bs/make-db-connection db-file true))
-      (throw (Throwable. "DB file not found!")))))
+(defn init-genbank-string
+  [str]
+  (->genbankString str))
 
 ;; web
-
-(defn get-genbank-stream
-  [a-list db rettype]
-  (if (empty? a-list)
-    nil
-    (let [r (client/post "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
-                         {:query-params
-                          {:db (name db)
-                           :id (apply str (interpose "," a-list))
-                           :rettype (condp = rettype
-                                      :xml "gb"
-                                      :fasta "fasta")
-                           :retmode (condp = rettype
-                                      :xml "xml"
-                                      :fasta "text")}
-                          :as :stream})]
-      (:body r))))
 
 (defmacro with-wget-genbank-sequence
   "Returns a 'semi-lazy' (1000 sequences are fetched at a time) list of 
@@ -403,6 +375,23 @@
          (throw (Throwable. (str "'" db "' " "not allowed. Only :protein, :nucleotide, :nucest, :nuccore, :nucgss and :popset are acceptable database arguments. See the documentation for 'wget-genbank-search' for an explanation of the different databases."))))))
 
 ;private
+
+(defn- get-genbank-stream
+  [a-list db rettype]
+  (if (empty? a-list)
+    nil
+    (let [r (client/post "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+                         {:query-params
+                          {:db (name db)
+                           :id (apply str (interpose "," a-list))
+                           :rettype (condp = rettype
+                                      :xml "gb"
+                                      :fasta "fasta")
+                           :retmode (condp = rettype
+                                      :xml "xml"
+                                      :fasta "text")}
+                          :as :stream})]
+      (:body r))))
 
 (defn- genbank-search-helper
   ([term db retstart] (genbank-search-helper term db retstart nil))
