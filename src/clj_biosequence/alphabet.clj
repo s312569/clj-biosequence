@@ -45,7 +45,8 @@
    \J {:three "Xle" :longname "Leucine or Isoleucine"}
    \X {:three "Xaa" :longname "Any amino acid"}
    \U {:three "Sec" :longname "Selenocysteine"}
-   \O {:three "Pyl" :longname "Pyrrolysine"}})
+   \O {:three "Pyl" :longname "Pyrrolysine"}
+   \* {:three "Stop" :longname "Stop"}})
 
 (def codon-tables
   {1 {:name "Standard"
@@ -212,6 +213,13 @@
                   \-]}})
 
 ;; functions
+
+(defn alphabet-chars
+  [a]
+  (if (not (alphabet? a))
+    (throw (Throwable. (str "Not a valid alphabet: " a)))
+    (let [k (keys (alphabet a))]
+      (set (concat k (map #(Character/toLowerCase %) k))))))
 
 (defn codon->aa
   "Takes a seq of three chars representing nucleic acid residues and returns a

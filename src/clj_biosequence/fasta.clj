@@ -9,31 +9,39 @@
   Biosequence
   (accession [this]
     (:acc this))
+  
   (accessions [this]
     (list (:acc this)))
+  
   (bs-seq [this]
     (:sequence this))
+  
   (def-line [this]
     (:description this))
+  
   (protein? [this]
     (if (= :iupacAminoAcids (:alphabet this))
       true
       false))
+  
   (reverse-comp [this]
     (if (protein? this)
       (throw (Throwable. "Can't reverse/complement a protein sequence."))
       (init-fasta-sequence (accession this)
-                           (str (def-line this) " - reverse-comp")
+                           (str (def-line this) " - Reverse-comp")
                            (alphabet this)
                            (ala/revcom (bs-seq this)))))
+  
   (reverse-seq [this]
     (init-fasta-sequence (accession this)
-                         (str (def-line this) " - reverse")
+                         (str (def-line this) " - Reversed")
                          (alphabet this) 
                          (vec (reverse (bs-seq this)))))
+  
   (fasta-string [this]
     (if (:description this)
       (str ">" (accession this) " " (def-line this) "\n" (bioseq->string this) "\n")))
+  
   (alphabet [this]
     (:alphabet this)))
 
@@ -64,13 +72,7 @@
                    (init-fasta-sequence (second (re-find #"^>([^\s]+)" (first d)))
                                         (second (re-find #">[^\s]+\s+(.+)" (first d)))
                                         (:alphabet this)
-                                        (->> seqs
-                                             vec
-                                             (remove (complement
-                                                      (-> (ala/alphabet (:alphabet this))
-                                                          keys
-                                                          set)))
-                                             vec)))))
+                                        (clean-sequence seqs (:alphabet this))))))
          (partition 2 (partition-by #(re-find #"^>" %) (line-seq (:strm this))))))
 
   java.io.Closeable

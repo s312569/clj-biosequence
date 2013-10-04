@@ -8,9 +8,10 @@
             [clojure.pprint :as pp]
             [fs.core :as fs]
             [clojure.java.jdbc :as sql]
+            [clj-biosequence.alphabet :as ala]
             [clj-biosequence.core :as bs]))
 
-(declare qualifier-extract init-genbank-store feature-seq genbank-search-helper genbank-sequence-helper)
+(declare qualifier-extract init-genbank-store feature-seq genbank-search-helper genbank-sequence-helper moltype get-genbank-stream)
 
 ; interval
 
@@ -55,20 +56,27 @@
    genbankInterval from a genbankSequence. Designed for getting fastasequences
    by applying  genbankInterval to the sequence entry it originates from."
   [gb-interval gb-sequence]
-  (let [dna (bs/sequence-string gb-sequence) 
+  (let [dna (bs/bs-seq gb-sequence) 
         start (start gb-interval)
         end (end gb-interval)]
     (bs/init-fasta-sequence
      (bs/accession gb-sequence)
      (str (bs/def-line gb-sequence) " [" start "-" end "]")
-     (if (bs/protein? gb-sequence) :protein :nucleotide)
+     (if (bs/protein? gb-sequence) :iupacAminoAcids :iupacNucleicAcids)
      (if (false? (comp? gb-interval))
-       (subs dna (- start 1) end)
-       (bs/revcom-dna-string (subs dna (- end 1) start))))))
+       (subvec dna (- start 1) end)
+       (subvec (ala/revcom dna) (- end 1) start)))))
 
 ; feature
 
 (defrecord genbankFeature [src])
+
+(defn feature-seq
+  "Returns a lazy list of features from a genbankSequence."
+  [gbseq]
+  (map #(->genbankFeature %)
+       (:content (some #(if (= (:tag %) :GBSeq_feature-table)
+                          %) (:content (:src gbseq))))))
 
 (defn feature-type
   "Returns the feature key. For example: protein, Region, Site, CDS etc."
@@ -132,15 +140,13 @@
      (str (bs/def-line gbseq) " - Feature: " (feature-type gb-feat)
           " - [" (start (first intervals)) "-" (end (last intervals)) "]")
      (if (bs/protein? gbseq) :protein :nucleotide)
-     (apply str
-            (map #(if (comp? %)
-                    (bs/revcom-dna-string
-                     (subs (bs/sequence-string gbseq)
-                           (- (end %) 1)
-                           (start %)))
-                    (subs (bs/sequence-string gbseq)
-                          (- (start %) 1)
-                          (end %))) intervals)))))
+     (map #(if (comp? %)
+             (subvec (ala/revcom (bs/bs-seq gbseq))
+                     (- (end %) 1)
+                     (start %))
+             (subvec (bs/bs-seq gbseq)
+                     (- (start %) 1)
+                     (end %))) intervals))))
 
 (defn feature-location
   "Returns the value corresponding to the 'GBFeature_location' element of a 
@@ -169,83 +175,59 @@
               :GBSeqid
               zf/text))
 
-  (created [this]
-    (zf/xml1-> (zip/xml-zip (:src this))
-               :GBSeq_create-date zf/text))
-
-  (modified [this]
-    (zf/xml1-> (zip/xml-zip (:src this))
-               :GBSeq_update-date zf/text))
-
-  (version [this]
-    (Integer. (second (re-find #".+\.(\d+)"
-                               (zf/xml1-> (zip/xml-zip (:src this))
-                                          :GBSeq_accession-version zf/text)))))
-
-  (taxid [this]
-    (Integer. (second
-               (string/split
-                (qualifier-extract (first (filter #(= (feature-type %) "source")
-                                                  (feature-seq this)))
-                                   "db_xref")
-                #":"))))
-
-  (taxonomy [this]
-    (seq (string/split (zf/xml1-> (zip/xml-zip (:src this))
-                                  :GBSeq_taxonomy zf/text)
-                       #";")))
-
-  (org-scientific-name [this]
-    (zf/xml1-> (zip/xml-zip (:src this))
-               :GBSeq_organism
-               zf/text))
-
   (def-line [this]
     (zf/xml1-> (zip/xml-zip (:src this))
-              :GBSeq_definition
-              zf/text))
+               :GBSeq_definition
+               zf/text))
 
   (protein? [this]
-    (= "AA"
-       (zf/xml1-> (zip/xml-zip (:src this))
-                  :GBSeq_moltype
-                  zf/text)))
+    (= (bs/alphabet this) :iupacAminoAcids))
 
-  (sequence-string [this]
-    (string/upper-case (apply str (remove #{\space\newline}
-                                          (zf/xml1-> (zip/xml-zip (:src this))
-                                                     :GBSeq_sequence
-                                                     zf/text)))))
+  (bs-seq [this]
+    (bs/clean-sequence
+     (zf/xml1-> (zip/xml-zip (:src this))
+                :GBSeq_sequence
+                zf/text)
+     (bs/alphabet this)))
 
   (fasta-string [this]
     (str ">gb|" (bs/accession this) "|"
-         (apply str (bs/accessions this))
+         (apply str (interpose "|" (bs/accessions this)))
          "| " (bs/def-line this) \newline
-         (bs/sequence-string this))))
+         (bs/bioseq->string this) \newline))
 
-(defn moltype
-  [gbseq]
-  (zf/xml1-> (zip/xml-zip (:src gbseq))
-             :GBSeq_moltype
-             zf/text))
+  (alphabet [this]
+    (cond (#{"genomic" "precursor RNA" "mRNA" "rRNA" "tRNA" "snRNA" "scRNA"
+             "other-genetic" "DNA" "cRNA" "snoRNA" "transcribed RNA"} (moltype this))
+          :iupacNucleicAcids
+          (#{"AA"} (moltype this))
+          :iupacAminoAcids
+          :else
+          (throw (Throwable. (str "Unknown moltype: " (moltype this))))))
 
-(defn gb-locus
-  "Returns the locus of a genbankSequence."
-  [gbseq]
-  (zf/xml1-> (zip/xml-zip (:src gbseq)) :GBSeq_locus zf/text))
+  (reverse-seq [this]
+    (bs/init-fasta-sequence (bs/accession this)
+                            (str (bs/def-line this) " - Reversed")
+                            (bs/alphabet this)
+                            (reverse (bs/bs-seq this))))
 
-(defn feature-seq
-  "Returns a lazy list of features from a genbankSequence."
-  [gbseq]
-  (map #(->genbankFeature %)
-       (:content (some #(if (= (:tag %) :GBSeq_feature-table)
-                          %) (:content (:src gbseq))))))
+  (reverse-comp [this]
+    (if (bs/protein? this)
+      (throw (Throwable. "Can't reverse/complement a protein sequence."))
+      (bs/init-fasta-sequence (bs/accession this)
+                           (str (bs/def-line this) " - Reverse-comp")
+                           (bs/alphabet this)
+                           (ala/revcom (bs/bs-seq this))))))
+
+(defmethod print-method clj_biosequence.genbank.genbankSequence
+  [this ^java.io.Writer w]
+  (bs/print-tagged this w))
 
 ; IO
 
 (defrecord genbankReader [strm]
 
-  bios/biosequenceReader
+  bs/biosequenceReader
 
   (biosequence-seq [this]
     (let [xml (xml/parse (:strm this))]
@@ -265,21 +247,21 @@
 
 (defrecord genbankFile [file]
   
-  bios/biosequenceIO
+  bs/biosequenceIO
 
   (bs-reader [this]
     (init-genbank-reader (io/reader (:file this)))))
 
 (defrecord genbankString [str]
 
-  bios/biosequenceIO
+  bs/biosequenceIO
 
   (bs-reader [this]
     (init-genbank-reader (io/reader (:str this)))))
 
 (defrecord genbankConnection [acc-list db retype]
 
-  bios/biosequenceIO
+  bs/biosequenceIO
 
   (bs-reader [this]
     (let [s (get-genbank-stream (:acc-list this)
@@ -287,7 +269,7 @@
                                 (:retype this))]
       (condp = (:retype this)
         :xml (init-genbank-reader (io/reader s))
-        :fasta (bios/init-fasta-reader (io/reader s) :iupacNucleicAcids)))))
+        :fasta (bs/init-fasta-reader (io/reader s) :iupacNucleicAcids)))))
 
 (defn init-genbank-file
   [file]
@@ -299,42 +281,21 @@
   [str]
   (->genbankString str))
 
-;; web
+(defn init-genbank-connection
+  [accessions db retype]
+  (cond (nil? (#{:protein :nucest :nuccore :nucgss :popset} db))
+        (throw (Throwable.
+                (str
+                 "DB not supported: "
+                 db
+                 ". Only :protein, :nucest, :nuccore, :nucgss and :popset are supported.")))
+        (#{:xml :fasta} retype)
+        (throw (Throwable. (str retype " not supported. "
+                                "Only :xml and :fasta are allowed retype values.")))
+        :else
+        (->genbankConnection (if (coll? accessions) accessions (list accessions)))))
 
-(defmacro with-wget-genbank-sequence
-  "Returns a 'semi-lazy' (1000 sequences are fetched at a time) list of 
-   genbankSequences corresponding to the 'accessions' list argument. Accepts
-   any identification that genbank accepts but will return an exception 
-   (status code 400) if the id is not recognised. Can return genbankSequences 
-   or fastaSequence objects depending whether the 'class' argument is :xml or
-   :fasta respectively. The 'db' argument has the same format and allowed values
-   as the wget-genbank-search function."
-  [[handle accessions db rettype] & code]
-  `(if (some #(= ~db %) '(:protein :nucest :nuccore :nucgss :popset))
-    (if (some #(= ~rettype %)
-              '(:xml :fasta))
-      (let [rdr# (get-genbank-stream (if (coll? ~accessions)
-                                       ~accessions
-                                       (list ~accessions))
-                                     ~db ~rettype)]
-        (with-open [str# (java.io.PushbackReader. (io/reader rdr#))]
-          (let [~handle (condp = ~rettype
-                          :xml (read-gb-xml-from-stream str#)
-                          :fasta (bs/read-fasta-from-stream
-                                  str#
-                                  (if (= ~db :protein)
-                                    :protein
-                                    :nucleotide)))]
-            (try
-              ~@code
-              (catch Exception e#
-                (throw e#))
-              (finally
-                (.close rdr#))))))
-      (throw (Throwable. (str ~rettype
-                              " not allowed. "
-                              "Only :xml and :fasta are allowed rettype values."))))
-    (throw (Throwable. (str "'" ~db "' " "not allowed. Only :protein, :nucleotide, :nucest, :nuccore, :nucgss and :popset are acceptable database arguments. See the documentation for 'wget-genbank-search' for an explanation of the different databases.")))))
+;; web
 
 (defn wget-genbank-search
   "Returns a non-lazy list of result ids from NCBI for a particular search term and
@@ -348,7 +309,7 @@
                  and TPA, as well as records from SwissProt, PIR, PRF, and PDB.
    :nucest     - a collection of short single-read transcript sequences from GenBank.
    :nuccore    - a collection of sequences from several sources, including GenBank, 
-                 RefSeq, TPA and PDB (same as :nucleotide).
+                 RefSeq, TPA and PDB.
    :nucgss     - a collection of unannotated short single-read primarily genomic
                  sequences from GenBank including random survey sequences clone-end
                  sequences and exon-trapped sequences.
@@ -373,6 +334,56 @@
                                  zf/text)
                        (wget-genbank-search term db (+ restart 1000) k))))
          (throw (Throwable. (str "'" db "' " "not allowed. Only :protein, :nucleotide, :nucest, :nuccore, :nucgss and :popset are acceptable database arguments. See the documentation for 'wget-genbank-search' for an explanation of the different databases."))))))
+
+;; convenience functions
+
+(defn created
+  [this]
+  (zf/xml1-> (zip/xml-zip (:src this))
+             :GBSeq_create-date zf/text))
+
+(defn modified
+  [this]
+  (zf/xml1-> (zip/xml-zip (:src this))
+             :GBSeq_update-date zf/text))
+
+(defn version
+  [this]
+  (Integer. (second (re-find #".+\.(\d+)"
+                             (zf/xml1-> (zip/xml-zip (:src this))
+                                        :GBSeq_accession-version zf/text)))))
+
+(defn taxid
+  [this]
+  (Integer. (second
+             (string/split
+              (qualifier-extract (first (filter #(= (feature-type %) "source")
+                                                (feature-seq this)))
+                                 "db_xref")
+              #":"))))
+
+(defn taxonomy
+  [this]
+  (seq (string/split (zf/xml1-> (zip/xml-zip (:src this))
+                                :GBSeq_taxonomy zf/text)
+                     #";")))
+
+(defn org-scientific-name
+  [this]
+  (zf/xml1-> (zip/xml-zip (:src this))
+             :GBSeq_organism
+             zf/text))
+
+(defn moltype
+  [gbseq]
+  (zf/xml1-> (zip/xml-zip (:src gbseq))
+             :GBSeq_moltype
+             zf/text))
+
+(defn gb-locus
+  "Returns the locus of a genbankSequence."
+  [gbseq]
+  (zf/xml1-> (zip/xml-zip (:src gbseq)) :GBSeq_locus zf/text))
 
 ;private
 
@@ -407,13 +418,6 @@
            "&retstart=" retstart
            (if key (str "&WebEnv=" key))
            "&usehistory=y"))))))
-
-(defn- init-genbank-store
-  [file memory]
-  (if memory
-    (bs/init-in-mem-store (->genbankStore (bs/file-path file)))
-    (bs/init-store
-     (->genbankStore (bs/index-file-name (bs/file-path file))))))
 
 (defn- extract-features-genbank
   [rdr feature]

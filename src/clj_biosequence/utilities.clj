@@ -1,5 +1,25 @@
 (in-ns 'clj-biosequence.core)
 
+;; sequence
+
+(defn clean-sequence
+  [s a]
+  (let [cs (remove #{\space \newline} (vec s))
+        chars (set (map char (concat (range (int \a) (int \z)) (range (int \A) (int \Z)))))]
+    (cond (not (ala/alphabet? a))
+          (throw (Throwable. (str "Not a valid alphabet: " a)))
+          (or (and (= a :iupacAminoAcids) (some (complement (conj chars \*)) cs))
+              (and (= a :iupacNucleicAcids) (some (complement chars) cs)))
+          (throw (Throwable.
+                  (str "Punctuation, numbers or other non-sequence characters found in sequence: "
+                       s)))
+          :else
+          (let [nots (into {} (for [x (remove (ala/alphabet-chars a)
+                                              cs)]
+                                (vec (list x \X))))]
+            (->> (vec s)
+                 (replace nots))))))
+
 ;; for print-method defs
 
 (defn print-tagged

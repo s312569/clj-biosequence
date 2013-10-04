@@ -43,10 +43,10 @@
            "]")))
 
   (bs-seq [this]
-    (vec (apply str
-                (remove {\space\newline}
-                        (zf/xml1-> (zip/xml-zip (amino-acids this))
-                                   zf/text)))))
+    (bios/clean-sequence
+     (zf/xml1-> (zip/xml-zip (amino-acids this))
+                zf/text)
+     :iupacAminoAcids))
 
   (fasta-string [this]
     (let [db (condp = (:dataset (meta-data this))
@@ -57,19 +57,19 @@
            (prot-name this)
            " " (bios/def-line this)
            \newline
-           (apply str (bios/bs-seq this))
+           (bios/bioseq->string this)
            \newline)))
 
   (protein? [this] true)
 
   (reverse-seq [this]
     (bios/init-fasta-sequence (bios/accession this)
-                              (bios/def-line this)
+                              (str (bios/def-line this) " - Reversed")
                               :iupacAminoAcids
                               (reverse (bios/bs-seq this))))
 
   (reverse-comp [this]
-    (throw (Throwable. "Action not defined for protein sequence.")))
+    (throw (Throwable. "Can't reverse/complement a protein sequence.")))
 
   (alphabet [this]
     :iupacAminoAcids))
@@ -136,7 +136,7 @@
   (if (#{:xml :fasta} retype)
     (let [l (if (coll? accessions) accessions (list accessions))]
       (->uniprotConnection l retype email))
-    (throw (Throwable. (str retype " not allowed. "
+    (throw (Throwable. (str retype " not supported. "
                             "Only :xml and :fasta are allowed retype values.")))))
 
 ;; web search
