@@ -67,7 +67,7 @@
              (cond (not (re-find #"^>" (first d)))
                    (throw (Throwable. (str "Data corrupted at " (first d))))
                    (> (count d) 1)
-                   (throw (Throwable. (str "No seqeunce for entry " (first d))))
+                   (throw (Throwable. (str "No sequence for entry " (first d))))
                    :else
                    (init-fasta-sequence (second (re-find #"^>([^\s]+)" (first d)))
                                         (second (re-find #">[^\s]+\s+(.+)" (first d)))
@@ -97,8 +97,8 @@
   biosequenceIO
 
   (bs-reader [this]
-    (init-fasta-reader (io/reader (:str this))
-                       (alphabet this))))
+    (init-fasta-reader (java.io.BufferedReader. (java.io.StringReader. (:str this)))
+                       (:alphabet this))))
 
 (defn init-fasta-file
   "Initialises fasta protein file. Accession numbers and description are 
@@ -107,7 +107,7 @@
   [path alphabet]
   (if-not (ala/alphabet? alphabet)
     (throw (Throwable. "Unrecognised alphabet keyword. Currently :iupacNucleicAcids :iupacAminoAcids are allowed."))
-    (if (fs/exists? path)
+    (if (fs/file? path)
       (->fastaFile path alphabet)
       (throw (Throwable. (str "File not found: " path))))))
 

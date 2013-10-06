@@ -5,7 +5,8 @@
 (defn clean-sequence
   [s a]
   (let [cs (remove #{\space \newline} (vec s))
-        chars (set (map char (concat (range (int \a) (int \z)) (range (int \A) (int \Z)))))]
+        chars (set (map char (concat (range (int \a) (+ 1 (int \z)))
+                                     (range (int \A) (+ 1 (int \Z))))))]
     (cond (not (ala/alphabet? a))
           (throw (Throwable. (str "Not a valid alphabet: " a)))
           (or (and (= a :iupacAminoAcids) (some (complement (conj chars \*)) cs))
@@ -38,7 +39,7 @@
      (let [nf (if ext
                 (fs/file (str base "-" (now) "." ext))
                 (fs/file (str base "-" (now))))]
-       (if-not (fs/exists? nf)
+       (if-not (fs/file? nf)
          nf
          (time-stamped-file base ext)))))
 

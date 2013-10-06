@@ -123,7 +123,7 @@
 (defn init-uniprotxml-file
   "Initialises a uniprotXmlFile object."
   [path]
-  (if (fs/exists? path)
+  (if (fs/file? path)
     (->uniprotFile path)
     (throw (Throwable. (str "File not found: " path)))))
 

@@ -8,7 +8,7 @@
                  [org.clojure/data.xml "0.0.7"]
                  [org.clojure/data.zip "0.1.1"]
                  [com.h2database/h2 "1.3.173"]
-                 [org.clojure/java.jdbc "0.3.0-alpha4"]
+                 [org.clojure/java.jdbc "0.3.0-alpha5"]
                  [clj-http "0.7.7"]
                  [fs "1.3.3"]
                  [com.velisco/tagged "0.3.0"]

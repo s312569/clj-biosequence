@@ -43,10 +43,11 @@
 
 (defn update-biosequences
   "Updates an object in the store with a current connection."
-  [l s]
-  (ps/update-records (pmap #(hash-map :id (accession %)
-                                      :src (pr-str %))
-                           l) s))
+  ([l s] (update-biosequences l s true))
+  ([l s t]
+     (ps/update-records (pmap #(hash-map :id (accession %)
+                                         :src (pr-str %))
+                              l) s t)))
 
 (defn save-biosequences
   "Saves an object to a store."

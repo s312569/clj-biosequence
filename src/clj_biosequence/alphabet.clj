@@ -214,13 +214,6 @@
 
 ;; functions
 
-(defn alphabet-chars
-  [a]
-  (if (not (alphabet? a))
-    (throw (Throwable. (str "Not a valid alphabet: " a)))
-    (let [k (keys (alphabet a))]
-      (set (concat k (map #(Character/toLowerCase %) k))))))
-
 (defn codon->aa
   "Takes a seq of three chars representing nucleic acid residues and returns a
    char representing the encoded amino acid."
@@ -249,9 +242,14 @@
    nil otherwise."
   (#{:iupacNucleicAcids :iupacAminoAcids} k))
 
-(defn alphabet
+(defn get-alphabet
   "Takes a keyword and returns tha corresponding alphabet hash."
   [k]
   ({:iupacAminoAcids iupacAminoAcids
     :iupacNucleicAcids iupacNucleicAcids} k))
+
+(defn alphabet-chars
+  [a]
+  (let [k (keys (get-alphabet a))]
+    (set (concat k (map #(Character/toLowerCase %) k)))))
 

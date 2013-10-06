@@ -13,7 +13,7 @@
 
 (import '(java.io BufferedReader StringReader))
 
-(declare blastp-defaults run-blast get-sequence-from-blast-db blast-default-params split-hsp-align)
+(declare blastp-defaults run-blast get-sequence-from-blast-db blast-default-params split-hsp-align iteration-query-id)
 
 ;; blast hsp
 
@@ -279,20 +279,23 @@
 
 ;; blast db
 
-(defrecord blastDB [path type])
+(defrecord blastDB [path alphabet])
 
 (defn get-sequence
   "Returns the specified sequence from a blastDB object as a fastaSequence object."
   [db id]
   (if id
-    (first (bios/fasta-string (get-sequence-from-blast-db db id)))))
+    (let [fs (-> (get-sequence-from-blast-db db id)
+                 (bios/init-fasta-string (:alphabet db)))]
+      (with-open [r (bios/bs-reader fs)]
+        (first (bios/biosequence-seq r))))))
 
 (defn init-blast-db
   "Initialises a blastDB object."
   [path alphabet]
   (if-not (ala/alphabet? alphabet)
     (throw (Throwable. "Unrecognised alphabet."))
-    (if (fs/exists? path)
+    (if (fs/file? path)
       (->blastDB path alphabet)
       (throw (Throwable. (str "File not found: " path))))))
 
