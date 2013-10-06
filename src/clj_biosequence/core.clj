@@ -88,7 +88,7 @@
            (not (#{1 2 3 4 5 6 -1 -2 -3} frame))
            (throw (Throwable. "Invalid frame."))
            :else
-           (init-fasta-sequence (str (accession bs) "-"  frame)
+           (init-fasta-sequence (accession bs)
                                 (str (def-line bs) " - Translated frame: " frame)
                                 :iupacAminoAcids
                                 (let [v (cond (#{1 2 3} frame)
