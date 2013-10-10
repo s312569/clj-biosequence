@@ -302,20 +302,16 @@
 ;; blasting
 
 (defn blast
-  ([bs params] (blast bs params (fs/temp-file "blast-")))
-  ([bs params out-file]
-     (let [i (fs/temp-file "seq-")]
-       (try
-         (do
-           (doseq [s (if (seq? bs) bs (list bs))]
-             (spit i (bios/fasta-string s) :append true))
-           (run-blast (:program params) (:db params)
-                      (fs/absolute-path i)
-                      (fs/absolute-path out-file)
-                      (:options params)))
-         (catch Exception e (throw e))
-         (finally (fs/delete i)
-                  (->blastSearch out-file))))))
+  [bs program db & {:keys [outfile params] :or {outfile (fs/temp-file "blast")
+                                                params {}}}]
+  (let [i (bios/fasta->file bs (fs/temp-file "seq-") :append false)]
+    (try
+      (run-blast program db
+                 (fs/absolute-path i)
+                 (fs/absolute-path outfile)
+                 params)
+      (finally (fs/delete i)
+               (->blastSearch outfile)))))
 
 ;; helpers
 
