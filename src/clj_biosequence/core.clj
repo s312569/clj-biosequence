@@ -110,6 +110,16 @@
      (map #(translate nucleotide % table)
           '(1 2 3 -1 -2 -3))))
 
+(defn fasta->file
+  [bs file & {:keys [append func error] :or {append true func identity error false}}]
+  (if (not append) (fs/delete (fs/absolute-path file)))
+  (dorun (map #(if (func %)
+                 (spit file (fasta-string %) :append true)
+                 (if error
+                   (throw (Throwable. error))))
+              bs))
+  file)
+
 ;; helper files
 
 (load "mapping")

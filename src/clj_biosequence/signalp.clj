@@ -9,60 +9,85 @@
             [clojure.pprint :as pp]
             [clojure.data.xml :as xml]))
 
-; to do batch signalp
-
 (declare signal-default-parameters make-signal-result)
 
-(defrecord signalpResult [name cmax cpos ymax ypos smax spos smean D result Dmaxcut network])
+;; signalp analysis
+
+(defrecord signalpProtein [name cmax cpos ymax ypos smax spos smean D result Dmaxcut network]
+
+  bios/Biosequence
+
+  (accession [this]
+    (:name this)))
+
+;; results
+
+(defrecord signalpReader [strm]
+
+  bios/biosequenceReader
+
+  (biosequence-seq [this]
+    (map #(make-signal-result %)
+         (drop 2 (line-seq strm))))
+
+  java.io.Closeable
+
+  (close [this]
+    (.close ^java.io.BufferedReader (:strm this))))
+
+(defrecord signalpResult [file]
+
+  bios/biosequenceIO
+
+  (bs-reader [this]
+    (->signalpReader (io/reader (:file this)))))
 
 (defn signalp
-  "Returns a hash-map of the results of analysing a biosequence with signalP. 
-   The return hash-map keys are: :name, :cmax, :cpos, :ymax, :ypos, :smax, 
-   :spos, :smean, :D, :result, :Dmaxcut and :network. All are standard outputs
-   from signalP. Params is a hash-map mapping signalP parameters to values. 
-   They are the same as the command version of the program. The only one that
-   should need changing is the organism type: 
-   {'-t' 'euk' (euk, gram+, gram-; default euk)}"
-  ([bioseq] (signalp bioseq {}))
-  ([bioseq params]
-     (if (bios/protein? bioseq)
-      (let [in (fs/temp-file "signalp-")
-            defs (flatten (vec (signal-default-parameters params)))]
-        (spit in (bios/fasta-string bioseq))
-        (let [args (conj (vec (cons "signalp" defs))
-                         (fs/absolute-path in))
-              sp @(exec/sh args)]
-          (if (= 0 (:exit sp))
-            (make-signal-result (string/split
-                                 (first (rest (rest (string/split-lines (:out sp)))))
-                                 #"\s+"))
-            (if (:err sp)
-              (throw (Throwable. (str "SignalP error: " (:err sp))))
-              (throw (Throwable. (str "Exception: " (:exception sp))))))))
-      (throw (Throwable. "Only protein sequences can be analysed for signal sequence.")))))
+  [bs & {:keys [params outfile] :or {params {} outfile (fs/temp-file "sp")}}]
+  (let [in (bios/fasta->file bs (fs/temp-file "sp-in")
+                             :append false :func bios/protein?
+                             :error
+                             "Only protein sequences can be analysed with SignalP.")]
+    (with-open [out (io/output-stream outfile)]
+      (let [sp @(exec/sh (signal-command params in) {:out out})]
+        (if (= 0 (:exit sp))
+          (->signalpResult (fs/absolute-path outfile))
+          (if (:err sp)
+            (throw (Throwable. (str "SignalP error: " (:err sp))))
+            (throw (Throwable. (str "Exception: " (:exception sp))))))))))
 
 (defn signalp?
-  "Returns true if sequence contains signal sequence, false otherwise."
+  "Returns true if sequence contains signal sequence, false otherwise. Really slow."
   [prot]
-  (= (:result (signalp prot)) "Y"))
+  (let [spr (signalp (list prot))]
+    (try
+      (with-open [r (bios/bs-reader spr)]
+        (= (:result (signalp (list prot))) "Y"))
+      (finally (fs/delete (:file spr))))))
 
 ;; private
 
 (defn- make-signal-result
-  [[name cmax cpos ymax ypos smax spos smean D result Dmaxcut network]]
-  (->signalpResult (second (re-find #"^[^|]+\|([^|]+)\|" name)) (read-string cmax) (read-string cpos) (read-string ymax) (read-string ypos) (read-string smax) (read-string spos) (read-string smean) (read-string D) result (read-string Dmaxcut) network))
+  [line]
+  (let [[name cmax cpos ymax ypos smax spos smean D result Dmaxcut network]
+        (string/split line #"\s+")]
+    (->signalpProtein name (read-string cmax) (read-string cpos) (read-string ymax) (read-string ypos) (read-string smax) (read-string spos) (read-string smean) (read-string D) result (read-string Dmaxcut) network)))
 
-(defn- signal-default-parameters
-  [params]
-  (merge {"-f" "short" ;Setting the output format ('short', 'long', 'summary' or 'all')
-          "-g" "Off"   ;Graphics 'png' or 'png+eps'. Default: 'Off'
-          "-k" "Off"   ;Keep temporary directory. Default: 'Off'
-          "-s" "best"  ;Signal peptide networks to use ('best' or 'notm'). Default: 'best'
-          "-t" "euk"  ;Organism type> (euk, gram+, gram-). Default: 'euk'
-          "-m" "Off" ;Make fasta file with mature sequence. Default: 'Off'
-          "-n" "Off" ;Make gff file of processed sequences. Default: 'Off'
-          "-c" "70" ; truncate to sequence length - 0 means no truncation. Default '70'
-          "-l" "STDERR"       ;Logfile if -v is defined. Default: 'STDERR'
-          "-v" "Off"          ;Verbose. Default: 'Off'
-          }
-         params))
+(defn- signal-command
+  [params infile]
+  (-> (into []
+            (merge
+             {"-f" "short" ;Setting the output format ('short', 'long', 'summary' or 'all')
+              "-g" "Off" ;Graphics 'png' or 'png+eps'. Default: 'Off'
+              "-k" "Off" ;Keep temporary directory. Default: 'Off'
+              "-s" "best" ;Signal peptide networks to use ('best' or 'notm'). Default: 'best'
+              "-t" "euk" ;Organism type> (euk, gram+, gram-). Default: 'euk'
+              "-m" "Off" ;Make fasta file with mature sequence. Default: 'Off'
+              "-c" "70" ; truncate to sequence length - 0 means no truncation. Default '70'
+              "-l" "STDERR" ;Logfile if -v is defined. Default: 'STDERR'
+              "-v" "Off"    ;Verbose. Default: 'Off'
+              } params))
+      flatten
+      (conj "signalp")
+      vec
+      (conj (fs/absolute-path infile))))
