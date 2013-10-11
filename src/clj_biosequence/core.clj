@@ -83,24 +83,22 @@
    of the sequence in the specified frame."
   ([bs frame] (translate bs frame (ala/codon-tables 1)))
   ([bs frame table]
-     (cond (protein? bs)
-           (throw (Throwable. "Can't translate a protein sequence!"))
-           (not (#{1 2 3 4 5 6 -1 -2 -3} frame))
-           (throw (Throwable. "Invalid frame."))
-           :else
-           (init-fasta-sequence (accession bs)
-                                (str (def-line bs) " - Translated frame: " frame)
-                                :iupacAminoAcids
-                                (let [v (cond (#{1 2 3} frame)
-                                              (sub-bioseq bs (- frame 1))
-                                              (#{-1 -2 -3} frame)
-                                              (-> (reverse-comp bs)
-                                                  (sub-bioseq (- (* -1 frame) 1)))
-                                              (#{4 5 6} frame)
-                                              (-> (reverse-comp bs)
-                                                  (sub-bioseq ( - frame 4))))]
-                                  (vec (map #(ala/codon->aa % table)
-                                            (partition-bioseq v 3))))))))
+     (let [f ({1 1 2 2 3 3 4 4 5 5 6 6 -1 4 -2 5 -3 6} frame)]
+      (cond (protein? bs)
+            (throw (Throwable. "Can't translate a protein sequence!"))
+            (not (#{1 2 3 4 5 6} f))
+            (throw (Throwable. (str "Invalid frame: " frame)))
+            :else
+            (init-fasta-sequence (str (accession bs) "-" f)
+                                 (str (def-line bs) " - Translated frame: " f)
+                                 :iupacAminoAcids
+                                 (let [v (cond (#{1 2 3} f)
+                                               (sub-bioseq bs (- f 1))
+                                               (#{4 5 6} f)
+                                               (-> (reverse-comp bs)
+                                                   (sub-bioseq ( - f 4))))]
+                                   (vec (map #(ala/codon->aa % table)
+                                             (partition-bioseq v 3)))))))))
 
 (defn six-frame-translation
   "Returns a lazy list of fastaSequence objects representing translations of
@@ -113,11 +111,13 @@
 (defn fasta->file
   [bs file & {:keys [append func error] :or {append true func identity error false}}]
   (if (not append) (fs/delete (fs/absolute-path file)))
-  (dorun (map #(if (func %)
-                 (spit file (fasta-string %) :append true)
-                 (if error
-                   (throw (Throwable. error))))
-              bs))
+  (with-open [w (io/writer file)]
+    (dorun (map #(let [n (func %)]
+                   (if n
+                     (.write w n)
+                     (if error
+                       (throw (Throwable. error)))))
+               bs)))
   file)
 
 ;; helper files
