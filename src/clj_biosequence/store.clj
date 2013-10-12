@@ -1,72 +1,44 @@
 (in-ns 'clj-biosequence.core)
 
-(defrecord storeReader [conn stm]
+(defrecord storeReader [cursor]
 
   biosequenceReader
 
   (biosequence-seq [this]
-    (map #(ps/declob (:src %))
-         (ps/store-result-map (:stm this) "select * from object")))
+    (ps/record-seq (:cursor this)))
 
   java.io.Closeable
 
   (close [this]
-    (.close (:stm this))
-    (.close (:conn this))))
+    nil))
 
-(defrecord biosequenceStore [path]
+(defrecord biosequenceStore [name]
 
   biosequenceIO
 
   (bs-reader [this]
-    (let [c (ps/store-connection (:db this))]
-      (->storeReader c
-                     (ps/store-statement c)))))
-(defn new-store
-  [path]
-  (ps/init-store (->biosequenceStore
-                  (ps/index-file-name path))))
-(defn load-store
-  "Loads a fastaStore."
-  [dir]
-  (let [file (first (fs/glob (str dir "/" "*.h2.db")))
-        db-file (second (re-find  #"(.+)\.h2.db" (fs/absolute-path file)))]
-    (if (not (nil? db-file))
-      (assoc (->biosequenceStore dir)
-        :db
-        (ps/make-db-connection db-file false))
-      (throw (Throwable. "DB file not found!")))))
+    (->storeReader (ps/find-all (:name this)))))
 
-(defn get-biosequence [a s]
-  "Returns a biosequence object from a store implementing the biosequence"
-  (ps/get-object a s))
-
-(defn update-biosequences
-  "Updates an object in the store with a current connection."
-  ([l s] (update-biosequences l s true))
-  ([l s t]
-     (ps/update-records (pmap #(hash-map :id (accession %)
-                                         :src (pr-str %))
-                              l) s t)))
+(defn update-biosequence
+  [bs s]
+  (ps/update-record (bs-save bs) (:name s)))
 
 (defn save-biosequences
-  "Saves an object to a store."
-  ([l s] (save-biosequences l s true))
-  ([l s t]
-   (if (seq? l)
-     (ps/save-records (pmap #(hash-map :id (accession %)
-                                       :src (pr-str %)) l)
-                      s t)
-     (throw (Throwable. (str "Argument " l " is not a sequence."))))))
+  [lst s]
+  (ps/save-records (pmap bs-save lst) (:name s)))
+
+(defn get-biosequence
+  [a s]
+  (ps/get-record a (:name s)))
 
 (defn index-biosequence-file
-  [file]
-  (let [s (new-store file)]
-    (try
-      (do
-        (with-open [r (bs-reader file)]
-          (save-biosequences (biosequence-seq r) s false))
-        s)
-      (catch Exception e
-        (println e)
-        (fs/delete-dir (fs/parent (:path s)))))))
+  [file name]
+  (let [s (->biosequenceStore name)]
+    (do
+      (with-open [r (bs-reader file)]
+        (save-biosequences (biosequence-seq r) s))
+      s)))
+
+(defn bs-collections
+  []
+  (ps/get-collections))

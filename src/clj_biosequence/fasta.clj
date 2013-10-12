@@ -43,7 +43,12 @@
       (str ">" (accession this) " " (def-line this) "\n" (bioseq->string this) "\n")))
   
   (alphabet [this]
-    (:alphabet this)))
+    (:alphabet this))
+
+  (bs-save [this]
+    (let [s (pr-str (dissoc this :_id))]
+      (merge {:src s}
+             (dissoc this :description :alphabet :sequence )))))
 
 (defmethod print-method clj_biosequence.core.fastaSequence
   [this ^java.io.Writer w]
@@ -90,7 +95,12 @@
 
   (bs-reader [this]
     (init-fasta-reader (io/reader (:file this))
-                       (:alphabet this))))
+                       (:alphabet this)))
+
+  biosequenceFile
+
+  (bs-path [this]
+    (:file this)))
 
 (defrecord fastaString [str alphabet]
 

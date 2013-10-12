@@ -33,7 +33,13 @@
   (reverse-seq [this]
     "Returns a new fastaBiosequence with the reversed sequence of the original.")
   (reverse-comp [this]
-    "Returns a new fastaBiosequence with the reverse complement of the original."))
+    "Returns a new fastaBiosequence with the reverse complement of the original.")
+  (bs-save [this]
+    "Returns an object ready for saving in bioseqeunce store."))
+
+(defprotocol biosequenceFile
+  (bs-path [this]
+    "Returns the path of the file as string."))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions
