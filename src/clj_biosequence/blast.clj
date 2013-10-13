@@ -190,20 +190,7 @@
 
 ;; blastSearch
 
-(defprotocol blastReaderIO
-  (iteration-seq [this] "Returns a lazy sequence of iterations from a blast reader."))
-
 (defrecord blastReader [strm]
-
-  blastReaderIO
-
-  (iteration-seq [this]
-    (->> (:content (xml/parse (:strm this)))
-         (filter #(= :BlastOutput_iterations (:tag %)))
-         first
-         :content
-         (filter #(= :Iteration (:tag %)))
-         (map #(->blastIteration %))))
 
   bios/biosequenceReader
 
@@ -310,8 +297,7 @@
                  (fs/absolute-path i)
                  (fs/absolute-path outfile)
                  params)
-      (finally (fs/delete i)
-               (->blastSearch outfile)))))
+      (finally (fs/delete i)))))
 
 ;; helpers
 

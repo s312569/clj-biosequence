@@ -5,7 +5,6 @@
             [clojure.zip :as zip]
             [clojure.string :as string]
             [clj-biosequence.core :as bios]
-            [clj-biosequence.persistence :as ps]
             [clj-http.client :as client]
             [fs.core :as fs]))
 

@@ -1,0 +1,396 @@
+<interpro_matches>
+
+   <protein id="Q9RHD9" length="267" crc64="D44DAE8C544CB7C1" >
+	<interpro id="IPR000110" name="Ribosomal protein S1" type="Family">
+	  <contains>
+	    <rel_ref ipr_ref="IPR003029"/>
+	    <rel_ref ipr_ref="IPR012340"/>
+	  </contains>
+	  <classification id="GO:0003723" class_type="GO">
+	    <category>Molecular Function</category>
+	    <description>RNA binding</description>
+	  </classification>
+	  <classification id="GO:0003735" class_type="GO">
+	    <category>Molecular Function</category>
+	    <description>structural constituent of ribosome</description>
+	  </classification>
+	  <classification id="GO:0005840" class_type="GO">
+	    <category>Cellular Component</category>
+	    <description>ribosome</description>
+	  </classification>
+	  <classification id="GO:0006412" class_type="GO">
+	    <category>Biological Process</category>
+	    <description>translation</description>
+	  </classification>
+	  <match id="PR00681" name="RIBOSOMALS1" dbname="PRINTS">
+	    <location start="6" end="27" score="7.9e-17" status="T" evidence="FPrintScan" />
+	    <location start="85" end="104" score="7.9e-17" status="T" evidence="FPrintScan" />
+	    <location start="125" end="143" score="7.9e-17" status="T" evidence="FPrintScan" />
+	  </match>
+	</interpro>
+	<interpro id="IPR003029" name="Ribosomal protein S1, RNA-binding domain" type="Domain" parent_id="IPR022967">
+	  <found_in>
+	    <rel_ref ipr_ref="IPR000110"/>
+	    <rel_ref ipr_ref="IPR004476"/>
+	    <rel_ref ipr_ref="IPR004519"/>
+	    <rel_ref ipr_ref="IPR004659"/>
+	    <rel_ref ipr_ref="IPR010213"/>
+	    <rel_ref ipr_ref="IPR011804"/>
+	    <rel_ref ipr_ref="IPR011805"/>
+	    <rel_ref ipr_ref="IPR012162"/>
+	    <rel_ref ipr_ref="IPR014069"/>
+	    <rel_ref ipr_ref="IPR016397"/>
+	    <rel_ref ipr_ref="IPR017072"/>
+	 </found_in>
+	  <classification id="GO:0003723" class_type="GO">
+	    <category>Molecular Function</category>
+	    <description>RNA binding</description>
+	  </classification>
+	  <match id="PF00575" name="S1" dbname="PFAM">
+	    <location start="4" end="55" score="1.7e-14" status="T" evidence="HMMPfam" />
+	    <location start="69" end="142" score="2e-18" status="T" evidence="HMMPfam" />
+	    <location start="156" end="228" score="5.3e-19" status="T" evidence="HMMPfam" />
+	  </match>
+	</interpro>
+	<interpro id="IPR012340" name="Nucleic acid-binding, OB-fold" type="Domain">
+	  <child_list>
+	    <rel_ref ipr_ref="IPR001059"/>
+	    <rel_ref ipr_ref="IPR002547"/>
+	    <rel_ref ipr_ref="IPR004150"/>
+	    <rel_ref ipr_ref="IPR011564"/>
+	    <rel_ref ipr_ref="IPR012309"/>
+	    <rel_ref ipr_ref="IPR013849"/>
+	    <rel_ref ipr_ref="IPR020189"/>
+	    <rel_ref ipr_ref="IPR022666"/>
+	    <rel_ref ipr_ref="IPR022967"/>
+	  </child_list>
+	  <found_in>
+	    <rel_ref ipr_ref="IPR000110"/>
+	    <rel_ref ipr_ref="IPR000289"/>
+	    <rel_ref ipr_ref="IPR000424"/>
+	    <rel_ref ipr_ref="IPR001208"/>
+	    <rel_ref ipr_ref="IPR001253"/>
+	    <rel_ref ipr_ref="IPR001884"/>
+	    <rel_ref ipr_ref="IPR002171"/>
+	    <rel_ref ipr_ref="IPR002312"/>
+	    <rel_ref ipr_ref="IPR002313"/>
+	    <rel_ref ipr_ref="IPR003512"/>
+	    <rel_ref ipr_ref="IPR004329"/>
+	    <rel_ref ipr_ref="IPR004522"/>
+	    <rel_ref ipr_ref="IPR004523"/>
+	    <rel_ref ipr_ref="IPR004524"/>
+	    <rel_ref ipr_ref="IPR004591"/>
+	    <rel_ref ipr_ref="IPR005570"/>
+	    <rel_ref ipr_ref="IPR005679"/>
+	    <rel_ref ipr_ref="IPR005680"/>
+	    <rel_ref ipr_ref="IPR005880"/>
+	    <rel_ref ipr_ref="IPR006032"/>
+	    <rel_ref ipr_ref="IPR008045"/>
+	    <rel_ref ipr_ref="IPR008046"/>
+	    <rel_ref ipr_ref="IPR008047"/>
+	    <rel_ref ipr_ref="IPR008048"/>
+	    <rel_ref ipr_ref="IPR008049"/>
+	    <rel_ref ipr_ref="IPR008050"/>
+	    <rel_ref ipr_ref="IPR011344"/>
+	    <rel_ref ipr_ref="IPR011768"/>
+	    <rel_ref ipr_ref="IPR011897"/>
+	    <rel_ref ipr_ref="IPR012156"/>
+	    <rel_ref ipr_ref="IPR012162"/>
+	    <rel_ref ipr_ref="IPR012751"/>
+	    <rel_ref ipr_ref="IPR013846"/>
+	    <rel_ref ipr_ref="IPR013970"/>
+	    <rel_ref ipr_ref="IPR014646"/>
+	    <rel_ref ipr_ref="IPR014647"/>
+	    <rel_ref ipr_ref="IPR016306"/>
+	    <rel_ref ipr_ref="IPR016411"/>
+	    <rel_ref ipr_ref="IPR017075"/>
+	    <rel_ref ipr_ref="IPR020599"/>
+	    <rel_ref ipr_ref="IPR020780"/>
+	    <rel_ref ipr_ref="IPR020923"/>
+	 </found_in>
+	  <contains>
+	    <rel_ref ipr_ref="IPR003871"/>
+	    <rel_ref ipr_ref="IPR004365"/>
+	    <rel_ref ipr_ref="IPR007199"/>
+	    <rel_ref ipr_ref="IPR011129"/>
+	    <rel_ref ipr_ref="IPR013852"/>
+	    <rel_ref ipr_ref="IPR013955"/>
+	    <rel_ref ipr_ref="IPR015365"/>
+	    <rel_ref ipr_ref="IPR018104"/>
+	    <rel_ref ipr_ref="IPR018239"/>
+	    <rel_ref ipr_ref="IPR019844"/>
+	    <rel_ref ipr_ref="IPR019979"/>
+	  </contains>
+	  <match id="G3DSA:2.40.50.140" name="no description" dbname="GENE3D">
+	    <location start="4" end="65" score="1.6e-21" status="T" evidence="Gene3D" />
+	    <location start="66" end="147" score="1.9e-24" status="T" evidence="Gene3D" />
+	    <location start="152" end="228" score="4.7e-22" status="T" evidence="Gene3D" />
+	  </match>
+	  <match id="SSF50249" name="Nucleic acid-binding proteins" dbname="SUPERFAMILY">
+	    <location start="137" end="254" score="1.9e-29" status="T" evidence="superfamily" />
+	    <location start="58" end="143" score="8.5e-23" status="T" evidence="superfamily" />
+	    <location start="3" end="68" score="2.5e-15" status="T" evidence="superfamily" />
+	  </match>
+	</interpro>
+	<interpro id="IPR022967" name="RNA-binding domain, S1" type="Domain" parent_id="IPR012340">
+	  <child_list>
+	    <rel_ref ipr_ref="IPR003029"/>
+	    <rel_ref ipr_ref="IPR006196"/>
+	  </child_list>
+	  <match id="SM00316" name="Ribosomal protein S1-like RNA-binding domain" dbname="SMART">
+	    <location start="3" end="55" score="1.2e-06" status="T" evidence="HMMSmart" />
+	    <location start="70" end="142" score="1.4e-19" status="T" evidence="HMMSmart" />
+	    <location start="157" end="228" score="2.6e-21" status="T" evidence="HMMSmart" />
+	  </match>
+	</interpro>
+	<interpro id="noIPR" name="unintegrated" type="unintegrated">
+	  <match id="coil" name="coiled-coil" dbname="COIL">
+	    <location start="225" end="246" score="NA" status="?" evidence="Coil" />
+	  </match>
+	  <match id="PTHR10724" name="S1 RNA-BINDING DOMAIN-CONTAINING PROTEIN 1" dbname="PANTHER">
+	    <location start="4" end="228" score="8.5e-71" status="T" evidence="HMMPanther" />
+	  </match>
+	  <match id="seg" name="seg" dbname="SEG">
+	    <location start="29" end="40" score="NA" status="?" evidence="Seg" />
+	    <location start="84" end="98" score="NA" status="?" evidence="Seg" />
+	    <location start="222" end="237" score="NA" status="?" evidence="Seg" />
+	  </match>
+	</interpro>
+   </protein>
+   <protein id="RS16_ECOLI" length="82" crc64="F94D07049A6D489D" >
+	<interpro id="IPR000307" name="Ribosomal protein S16" type="Family">
+	  <child_list>
+	    <rel_ref ipr_ref="IPR026994"/>
+	  </child_list>
+	  <contains>
+	    <rel_ref ipr_ref="IPR020592"/>
+	  </contains>
+	  <classification id="GO:0003735" class_type="GO">
+	    <category>Molecular Function</category>
+	    <description>structural constituent of ribosome</description>
+	  </classification>
+	  <classification id="GO:0005622" class_type="GO">
+	    <category>Cellular Component</category>
+	    <description>intracellular</description>
+	  </classification>
+	  <classification id="GO:0005840" class_type="GO">
+	    <category>Cellular Component</category>
+	    <description>ribosome</description>
+	  </classification>
+	  <classification id="GO:0006412" class_type="GO">
+	    <category>Biological Process</category>
+	    <description>translation</description>
+	  </classification>
+	  <match id="PTHR12919" name="30S RIBOSOMAL PROTEIN S16" dbname="PANTHER">
+	    <location start="1" end="78" score="4.5e-48" status="T" evidence="HMMPanther" />
+	  </match>
+	  <match id="PF00886" name="Ribosomal_S16" dbname="PFAM">
+	    <location start="8" end="68" score="7.1e-26" status="T" evidence="HMMPfam" />
+	  </match>
+	  <match id="TIGR00002" name="S16: ribosomal protein S16" dbname="TIGRFAMs">
+	    <location start="2" end="78" score="1.2e-28" status="T" evidence="HMMTigr" />
+	  </match>
+	</interpro>
+	<interpro id="IPR023803" name="Ribosomal protein S16 domain" type="Domain">
+	  <match id="G3DSA:3.30.1320.10" name="no description" dbname="GENE3D">
+	    <location start="1" end="78" score="9.2e-33" status="T" evidence="Gene3D" />
+	  </match>
+	  <match id="SSF54565" name="Ribosomal protein S16" dbname="SUPERFAMILY">
+	    <location start="1" end="79" score="5.3e-27" status="T" evidence="superfamily" />
+	  </match>
+	</interpro>
+	<interpro id="noIPR" name="unintegrated" type="unintegrated">
+	  <match id="PTHR12919:SF12" name="SUBFAMILY NOT NAMED" dbname="PANTHER">
+	    <location start="1" end="78" score="4.5e-48" status="T" evidence="HMMPanther" />
+	  </match>
+	</interpro>
+   </protein>
+   <protein id="Y902_MYCTU" length="446" crc64="CD84A335CCFFE6D7" >
+	<interpro id="IPR003594" name="Histidine kinase-like ATPase, ATP-binding domain" type="Domain">
+	  <child_list>
+	    <rel_ref ipr_ref="IPR020575"/>
+	  </child_list>
+	  <found_in>
+	    <rel_ref ipr_ref="IPR001241"/>
+	    <rel_ref ipr_ref="IPR001294"/>
+	    <rel_ref ipr_ref="IPR001404"/>
+	    <rel_ref ipr_ref="IPR002099"/>
+	    <rel_ref ipr_ref="IPR005467"/>
+	    <rel_ref ipr_ref="IPR005734"/>
+	    <rel_ref ipr_ref="IPR005737"/>
+	    <rel_ref ipr_ref="IPR005740"/>
+	    <rel_ref ipr_ref="IPR006290"/>
+	    <rel_ref ipr_ref="IPR008358"/>
+	    <rel_ref ipr_ref="IPR010193"/>
+	    <rel_ref ipr_ref="IPR010194"/>
+	    <rel_ref ipr_ref="IPR011186"/>
+	    <rel_ref ipr_ref="IPR011557"/>
+	    <rel_ref ipr_ref="IPR012129"/>
+	    <rel_ref ipr_ref="IPR014285"/>
+	    <rel_ref ipr_ref="IPR014525"/>
+	    <rel_ref ipr_ref="IPR014763"/>
+	    <rel_ref ipr_ref="IPR015434"/>
+	    <rel_ref ipr_ref="IPR015566"/>
+	    <rel_ref ipr_ref="IPR016380"/>
+	    <rel_ref ipr_ref="IPR016381"/>
+	    <rel_ref ipr_ref="IPR016781"/>
+	    <rel_ref ipr_ref="IPR017171"/>
+	    <rel_ref ipr_ref="IPR017202"/>
+	    <rel_ref ipr_ref="IPR017204"/>
+	    <rel_ref ipr_ref="IPR017205"/>
+	    <rel_ref ipr_ref="IPR017206"/>
+	    <rel_ref ipr_ref="IPR020667"/>
+	    <rel_ref ipr_ref="IPR022510"/>
+	 </found_in>
+	  <contains>
+	    <rel_ref ipr_ref="IPR014762"/>
+	    <rel_ref ipr_ref="IPR019805"/>
+	  </contains>
+	  <classification id="GO:0005524" class_type="GO">
+	    <category>Molecular Function</category>
+	    <description>ATP binding</description>
+	  </classification>
+	  <match id="G3DSA:3.30.565.10" name="no description" dbname="GENE3D">
+	    <location start="302" end="444" score="1.1e-27" status="T" evidence="Gene3D" />
+	  </match>
+	  <match id="PF02518" name="HATPase_c" dbname="PFAM">
+	    <location start="340" end="443" score="5.5e-18" status="T" evidence="HMMPfam" />
+	  </match>
+	  <match id="SM00387" name="Histidine kinase-like ATPases" dbname="SMART">
+	    <location start="338" end="446" score="5e-24" status="T" evidence="HMMSmart" />
+	  </match>
+	  <match id="SSF55874" name="ATPase domain of HSP90 chaperone/DNA topoisomerase II/histidine kinase" dbname="SUPERFAMILY">
+	    <location start="299" end="446" score="2.1e-33" status="T" evidence="superfamily" />
+	  </match>
+	</interpro>
+	<interpro id="IPR003660" name="HAMP linker domain" type="Domain">
+	  <found_in>
+	    <rel_ref ipr_ref="IPR006290"/>
+	    <rel_ref ipr_ref="IPR008358"/>
+	    <rel_ref ipr_ref="IPR014302"/>
+	    <rel_ref ipr_ref="IPR016380"/>
+	    <rel_ref ipr_ref="IPR017116"/>
+	    <rel_ref ipr_ref="IPR017204"/>
+	    <rel_ref ipr_ref="IPR017232"/>
+	    <rel_ref ipr_ref="IPR022510"/>
+	 </found_in>
+	  <classification id="GO:0004871" class_type="GO">
+	    <category>Molecular Function</category>
+	    <description>signal transducer activity</description>
+	  </classification>
+	  <classification id="GO:0007165" class_type="GO">
+	    <category>Biological Process</category>
+	    <description>signal transduction</description>
+	  </classification>
+	  <classification id="GO:0016021" class_type="GO">
+	    <category>Cellular Component</category>
+	    <description>integral to membrane</description>
+	  </classification>
+	  <match id="PF00672" name="HAMP" dbname="PFAM">
+	    <location start="151" end="217" score="2.2e-10" status="T" evidence="HMMPfam" />
+	  </match>
+	  <match id="SM00304" name="HAMP (Histidine kinases, Adenylyl cyclases," dbname="SMART">
+	    <location start="170" end="222" score="3.1e-06" status="T" evidence="HMMSmart" />
+	  </match>
+	</interpro>
+	<interpro id="IPR003661" name="Signal transduction histidine kinase, subgroup 1, dimerisation/phosphoacceptor domain" type="Domain" parent_id="IPR009082">
+	  <found_in>
+	    <rel_ref ipr_ref="IPR001294"/>
+	    <rel_ref ipr_ref="IPR005467"/>
+	    <rel_ref ipr_ref="IPR006290"/>
+	    <rel_ref ipr_ref="IPR008358"/>
+	    <rel_ref ipr_ref="IPR012129"/>
+	    <rel_ref ipr_ref="IPR014265"/>
+	    <rel_ref ipr_ref="IPR014302"/>
+	    <rel_ref ipr_ref="IPR014310"/>
+	    <rel_ref ipr_ref="IPR014409"/>
+	    <rel_ref ipr_ref="IPR014525"/>
+	    <rel_ref ipr_ref="IPR017055"/>
+	    <rel_ref ipr_ref="IPR017116"/>
+	    <rel_ref ipr_ref="IPR017181"/>
+	    <rel_ref ipr_ref="IPR017232"/>
+	    <rel_ref ipr_ref="IPR022510"/>
+	 </found_in>
+	  <classification id="GO:0000155" class_type="GO">
+	    <category>Molecular Function</category>
+	    <description>phosphorelay sensor kinase activity</description>
+	  </classification>
+	  <classification id="GO:0007165" class_type="GO">
+	    <category>Biological Process</category>
+	    <description>signal transduction</description>
+	  </classification>
+	  <classification id="GO:0016020" class_type="GO">
+	    <category>Cellular Component</category>
+	    <description>membrane</description>
+	  </classification>
+	  <match id="PF00512" name="HisKA" dbname="PFAM">
+	    <location start="232" end="293" score="3.6e-11" status="T" evidence="HMMPfam" />
+	  </match>
+	  <match id="SM00388" name="His Kinase A (phosphoacceptor) domain" dbname="SMART">
+	    <location start="230" end="296" score="2.4e-12" status="T" evidence="HMMSmart" />
+	  </match>
+	</interpro>
+	<interpro id="IPR004358" name="Signal transduction histidine kinase-related protein, C-terminal" type="Domain">
+	  <found_in>
+	    <rel_ref ipr_ref="IPR005467"/>
+	    <rel_ref ipr_ref="IPR006290"/>
+	    <rel_ref ipr_ref="IPR014265"/>
+	    <rel_ref ipr_ref="IPR014285"/>
+	    <rel_ref ipr_ref="IPR014302"/>
+	    <rel_ref ipr_ref="IPR014310"/>
+	    <rel_ref ipr_ref="IPR014409"/>
+	    <rel_ref ipr_ref="IPR017055"/>
+	    <rel_ref ipr_ref="IPR017116"/>
+	    <rel_ref ipr_ref="IPR017181"/>
+	    <rel_ref ipr_ref="IPR017203"/>
+	    <rel_ref ipr_ref="IPR017232"/>
+	 </found_in>
+	  <classification id="GO:0016310" class_type="GO">
+	    <category>Biological Process</category>
+	    <description>phosphorylation</description>
+	  </classification>
+	  <match id="PR00344" name="BCTRLSENSOR" dbname="PRINTS">
+	    <location start="374" end="388" score="1.1e-11" status="T" evidence="FPrintScan" />
+	    <location start="392" end="402" score="1.1e-11" status="T" evidence="FPrintScan" />
+	    <location start="406" end="424" score="1.1e-11" status="T" evidence="FPrintScan" />
+	    <location start="430" end="443" score="1.1e-11" status="T" evidence="FPrintScan" />
+	  </match>
+	</interpro>
+	<interpro id="IPR009082" name="Signal transduction histidine kinase, homodimeric domain" type="Domain">
+	  <child_list>
+	    <rel_ref ipr_ref="IPR003661"/>
+	    <rel_ref ipr_ref="IPR004105"/>
+	  </child_list>
+	  <found_in>
+	    <rel_ref ipr_ref="IPR022510"/>
+	 </found_in>
+	  <classification id="GO:0004871" class_type="GO">
+	    <category>Molecular Function</category>
+	    <description>signal transducer activity</description>
+	  </classification>
+	  <classification id="GO:0007165" class_type="GO">
+	    <category>Biological Process</category>
+	    <description>signal transduction</description>
+	  </classification>
+	  <match id="G3DSA:1.10.287.130" name="no description" dbname="GENE3D">
+	    <location start="222" end="287" score="5.6e-09" status="T" evidence="Gene3D" />
+	  </match>
+	  <match id="SSF47384" name="Homodimeric domain of signal transducing histidine kinase" dbname="SUPERFAMILY">
+	    <location start="212" end="298" score="5.5e-12" status="T" evidence="superfamily" />
+	  </match>
+	</interpro>
+	<interpro id="noIPR" name="unintegrated" type="unintegrated">
+	  <match id="PTHR24423" name="TWO COMPONENT SIGNAL TRANSDUCTION PROTEIN-RELATED" dbname="PANTHER">
+	    <location start="27" end="443" score="1.5e-39" status="T" evidence="HMMPanther" />
+	  </match>
+	  <match id="seg" name="seg" dbname="SEG">
+	    <location start="44" end="55" score="NA" status="?" evidence="Seg" />
+	    <location start="108" end="120" score="NA" status="?" evidence="Seg" />
+	    <location start="160" end="173" score="NA" status="?" evidence="Seg" />
+	    <location start="308" end="319" score="NA" status="?" evidence="Seg" />
+	    <location start="400" end="424" score="NA" status="?" evidence="Seg" />
+	  </match>
+	</interpro>
+   </protein>
+
+</interpro_matches>
