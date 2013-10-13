@@ -1,8 +1,10 @@
-(in-ns 'clj-biosequence.core)
+(ns clj-biosequence.store
+  (:require [clj-biosequence.core :as bs]
+            [clj-biosequence.persistence :as ps]))
 
 (defrecord storeReader [cursor]
 
-  biosequenceReader
+  bs/biosequenceReader
 
   (biosequence-seq [this]
     (ps/record-seq (:cursor this)))
@@ -14,18 +16,18 @@
 
 (defrecord biosequenceStore [name]
 
-  biosequenceIO
+  bs/biosequenceIO
 
   (bs-reader [this]
     (->storeReader (ps/find-all (:name this)))))
 
 (defn update-biosequence
   [bs s]
-  (ps/update-record (bs-save bs) (:name s)))
+  (ps/update-record (bs/bs-save bs) (:name s)))
 
 (defn save-biosequences
   [lst s]
-  (ps/save-records (pmap bs-save lst) (:name s)))
+  (ps/save-records (pmap bs/bs-save lst) (:name s)))
 
 (defn get-biosequence
   [a s]
@@ -35,8 +37,8 @@
   [file name]
   (let [s (->biosequenceStore name)]
     (do
-      (with-open [r (bs-reader file)]
-        (save-biosequences (biosequence-seq r) s))
+      (with-open [r (bs/bs-reader file)]
+        (save-biosequences (bs/biosequence-seq r) s))
       s)))
 
 (defn bs-collections

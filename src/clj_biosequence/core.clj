@@ -4,8 +4,7 @@
             [clj-http.client :as client]
             [clojure.string :as string]
             [miner.tagged :as tag]
-            [clj-biosequence.alphabet :as ala]
-            [clj-biosequence.persistence :as ps]))
+            [clj-biosequence.alphabet :as ala]))
 
 (declare init-fasta-store init-fasta-sequence translate)
 
@@ -131,4 +130,3 @@
 (load "mapping")
 (load "utilities")
 (load "fasta")
-(load "store")

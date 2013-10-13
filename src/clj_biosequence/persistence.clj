@@ -12,6 +12,8 @@
   (:import [com.mongodb MongoOptions ServerAddress]
            [org.bson.types ObjectId]))
 
+(declare bs-read)
+
 (mg/connect!)
 (mg/use-db! "clj-biosequence")
 
