@@ -29,10 +29,6 @@
     "Returns true if a protein and false otherwise.")
   (alphabet [this]
     "Returns the alphabet of a biosequence.")
-  (reverse-seq [this]
-    "Returns a new fastaBiosequence with the reversed sequence of the original.")
-  (reverse-comp [this]
-    "Returns a new fastaBiosequence with the reverse complement of the original.")
   (bs-save [this]
     "Returns an object ready for saving in bioseqeunce store."))
 
@@ -82,6 +78,20 @@
                          (alphabet s1)
                          (vec (concat (bs-seq s1) (bs-seq s2))))
     (throw (Throwable. "Incompatible alphabets for concatenation of biosequence."))))
+
+(defn reverse-comp [this]
+  (if (protein? this)
+    (throw (Throwable. "Can't reverse/complement a protein sequence."))
+    (init-fasta-sequence (accession this)
+                         (str (def-line this) " - Reverse-comp")
+                         (alphabet this)
+                         (ala/revcom (bs-seq this)))))
+
+(defn reverse-seq [this]
+  (init-fasta-sequence (accession this)
+                       (str (def-line this) " - Reversed")
+                       (alphabet this) 
+                       (vec (reverse (bs-seq this)))))
 
 (defn translate
   "Returns a fastaSequence object corresponding to the protein translation 

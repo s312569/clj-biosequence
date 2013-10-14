@@ -61,15 +61,6 @@
 
   (protein? [this] true)
 
-  (reverse-seq [this]
-    (bios/init-fasta-sequence (bios/accession this)
-                              (str (bios/def-line this) " - Reversed")
-                              :iupacAminoAcids
-                              (reverse (bios/bs-seq this))))
-
-  (reverse-comp [this]
-    (throw (Throwable. "Can't reverse/complement a protein sequence.")))
-
   (alphabet [this]
     :iupacAminoAcids))
 
