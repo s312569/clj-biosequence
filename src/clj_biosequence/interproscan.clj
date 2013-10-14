@@ -101,7 +101,8 @@
 
 (defn- run-ips
   [in out]
-  (let [ips @(exec/sh ["iprscan" "-cli" "-i" in "-o" out "-iprlookup" "-goterms"])]
+  (let [ips @(exec/sh ["iprscan" "-cli" "-i" in "-o" out "-appl"
+                       "patternscan" "-iprlookup" "-goterms"])]
     (if (= 0 (:exit ips))
       (->interproscanSearch out)
       (if (:err ips)
