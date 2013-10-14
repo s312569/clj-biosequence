@@ -209,21 +209,7 @@
           (#{"AA"} (moltype this))
           :iupacAminoAcids
           :else
-          (throw (Throwable. (str "Unknown moltype: " (moltype this))))))
-
-  (reverse-seq [this]
-    (bs/init-fasta-sequence (bs/accession this)
-                            (str (bs/def-line this) " - Reversed")
-                            (bs/alphabet this)
-                            (reverse (bs/bs-seq this))))
-
-  (reverse-comp [this]
-    (if (bs/protein? this)
-      (throw (Throwable. "Can't reverse/complement a protein sequence."))
-      (bs/init-fasta-sequence (bs/accession this)
-                           (str (bs/def-line this) " - Reverse-comp")
-                           (bs/alphabet this)
-                           (ala/revcom (bs/bs-seq this))))))
+          (throw (Throwable. (str "Unknown moltype: " (moltype this)))))))
 
 (defmethod print-method clj_biosequence.genbank.genbankSequence
   [this ^java.io.Writer w]

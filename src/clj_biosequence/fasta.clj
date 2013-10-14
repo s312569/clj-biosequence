@@ -7,6 +7,7 @@
 (defrecord fastaSequence [acc description alphabet sequence]
 
   Biosequence
+  
   (accession [this]
     (:acc this))
   
@@ -23,20 +24,6 @@
     (if (= :iupacAminoAcids (:alphabet this))
       true
       false))
-  
-  (reverse-comp [this]
-    (if (protein? this)
-      (throw (Throwable. "Can't reverse/complement a protein sequence."))
-      (init-fasta-sequence (accession this)
-                           (str (def-line this) " - Reverse-comp")
-                           (alphabet this)
-                           (ala/revcom (bs-seq this)))))
-  
-  (reverse-seq [this]
-    (init-fasta-sequence (accession this)
-                         (str (def-line this) " - Reversed")
-                         (alphabet this) 
-                         (vec (reverse (bs-seq this)))))
   
   (fasta-string [this]
     (if (:description this)
