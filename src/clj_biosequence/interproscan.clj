@@ -92,7 +92,7 @@
 
 (defn ips
   [bs & {:keys [outfile] :or {outfile (fs/temp-file "ips")}}]
-  (let [i (bios/fasta->file (fs/temp-file "seq-") :append false)]
+  (let [i (bios/fasta->file bs (fs/temp-file "seq-") :append false)]
     (try
       (run-ips (fs/absolute-path i) (fs/absolute-path outfile))
       (finally (fs/delete i)))))
@@ -101,7 +101,7 @@
 
 (defn- run-ips
   [in out]
-  (let [ips @(exec/sh ["iprscan" "-cli" "-i" in "-o" out "-iprlookup" "-goterms"])]
+  (let [ips @(exec/sh ["iprscan" "-cli" "-i" in "-o" out "-iprlookup" "-goterms" "-seqtype" "p"])]
     (if (= 0 (:exit ips))
       (->interproscanSearch out)
       (if (:err ips)

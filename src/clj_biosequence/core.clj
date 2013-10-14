@@ -114,7 +114,7 @@
           '(1 2 3 -1 -2 -3))))
 
 (defn fasta->file
-  [bs file & {:keys [append func error] :or {append true func identity error false}}]
+  [bs file & {:keys [append func error] :or {append true func fasta-string error false}}]
   (if (not append) (fs/delete (fs/absolute-path file)))
   (with-open [w (io/writer file)]
     (dorun (map #(let [n (func %)]
