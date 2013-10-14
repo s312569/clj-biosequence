@@ -61,6 +61,11 @@
   [description sequence quality]
   (check-fastq (->fastqSequence description sequence quality)))
 
+(defn fastq->string
+  [bs]
+  (str (bios/accession bs) "\n" (bios/bioseq->string bs) "\n"
+       "+\n" (qualities bs) "\n"))
+
 ;; IO
 
 (defrecord fastqReader [strm]
