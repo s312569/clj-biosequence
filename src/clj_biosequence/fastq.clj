@@ -95,7 +95,7 @@
              (-> (:file this) io/file io/input-stream GzipCompressorInputStream. io/reader))
       ".bz2" (->fastqReader
               (-> (:file this) io/file io/input-stream BZip2CompressorInputStream. io/reader))
-      (->fastqReader (->fastqReader (io/reader (:file this))))))
+      (->fastqReader (io/reader (:file this)))))
   
   bios/biosequenceFile
 
