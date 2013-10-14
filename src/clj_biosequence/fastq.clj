@@ -6,6 +6,10 @@
   (:import (org.apache.commons.compress.compressors.gzip GzipCompressorInputStream)
            (org.apache.commons.compress.compressors.bzip2 BZip2CompressorInputStream)))
 
+(defprotocol fastqSequenceData
+
+  (qualities [this]))
+
 (defrecord fastqSequence [description sequence quality]
 
   bios/Biosequence
@@ -34,15 +38,9 @@
   (bs-save [this]
     (let [s (pr-str (dissoc this :_id))]
       (merge {:src s}
-             (dissoc this :description :sequence :quality)))))
+             (dissoc this :description :sequence :quality))))
 
-(defprotocol fastqSequenceData
-
-  (qualities [this]))
-
-(extend-protocol fastqSequenceData
-
-  fastqSequence
+  fastqSequenceData
 
   (qualities [this]
     (:quality this)))
