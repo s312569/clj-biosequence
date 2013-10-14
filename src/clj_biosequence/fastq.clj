@@ -92,7 +92,7 @@
              (-> (:file this) io/file io/input-stream GzipCompressorInputStream. io/reader))
       ".bz2" (->fastqReader
               (-> (:file this) io/file io/input-stream BZip2CompressorInputStream. io/reader))
-      :else (->fastqReader (init-fastq-reader (io/reader (:file this))))))
+      :else (->fastqReader (->fastqReader (io/reader (:file this))))))
   
   bios/biosequenceFile
 
@@ -104,7 +104,7 @@
   bios/biosequenceIO
 
   (bs-reader [this]
-    (init-fastq-reader (java.io.BufferedReader. (java.io.StringReader. (:str this))))))
+    (->fastqReader (java.io.BufferedReader. (java.io.StringReader. (:str this))))))
 
 (defn init-fastq-file
   [path]
