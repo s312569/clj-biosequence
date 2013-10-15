@@ -75,7 +75,7 @@
   java.io.Closeable
 
   (close [this]
-    (.close (:strm this))))
+    (.close ^java.io.BufferedReader (:strm this))))
 
 (defrecord interproscanSearch [file]
 
@@ -91,20 +91,37 @@
 ;; ips run
 
 (defn ips
-  [bs & {:keys [outfile] :or {outfile (fs/temp-file "ips")}}]
-  (let [i (bios/fasta->file bs (fs/temp-file "seq-") :append false)]
-    (try
-      (run-ips (fs/absolute-path i) (fs/absolute-path outfile))
-      (finally (fs/delete i)))))
+  [bs seqtype & {:keys [outfile appl lookup goterms] :or {outfile (fs/temp-file "ips")
+                                                          appl '("hmmpfam")
+                                                          lookup true
+                                                          goterms true}}]
+  (if (#{"p" "n"} seqtype)
+    (let [i (bios/fasta->file bs (fs/temp-file "seq-") :append false
+                              :func (fn [x] (if (not (> (count (bios/bs-seq x)) 10000))
+                                             (bios/fasta-string x))))]
+      (try
+        (run-ips (fs/absolute-path i) (fs/absolute-path outfile)
+                 seqtype appl lookup goterms)
+        (finally (fs/delete i))))
+    (throw (Throwable. (str seqtype " Not supported. Seqtype can be 'p' or 'n' only")))))
 
 ;; utilities
 
+(defn ips-command
+  [i o s a l g]
+  (vec
+   (remove nil? (-> (list
+                     "iprscan" "-cli" "-i" i "-o" o "-seqtype" s
+                     (if (or l g) "-iprlookup")
+                     (if g "-goterms"))
+                    (concat (interleave (iterate identity "-appl ") a))))))
+
 (defn- run-ips
-  [in out]
-  (let [ips @(exec/sh ["iprscan" "-cli" "-i" in "-o" out "-appl"
-                       "hmmpfam" "-iprlookup" "-goterms" "-seqtype" "p"])]
-    (if (= 0 (:exit ips))
-      (->interproscanSearch out)
-      (if (:err ips)
-        (throw (Throwable. (str "Interproscan error: " (:err ips))))
-        (throw (Throwable. (str "Exception: " (:exception ips))))))))
+  [i o s a l g]
+  (try
+    (let [ips @(exec/sh (ips-command i o s a l g))]
+      (if (= 0 (:exit ips))
+        (->interproscanSearch o)
+        (throw (Throwable. (str "Interproscan error: " (:err ips))))))
+    (catch Exception e (str "Exception: " (:exception ips)))
+    (finally (fs/delete o))))
