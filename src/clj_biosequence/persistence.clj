@@ -1,7 +1,5 @@
 (ns clj-biosequence.persistence
-  (:require [clojure.java.jdbc :as sql]
-            [clojure.java.jdbc.ddl :as ddl]
-            [fs.core :as fs]
+  (:require [fs.core :as fs]
             [clojure.data.xml :as xml]
             [clojure.java.io :as io]
             [monger.core :as mg]
