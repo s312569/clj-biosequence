@@ -123,5 +123,6 @@
       (if (= 0 (:exit ips))
         (->interproscanSearch o)
         (throw (Throwable. (str "Interproscan error: " (:err ips))))))
-    (catch Exception e (str "Exception: " (:exception ips)))
-    (finally (fs/delete o))))
+    (catch Exception e
+      (str "Exception: " (:exception ips))
+      (fs/delete o))))
