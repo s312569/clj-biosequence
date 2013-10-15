@@ -27,6 +27,13 @@
   (zf/xml1-> (zip/xml-zip (:src e))
              (zf/attr "type")))
 
+(defn ips-go-seq
+  [e]
+  (map #(->interproscanGO (zip/node %))
+       (zf/xml-> (zip/xml-zip (:src e))
+                 :classification
+                 (zf/attr= :class_type "GO"))))
+
 ;; ips go entry
 
 (defrecord interproscanGO [src])
@@ -35,13 +42,21 @@
   [this ^java.io.Writer w]
   (bios/print-tagged this w))
 
-(defn ips-entry-go
-  [e]
-  (map #(->interproscanGO (zip/node %))
-       (zf/xml-> (zip/xml-zip (:src e))
-                 :interpro
-                 :classification
-                 (zf/attr= :class_type "GO"))))
+(defn go-component
+  [go]
+  (zf/xml1-> (zip/xml-zip (:src go))
+             :category
+             zf/text))
+
+(defn go-description
+  [go]
+  (zf/xml1-> (zip/xml-zip (:src go))
+             :category
+             zf/text))
+
+(defn go-accession [go]
+  (zf/xml1-> (zip/xml-zip (:src go))
+             (zf/attr :id)))
 
 ;; ips protein
 
@@ -51,7 +66,11 @@
 
   (accession [this]
     (zf/xml1-> (zip/xml-zip (:src this))
-               (zf/attr :id))))
+               (zf/attr :id)))
+
+  (bs-save [this]
+    (assoc this :src (pr-str (dissoc this :_id))
+           :acc (bios/accession this))))
 
 (defmethod print-method clj_biosequence.interproscan.interproscanProtein
   [this ^java.io.Writer w]
@@ -60,6 +79,15 @@
 (defn init-ips-protein
   [src]
   (->interproscanProtein src))
+
+(defn ips-entry-seq
+  [ip]
+  (map #(init-ips-entry (zip/node %)) (zf/xml-> (zip/xml-zip (:src ip)) :interpro)))
+
+(defn prot-go-terms
+  [ip]
+  (flatten (pmap #(ips-go-seq %)
+                 (ips-entry-seq ip))))
 
 ;; ips search
 
@@ -86,7 +114,7 @@
 
 (defn init-ips-search
   [file]
-  (->interproscanSearch file))
+  (->interproscanSearch (fs/absolute-path file)))
 
 ;; ips run
 
