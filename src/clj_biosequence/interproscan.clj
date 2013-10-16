@@ -10,30 +10,6 @@
 
 (declare run-ips)
 
-;; ips entry
-
-(defrecord interproscanEntry [src])
-
-(defmethod print-method clj_biosequence.interproscan.interproscanEntry
-  [this ^java.io.Writer w]
-  (bios/print-tagged this w))
-
-(defn init-ips-entry
-  [src]
-  (->interproscanEntry src))
-
-(defn ips-entry-type
-  [e]
-  (zf/xml1-> (zip/xml-zip (:src e))
-             (zf/attr "type")))
-
-(defn ips-go-seq
-  [e]
-  (map #(->interproscanGO (zip/node %))
-       (zf/xml-> (zip/xml-zip (:src e))
-                 :classification
-                 (zf/attr= :class_type "GO"))))
-
 ;; ips go entry
 
 (defrecord interproscanGO [src])
@@ -57,6 +33,30 @@
 (defn go-accession [go]
   (zf/xml1-> (zip/xml-zip (:src go))
              (zf/attr :id)))
+
+;; ips entry
+
+(defrecord interproscanEntry [src])
+
+(defmethod print-method clj_biosequence.interproscan.interproscanEntry
+  [this ^java.io.Writer w]
+  (bios/print-tagged this w))
+
+(defn init-ips-entry
+  [src]
+  (->interproscanEntry src))
+
+(defn ips-entry-type
+  [e]
+  (zf/xml1-> (zip/xml-zip (:src e))
+             (zf/attr "type")))
+
+(defn ips-go-seq
+  [e]
+  (map #(->interproscanGO (zip/node %))
+       (zf/xml-> (zip/xml-zip (:src e))
+                 :classification
+                 (zf/attr= :class_type "GO"))))
 
 ;; ips protein
 
