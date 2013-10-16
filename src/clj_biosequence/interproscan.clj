@@ -24,15 +24,14 @@
              :category
              zf/text))
 
-(defn go-description
-  [go]
-  (zf/xml1-> (zip/xml-zip (:src go))
-             :category
-             zf/text))
-
 (defn go-accession [go]
   (zf/xml1-> (zip/xml-zip (:src go))
              (zf/attr :id)))
+
+(defn go-description [go]
+  (zf/xml1-> (zip/xml-zip (:src go))
+             :description
+             zf/text))
 
 ;; ips entry
 
@@ -49,7 +48,12 @@
 (defn ips-entry-type
   [e]
   (zf/xml1-> (zip/xml-zip (:src e))
-             (zf/attr "type")))
+             (zf/attr :type)))
+
+(defn ips-entry-accession
+  [e]
+  (zf/xml1-> (zip/xml-zip (:src e))
+             (zf/attr :id)))
 
 (defn ips-go-seq
   [e]
