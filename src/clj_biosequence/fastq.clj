@@ -78,7 +78,7 @@
              (init-fastq-sequence d s q)
              (throw (Throwable.
                      (str "Data corrupted at: " d)))))
-         (partition-all 4 (line-seq (:strm this)))))
+         (iterate #(take 4 %) (line-seq (:strm this)))))
 
   java.io.Closeable
 

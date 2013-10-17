@@ -20,6 +20,10 @@
   (accession [this]
     (:accession this)))
 
+(defn numb-tm-domains
+  [tp]
+  (:predhel tp))
+
 ;; results
 
 (defrecord tmhmmReader [strm]
