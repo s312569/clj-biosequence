@@ -62,3 +62,7 @@
 (defn get-collections
   []
   (mdb/get-collection-names))
+
+(defn drop-collection
+  [n]
+  (mc/drop n))

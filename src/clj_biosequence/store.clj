@@ -21,6 +21,10 @@
   (bs-reader [this]
     (->storeReader (ps/find-all (:name this)))))
 
+(defn init-store
+  [name]
+  (->biosequenceStore name))
+
 (defn update-biosequence
   [bs s]
   (ps/update-record (bs/bs-save bs) (:name s)))
@@ -44,3 +48,7 @@
 (defn bs-collections
   []
   (ps/get-collections))
+
+(defn delete-store
+  [st]
+  (ps/drop-collection (:name st)))

@@ -9,7 +9,7 @@
             [clojure.pprint :as pp]
             [clojure.data.xml :as xml]))
 
-(declare signal-default-parameters make-signal-result)
+(declare signal-command make-signal-result)
 
 ;; signalp analysis
 
@@ -45,9 +45,9 @@
 (defn signalp
   [bs & {:keys [params outfile] :or {params {} outfile (fs/temp-file "sp")}}]
   (let [in (bios/fasta->file bs (fs/temp-file "sp-in")
-                             :append false :func bios/protein?
-                             :error
-                             "Only protein sequences can be analysed with SignalP.")]
+                             :append false :func (fn [x] (if (bios/protein? x)
+                                                          (bios/fasta-string x)
+                                                          (throw (Throwable. "SignalP only analyses proteins.")))))]
     (with-open [out (io/output-stream outfile)]
       (let [sp @(exec/sh (signal-command params in) {:out out})]
         (if (= 0 (:exit sp))

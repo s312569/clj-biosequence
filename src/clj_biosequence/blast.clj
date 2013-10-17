@@ -159,7 +159,11 @@
   bios/Biosequence
 
   (accession [this]
-    (iteration-query-id this)))
+    (iteration-query-id this))
+
+  (bs-save [this]
+    (assoc this :src (pr-str (dissoc this :_id))
+           :acc (bios/accession this))))
 
 (defmethod print-method clj_biosequence.blast.blastIteration
   [this ^java.io.Writer w]
@@ -216,7 +220,7 @@
 
 (defn init-blast-search
   [file]
-  (->blastSearch file))
+  (->blastSearch (fs/absolute-path file)))
 
 (defn get-iteration-by-id
   "Returns the blastIteration object for the specified biosequence from
