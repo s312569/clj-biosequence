@@ -13,7 +13,6 @@
 (declare bs-read)
 
 (mg/connect!)
-(mg/use-db! "clj-biosequence")
 
 (defn my-tag->factory
   "Returns the map-style record factory for the `tag` symbol.  Returns nil if `tag` does not
@@ -30,11 +29,13 @@
     (throw (Throwable. (str "Record not supported: " tag)))))
 
 (defn find-all
-  [c]
+  [d c]
+  (mg/use-db! d)
   (mc/find c))
 
 (defn record-seq
-  [c]
+  [d c]
+  (mg/use-db! d)
   (pmap #(let [r (con/from-db-object % true)]
            (merge (bs-read (:src r)) (dissoc r :src))) (seq c)))
 
@@ -46,23 +47,28 @@
    s))
 
 (defn update-record
-  [m c]
+  [m d c]
+  (mg/use-db! d)
   (mc/update-by-id c (:_id m) m))
 
 (defn save-records
-  [l c]
+  [l d c]
+  (mg/use-db! d)
   (mc/insert-batch c (doall (pmap #(assoc % :_id (ObjectId.)) l)))
   (mc/ensure-index c {"acc" 1} {:unique true :name "unique_acc"}))
 
 (defn get-record
-  [a c]
+  [a d c]
+  (mg/use-db! d)
   (let [r (first (mc/find-maps "sequences" {:acc a}))]
     (merge (bs-read (:src r)) (dissoc r :src))))
 
 (defn get-collections
-  []
+  [d]
+  (mg/use-db! d)
   (mdb/get-collection-names))
 
 (defn drop-collection
-  [n]
+  [d n]
+  (mg/use-db! d)
   (mc/drop n))
