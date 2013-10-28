@@ -10,8 +10,6 @@
   (:import [com.mongodb MongoOptions ServerAddress]
            [org.bson.types ObjectId]))
 
-(declare bs-read)
-
 (mg/connect!)
 
 (defn my-tag->factory
@@ -29,15 +27,11 @@
     (throw (Throwable. (str "Record not supported: " tag)))))
 
 (defn find-all
-  [d c]
+  [d c & {:keys [query] :or {query nil}}]
   (mg/use-db! d)
-  (mc/find c))
-
-(defn record-seq
-  [d c]
-  (mg/use-db! d)
-  (pmap #(let [r (con/from-db-object % true)]
-           (merge (bs-read (:src r)) (dissoc r :src))) (seq c)))
+  (if query
+    (mc/find c query)
+    (mc/find c)))
 
 (defn bs-read
   [s]
@@ -46,21 +40,27 @@
     :readers {'clojure.data.xml.Element clojure.data.xml/map->Element}}
    s))
 
+(defn record-seq
+  [c]
+  (map #(let [r (con/from-db-object % true)]
+           (merge (bs-read (:src r)) (dissoc r :src))) (seq c)))
+
 (defn update-record
   [m d c]
   (mg/use-db! d)
   (mc/update-by-id c (:_id m) m))
 
 (defn save-records
-  [l d c]
+  [l d c & {:keys [indexes] :or {indexes '(:acc)}}]
   (mg/use-db! d)
-  (mc/insert-batch c (doall (pmap #(assoc % :_id (ObjectId.)) l)))
-  (mc/ensure-index c {"acc" 1} {:unique true :name "unique_acc"}))
+  (mc/insert-batch c (pmap #(assoc % :_id (ObjectId.)) l))
+  (mc/ensure-index c (apply array-map (interleave indexes (iterate identity 1)))
+                   {:unique true :name "unique_acc"}))
 
 (defn get-record
-  [a d c]
+  [h d c]
   (mg/use-db! d)
-  (let [r (first (mc/find-maps "sequences" {:acc a}))]
+  (let [r (first (mc/find-maps c h))]
     (merge (bs-read (:src r)) (dissoc r :src))))
 
 (defn get-collections

@@ -18,7 +18,7 @@
           (let [nots (into {} (for [x (remove (ala/alphabet-chars a)
                                               cs)]
                                 (vec (list x \X))))]
-            (->> (vec s)
+            (->> cs
                  (replace nots))))))
 
 ;; for print-method defs

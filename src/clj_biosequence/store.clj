@@ -19,7 +19,7 @@
   bs/biosequenceIO
 
   (bs-reader [this]
-    (->storeReader (ps/find-all (:name this)))))
+    (->storeReader (ps/find-all "clj-biosequence" (:name this)))))
 
 (defn init-store
   [name]
@@ -27,15 +27,15 @@
 
 (defn update-biosequence
   [bs s]
-  (ps/update-record (bs/bs-save bs) (:name s)))
+  (ps/update-record (bs/bs-save bs) "clj-biosequence" (:name s)))
 
 (defn save-biosequences
   [lst s]
-  (ps/save-records (pmap bs/bs-save lst) (:name s)))
+  (ps/save-records (pmap bs/bs-save lst) "clj-biosequence" (:name s)))
 
 (defn get-biosequence
   [a s]
-  (ps/get-record a (:name s)))
+  (ps/get-record a "clj-biosequence" (:name s)))
 
 (defn index-biosequence-file
   [file name]
@@ -47,8 +47,8 @@
 
 (defn bs-collections
   []
-  (ps/get-collections))
+  (ps/get-collections "clj-biosequence"))
 
 (defn delete-store
   [st]
-  (ps/drop-collection (:name st)))
+  (ps/drop-collection "clj-biosequence" (:name st)))
