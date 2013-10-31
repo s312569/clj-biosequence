@@ -103,7 +103,8 @@
 ;; functions
 
 (defn arf->bed [arfentry]
-  (str (:genome-id arfentry) "\t" (:start-genome arfentry) "\t" (:end-genome arfentry) "\n"))
+  (str (:genome-id arfentry) "\t" (:start-genome arfentry) "\t" (:end-genome arfentry)
+       (bios/accession arfentry) "\n"))
 
 ;; Format details:
 ;; read identifier
