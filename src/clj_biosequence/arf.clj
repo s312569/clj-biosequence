@@ -4,8 +4,6 @@
             [clj-biosequence.core :as bios]
             [fs.core :as fs]))
 
-(declare if-string-int)
-
 ;; entry
 
 (defrecord arfSequence [accession length start-read end-read seq-read genome-id length-genome start-genome end-genome seq-genome strand mismatches match-string]
@@ -44,18 +42,18 @@
   (let [[accession length start-read end-read seq-read genome-id length-genome start-genome end-genome seq-genome strand mismatches match-string]
         lst]
     (->arfSequence accession
-                   (if-string-int length)
-                   (if-string-int start-read)
-                   (if-string-int end-read)
+                   (bios/if-string-int length)
+                   (bios/if-string-int start-read)
+                   (bios/if-string-int end-read)
                    seq-read
                    genome-id
-                   (if-string-int length-genome)
-                   (if-string-int start-genome)
-                   (if-string-int end-genome)
+                   (bios/if-string-int length-genome)
+                   (bios/if-string-int start-genome)
+                   (bios/if-string-int end-genome)
                    seq-genome
                    (if (#{"+" "-"} strand) strand
                        (throw (Throwable. (str  "Disallowed strand value: " strand))))
-                   (if-string-int mismatches)
+                   (bios/if-string-int mismatches)
                    match-string)))
 
 ;; IO
@@ -100,18 +98,12 @@
 
 (defn init-arf-string [str]
   [str]
-  (init-arf-string str))
+  (->arfString str))
 
 ;; functions
 
 (defn arf->bed [arfentry]
-  ())
-
-
-;; utilities
-
-(defn- if-string-int [e]
-  (if (string? e) (Integer/parseInt e) e))
+  (str (:genome-id arfentry) "\t" (:start-genome arfentry) "\t" (:end-genome arfentry) "\n"))
 
 ;; Format details:
 ;; read identifier

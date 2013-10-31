@@ -4,8 +4,6 @@
             [clj-biosequence.core :as bios]
             [fs.core :as fs]))
 
-(declare if-string-int)
-
 ;; entry
 
 (defrecord bedSequence [chrom start end name score strand thickstart thickend itemrgb blockcount blocksizes blockstarts]
@@ -14,9 +12,6 @@
 
   (accession [this]
     (:name this))
-
-  (accessions [this]
-    (list (:name this)))
 
   (bs-save [this]
     (let [s (pr-str (dissoc this :_id))]
@@ -27,17 +22,18 @@
   [this ^java.io.Writer w]
   (bios/print-tagged this w))
 
-(defn init-bed-sequence [chrom start end & (:keys [name score strand thickstart thickend itemrgb blockcount blocksizes blockstarts])]
-  (->bedSequence accession
-                 (if-string-int start)
-                 (if-string-int end)
+(defn init-bed-sequence
+  [chrom start end name score strand thickstart thickend itemrgb blockcount blocksizes blockstarts]
+  (->bedSequence chrom
+                 (bios/if-string-int start false)
+                 (bios/if-string-int end false)
                  name score
                  (if (#{"+" "-"} strand) strand
                      (throw (Throwable. (str  "Disallowed strand value: " strand))))
-                 (if-string-int thickstart)
-                 (if-string-int thickend)
+                 (bios/if-string-int thickstart false)
+                 (bios/if-string-int thickend false)
                  itemrgb
-                 (if-string-int blockcount)
+                 (bios/if-string-int blockcount false)
                  blocksizes
                  blockstarts))
 
@@ -48,54 +44,44 @@
   bios/biosequenceReader
 
   (biosequence-seq [this]
-    (map #(init-bed-sequence (string/split % #"\t"))
-         (line-seq strm)))
+    (map #(apply init-bed-sequence (first (partition 12 12 (repeat "") %)))
+         (filter (fn [x] (not (#{"browser" "track"} (first x))))
+                 (map #(string/split % #"\s+")
+                      (line-seq (:strm this))))))
 
   java.io.Closeable
 
   (close [this]
     (.close ^java.io.BufferedReader (:strm this))))
 
-(defrecord arfFile [file]
+(defrecord bedFile [file]
 
   bios/biosequenceIO
 
   (bs-reader [this]
-    (->arfReader (io/reader (:file this))))
+    (->bedReader (io/reader (:file this))))
 
   bios/biosequenceFile
 
   (bs-path [this]
     (:file this)))
 
-(defrecord arfString [str]
+(defrecord bedString [str]
 
   bios/biosequenceIO
 
   (bs-reader [this]
-    (->arfReader (java.io.BufferedReader. (java.io.StringReader. (:str this))))))
+    (->bedReader (java.io.BufferedReader. (java.io.StringReader. (:str this))))))
 
-(defn init-arf-file [path]
+(defn init-bed-file [path]
   [path]
   (if (fs/file? path)
-    (->arfFile path)
+    (->bedFile path)
     (throw (Throwable. (str "File not found: " path)))))
 
-(defn init-arf-string [str]
+(defn init-bed-string [str]
   [str]
-  (init-arf-string str))
-
-;; functions
-
-(defn arf->bed [arfentry]
-  ())
-
-
-;; utilities
-
-(defn- if-string-int [e]
-  (if (string? e) (Integer/parseInt e) e))
-
+  (->bedString str))
 
 ;; Format details:
 ;; chrom - The name of the chromosome on which the genome feature exists.

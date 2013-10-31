@@ -1,5 +1,14 @@
 (in-ns 'clj-biosequence.core)
 
+(defn if-string-int
+  ([e] (if-string-int e true))
+  ([e error?]
+     (try
+       (if (string? e) (Integer/parseInt e) e)
+       (catch NumberFormatException e
+         (if error?
+           (throw e))))))
+
 ;; sequence
 
 (defn clean-sequence
