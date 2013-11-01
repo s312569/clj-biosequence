@@ -9,7 +9,8 @@
 (declare init-fasta-store init-fasta-sequence translate)
 
 (defprotocol biosequenceIO
-  (bs-reader [this]))
+  (bs-reader [this] "Returns a reader for a file containing
+  biosequences. Use with `with-open'"))
 
 (defprotocol biosequenceReader
   (biosequence-seq [this]))
@@ -18,9 +19,9 @@
   (accession [this]
     "Returns the accession of a biosequence.")
   (accessions [this]
-    "Returns a list of strings describing the accessions of a biosequence object.")
+    "Returns a list of accessions for a biosequence object.")
   (def-line [this]
-    "Returns a description for a biosequence object.")
+    "Returns the description of a biosequence object.")
   (bs-seq [this]
     "Returns the sequence of a biosequence as a vector.")
   (fasta-string [this]
@@ -41,22 +42,25 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn bioseq->string
+  "Returns the sequence of a biosequence as a string."
   [bs]
   (apply str (bs-seq bs)))
 
 (defn residue-frequencies
+  "Returns a map of residues in a biosequence and their frequency."
   [bs]
   (frequencies (bs-seq bs)))
 
 (defn sub-bioseq
-  "Returns a new fasta sequence object with the sequence corresponding to
-   'beg' (inclusive) and 'end' (exclusive) of 'bs'. If no 'end' argument 
-   returns from 'start' to the end of the sequence. Indexes start at zero."
+  "Returns a new fasta sequence object with the sequence corresponding
+   to 'beg' (inclusive) and 'end' (exclusive) of 'bs'. If no 'end'
+   argument returns from 'start' to the end of the sequence. Indexes
+   start at zero."
   ([bs beg] (sub-bioseq bs beg nil))
   ([bs beg end]
      (init-fasta-sequence (accession bs)
                           (str (def-line bs)
-                               "[" beg " - "
+                               " [" beg " - "
                                (if end end "End") "]")
                           (alphabet bs)
                           (if end
@@ -64,22 +68,14 @@
                             (subvec (bs-seq bs) beg)))))
 
 (defn partition-bioseq
-  "Partitions a sequence into a lazy list of lists of 'n' size. Default
-   partition size is 3."
+  "Partitions a sequence into a lazy list of lists of 'n' size.
+   Default partition size is 3."
   ([bs] (partition-bioseq bs 3))
   ([bs n]
      (partition-all n (bs-seq bs))))
 
-(defn concat-bioseqs
-  [s1 s2]
-  (if (= (alphabet s1) (alphabet s2))
-    (init-fasta-sequence (str (accession s1) "/" (accession s2))
-                         (str (def-line s1) "/" (def-line s2))
-                         (alphabet s1)
-                         (vec (concat (bs-seq s1) (bs-seq s2))))
-    (throw (Throwable. "Incompatible alphabets for concatenation of biosequence."))))
-
 (defn reverse-comp [this]
+  "Returns a new fastaSequence with the reverse complement sequence."
   (if (protein? this)
     (throw (Throwable. "Can't reverse/complement a protein sequence."))
     (init-fasta-sequence (accession this)
@@ -88,21 +84,22 @@
                          (ala/revcom (bs-seq this)))))
 
 (defn reverse-seq [this]
+  "Returns a new fastaSequence with the reverse sequence."
   (init-fasta-sequence (accession this)
                        (str (def-line this) " - Reversed")
                        (alphabet this) 
                        (vec (reverse (bs-seq this)))))
 
 (defn translate
-  "Returns a fastaSequence object corresponding to the protein translation 
-   of the sequence in the specified frame."
+  "Returns a fastaSequence sequence with a sequence translated in the
+   specified frame."
   ([bs frame] (translate bs frame (ala/codon-tables 1)))
   ([bs frame table]
      (let [f ({1 1 2 2 3 3 4 4 5 5 6 6 -1 4 -2 5 -3 6} frame)]
       (cond (protein? bs)
-            (throw (Throwable. "Can't translate a protein sequence!"))
+            (throw (IllegalArgumentException. "Can't translate a protein sequence!"))
             (not (#{1 2 3 4 5 6} f))
-            (throw (Throwable. (str "Invalid frame: " frame)))
+            (throw (IllegalArgumentException. (str "Invalid frame: " frame)))
             :else
             (init-fasta-sequence (str (accession bs) "-" f)
                                  (str (def-line bs) " - Translated frame: " f)
@@ -124,6 +121,11 @@
           '(1 2 3 -1 -2 -3))))
 
 (defn fasta->file
+  "Takes a collection of biosequences and prints them to file. To
+  append to an existing file use :append true and the :func argument
+  can be used to passa function that will be used to prepare the
+  printed output, the default is fasta-string which will print the
+  biosequences to the file in fasta format."
   [bs file & {:keys [append func] :or {append true func fasta-string}}]
   (if (not append) (fs/delete (fs/absolute-path file)))
   (with-open [w (io/writer file)]

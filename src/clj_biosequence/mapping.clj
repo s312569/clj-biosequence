@@ -1,25 +1,26 @@
 (in-ns 'clj-biosequence.core)
 
 (defn id-convert
-  "Takes either a single accession or a list of accessions and returns a hash-map
-   mapping the accession numbers to the corresponding identification number in the 
-   specified 'to' database. 'From' database also needs to be specified. If not 
-   found returns an empty hash-map. Uses the Uniprot id mapping utility and a list 
-   of supported databases is supplied at http://www.uniprot.org/faq/28#id_mapping_examples.
-   Some common mappings include:
-   DB Name                  Abbreviation     Direction
-   UniProtKB AC/ID	    ACC+ID	     from
-   UniProtKB AC	            ACC              to
-   EMBL/GenBank/DDBJ	    EMBL_ID	     both
-   EMBL/GenBank/DDBJ CDS    EMBL	     both
-   Entrez Gene (GeneID)     P_ENTREZGENEID   both
-   GI number	            P_GI	     both
-   RefSeq Protein	    P_REFSEQ_AC	     both
-   RefSeq Nucleotide	    REFSEQ_NT_ID     both
-   WormBase	            WORMBASE_ID	     both
+  "Takes a list of accessions and returns a hash-map mapping them to
+   accessions from another database. If nothing found returns an empty
+   hash-map and only returns entries that had a match. Uses the
+   Uniprot id mapping utility and a list of supported databases is
+   supplied at http://www.uniprot.org/faq/28#id_mapping_examples. Some
+   common mappings include:
 
-   There is a 100,000 limit on accessions in a single query imposed by Uniprot. Only returns
-   values for ids tha are found in the search."
+   DB Name                  Abbreviation         Direction
+   UniProtKB AC/ID	            ACC+ID   	         from
+   UniProtKB AC	                ACC                to
+   EMBL/GenBank/DDBJ	          EMBL_ID	           both
+   EMBL/GenBank/DDBJ CDS        EMBL     	         both
+   Entrez Gene (GeneID)         P_ENTREZGENEID     both
+   GI number	                  P_GI        	     both
+   RefSeq Protein	              P_REFSEQ_AC 	     both
+   RefSeq Nucleotide	          REFSEQ_NT_ID       both
+   WormBase	                    WORMBASE_ID  	     both
+
+   There is a 100,000 limit on accessions in a single query imposed by
+   Uniprot."
   [ids from to email]
   (if (<= (count ids) 100000)
     (let [param {:from from :to to :format "tab" 

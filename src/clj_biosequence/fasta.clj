@@ -26,8 +26,7 @@
       false))
   
   (fasta-string [this]
-    (if (:description this)
-      (str ">" (accession this) " " (def-line this) "\n" (bioseq->string this) "\n")))
+    (str ">" (accession this) " " (def-line this) "\n" (bioseq->string this) "\n"))
   
   (alphabet [this]
     (:alphabet this))
@@ -42,10 +41,10 @@
   (print-tagged this w))
 
 (defn init-fasta-sequence
-  "Returns a fastaSequence object with the specified information. Alphabet can be
-   one of :iupacNucleicAcids or :iupacAminoAcids."
+  "Returns a new fastaSequence. Currently :iupacNucleicAcids
+  and :iupacAminoAcids are supported alphabets."
   [accession description alphabet sequence]
-  (->fastaSequence accession description alphabet sequence))
+  (->fastaSequence accession description alphabet (clean-sequence sequence alphabet)))
 
 ;; IO
 
@@ -72,7 +71,7 @@
   (close [this]
     (.close ^java.io.BufferedReader (:strm this))))
 
-(defn init-fasta-reader
+(defn- init-fasta-reader
   [strm alphabet]
   (->fastaReader strm alphabet))
 
@@ -109,7 +108,9 @@
       (throw (Throwable. (str "File not found: " path))))))
 
 (defn init-fasta-string
-  "Initialises a fasta string."
+  "Initialises a fasta string. Accession numbers and description are
+   processed by splitting the string on the first space, the accession
+   being the first value and description the second."
   [str alphabet]
   (if-not (ala/alphabet? alphabet)
     (throw (Throwable. "Unrecognised alphabet keyword. Currently :iupacNucleicAcids :iupacAminoAcids are allowed."))

@@ -218,23 +218,20 @@
   "Takes a seq of three chars representing nucleic acid residues and returns a
    char representing the encoded amino acid."
   [lst table]
-  (let [v {\T 0 \U 0 \C 1 \A 2 \G 3}]
+  (let [v {\T 0 \U 0 \C 1 \A 2 \G 3}
+        t (:ncbieaa table)]
     (if (or (not (empty? (remove (set (keys v)) lst)))
             (< (count lst) 3))
       \X
-      (nth (:ncbieaa table) (+ (* (v (first lst)) 16)
-                               (* (v (second lst)) 4)
-                               (v (nth lst 2)))))))
+      (nth t (+ (* (v (first lst)) 16)
+                (* (v (second lst)) 4)
+                (v (nth lst 2)))))))
 
 (defn revcom
   "Takes a seq of chars representing nucleic acids and returns a vector of the
    reverse complement."
   [v]
-  (vec (reverse (map #(let [c (iupacNucleicAcids %)]
-                        (if c
-                          (c :complement)
-                          \X))
-                     v))))
+  (vec (reverse (map #(or (get (iupacNucleicAcids %) :complement) \X) v))))
 
 (defn alphabet?
   [k]
@@ -249,7 +246,10 @@
     :iupacNucleicAcids iupacNucleicAcids} k))
 
 (defn alphabet-chars
+  "Returns a set of the allowable characters in an alphabet. If not a valid alphabet
+   throws an IllegalArgumentException."
   [a]
-  (let [k (keys (get-alphabet a))]
-    (set (concat k (map #(Character/toLowerCase %) k)))))
-
+  (if (alphabet? a)
+    (let [k (keys (get-alphabet a))]
+      (set (concat k (map #(Character/toLowerCase ^Character %) k))))
+    (throw (IllegalArgumentException. (str "Not a valid alphabet: " a)))))

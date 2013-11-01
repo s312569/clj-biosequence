@@ -1,6 +1,10 @@
 (in-ns 'clj-biosequence.core)
 
 (defn if-string-int
+  "If a string an integer is parsed, if not returns e. Will throw an
+   expception if no integer can be parsed if `error?' is true. Used
+   only when parsing optional fields in files where value could be nil
+   or a string representation of an integer."
   ([e] (if-string-int e true))
   ([e error?]
      (try
@@ -12,45 +16,24 @@
 ;; sequence
 
 (defn clean-sequence
+  "Removes spaces and newlines and checks that all characters are
+   legal characters for the supplied alphabet. Replaces non-valid
+   characters with \\X. If `a' is not a defined alphabet throws an
+   exception."
   [s a]
-  (let [cs (remove #{\space \newline} (vec s))
-        chars (set (map char (concat (range (int \a) (+ 1 (int \z)))
-                                     (range (int \A) (+ 1 (int \Z))))))]
-    (cond (not (ala/alphabet? a))
-          (throw (Throwable. (str "Not a valid alphabet: " a)))
-          (or (and (= a :iupacAminoAcids) (some (complement (conj chars \*)) cs))
-              (and (= a :iupacNucleicAcids) (some (complement chars) cs)))
-          (throw (Throwable.
-                  (str "Punctuation, numbers or other non-sequence characters found in sequence: "
-                       s)))
-          :else
-          (let [nots (into {} (for [x (remove (ala/alphabet-chars a)
-                                              cs)]
-                                (vec (list x \X))))]
-            (->> cs
-                 (replace nots))))))
+  (let [k (complement (ala/alphabet-chars a))
+        w #{\space \newline}]
+    (vec (remove nil? (map #(cond (k %) \X
+                                  (w %) nil
+                                  :else %) (vec s))))))
 
 ;; for print-method defs
 
 (defn print-tagged
+  "Used for printing objects tagged so that edn/read-string can read
+  them in."
   [obj w]
   (tag/pr-tagged-record-on obj w))
-
-;; file things
-
-(defn now
-  []
-  (.getTime (java.util.Date.)))
-
-(defn time-stamped-file
-  ([base] (time-stamped-file base nil))
-  ([base ext]
-     (let [nf (if ext
-                (fs/file (str base "-" (now) "." ext))
-                (fs/file (str base "-" (now))))]
-       (if-not (fs/file? nf)
-         nf
-         (time-stamped-file base ext)))))
 
 ;; protein mass
 
