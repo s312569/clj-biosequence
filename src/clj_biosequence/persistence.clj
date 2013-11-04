@@ -12,6 +12,8 @@
 
 (mg/connect!)
 
+;; printing objects
+
 (defn my-tag->factory
   "Returns the map-style record factory for the `tag` symbol.  Returns nil if `tag` does not
   refer to a record."
@@ -26,13 +28,6 @@
     (factory value)
     (throw (Throwable. (str "Record not supported: " tag)))))
 
-(defn find-all
-  [d c & {:keys [query] :or {query nil}}]
-  (mg/use-db! d)
-  (if query
-    (mc/find c query)
-    (mc/find c)))
-
 (defn bs-read
   [s]
   (ed/read-string
@@ -40,35 +35,41 @@
     :readers {'clojure.data.xml.Element clojure.data.xml/map->Element}}
    s))
 
+;; db interactions
+
+(defn find-all
+  [d c & {:keys [query] :or {query nil}}]
+  (mg/use-db! d)
+  (if query
+    (mc/find c query)
+    (mc/find c)))
+
 (defn record-seq
+  "Returns a lazy sequence of all records in the collection `c`."
   [c]
   (map #(let [r (con/from-db-object % true)]
-           (merge (bs-read (:src r)) (dissoc r :src))) (seq c)))
+          (assoc (bs-read (:src r)) :_id (:_id r))) (seq c)))
 
 (defn update-record
+  "Updates record `m` in database `d` and collection `c`."
   [m d c]
   (mg/use-db! d)
-  (mc/update-by-id c (:_id m) m))
+  (let [w  (mc/update-by-id c (:_id m) m)]))
 
 (defn save-records
-  [l d c & {:keys [indexes] :or {indexes '(:acc)}}]
+  "Saves a list of records `l` into database `d` and collection `c`.
+  `indexes` keyword allows for the specification of slots that are to
+  be used as indexes."
+  [l d c]
   (mg/use-db! d)
   (mc/insert-batch c (pmap #(assoc % :_id (ObjectId.)) l))
-  (mc/ensure-index c (apply array-map (interleave indexes (iterate identity 1)))
+  (mc/ensure-index c (array-map :acc 1)
                    {:unique true :name "unique_acc"}))
 
 (defn get-record
+  "Returns a record corresponding to the query hash, `h`, from
+   database, `d`, and collection, `c`."
   [h d c]
   (mg/use-db! d)
   (let [r (first (mc/find-maps c h))]
-    (merge (bs-read (:src r)) (dissoc r :src))))
-
-(defn get-collections
-  [d]
-  (mg/use-db! d)
-  (mdb/get-collection-names))
-
-(defn drop-collection
-  [d n]
-  (mg/use-db! d)
-  (mc/drop n))
+    (assoc (bs-read (:src r)) :_id (:_id r))))

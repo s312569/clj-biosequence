@@ -29,9 +29,7 @@
   (protein? [this]
     "Returns true if a protein and false otherwise.")
   (alphabet [this]
-    "Returns the alphabet of a biosequence.")
-  (bs-save [this]
-    "Returns an object ready for saving in bioseqeunce store."))
+    "Returns the alphabet of a biosequence."))
 
 (defprotocol biosequenceFile
   (bs-path [this]
