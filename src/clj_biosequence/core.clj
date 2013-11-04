@@ -123,7 +123,7 @@
 (defn fasta->file
   "Takes a collection of biosequences and prints them to file. To
   append to an existing file use :append true and the :func argument
-  can be used to passa function that will be used to prepare the
+  can be used to pass a function that will be used to prepare the
   printed output, the default is fasta-string which will print the
   biosequences to the file in fasta format."
   [bs file & {:keys [append func] :or {append true func fasta-string}}]
@@ -132,7 +132,7 @@
     (dorun (map #(let [n (func %)]
                    (if n
                      (.write w n)))
-               bs)))
+                bs)))
   file)
 
 ;; helper files
