@@ -51,8 +51,6 @@
 
 (defn bs-read
   [h]
-  (if-let [o (ed/read-string
-              {:default #'default-reader
-               :readers {'clojure.data.xml.Element clojure.data.xml/map->Element}}
-              (:src h))]
-    (merge o (dissoc h :src))))
+  (ed/read-string
+   {:default #'default-reader
+    :readers {'clojure.data.xml.Element clojure.data.xml/map->Element}}))
