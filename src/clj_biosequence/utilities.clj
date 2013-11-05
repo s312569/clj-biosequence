@@ -33,7 +33,7 @@
   "Used for printing objects tagged so that edn/read-string can read
   them in."
   [obj w]
-  (tag/pr-tagged-record-on obj w))
+  (time (tag/pr-tagged-record-on obj w)))
 
 (defn my-tag->factory
   "Returns the map-style record factory for the `tag` symbol.  Returns nil if `tag` does not
@@ -55,4 +55,4 @@
               {:default #'default-reader
                :readers {'clojure.data.xml.Element clojure.data.xml/map->Element}}
               (:src h))]
-    (assoc o :_id (:_id h))))
+    (merge o (dissoc h :src))))

@@ -4,8 +4,8 @@
             [clj-http.client :as client]
             [clojure.string :as string]
             [miner.tagged :as tag]
+            [clojure.data.xml :as xml]
             [clj-biosequence.alphabet :as ala]
-            [clj-biosequence.store :as st]
             [clojure.edn :as ed]))
 
 (declare init-fasta-store init-fasta-sequence translate)

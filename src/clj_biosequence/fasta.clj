@@ -33,7 +33,7 @@
 
 (defmethod print-method clj_biosequence.core.fastaSequence
   [this ^java.io.Writer w]
-  (print-tagged this w))
+  (time (print-tagged this w)))
 
 (defn init-fasta-sequence
   "Returns a new fastaSequence. Currently :iupacNucleicAcids

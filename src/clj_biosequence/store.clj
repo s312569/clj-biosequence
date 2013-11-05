@@ -24,26 +24,7 @@
 
 (defrecord mongoProject [name])
 
-;; IO for biosequences
-
-(defrecord indexReader [cursor]
-
-  bs/biosequenceReader
-
-  (biosequence-seq [this]
-    (ps/record-seq (:cursor this)))
-
-  java.io.Closeable
-
-  (close [this]
-    nil))
-
-(defrecord biosequenceIndex [name pname type]
-
-  bs/biosequenceIO
-
-  (bs-reader [this]
-    (->indexReader (ps/find-all (:pname this) (:name this)))))
+(defrecord biosequenceIndex [name pname type])
 
 (defmethod print-method clj_biosequence.store.biosequenceIndex
   [this ^java.io.Writer w]
@@ -56,7 +37,7 @@
  fastaSequence
 
   (save-rep [this]
-    (hash-map :acc (bs/accession this) :src (pr-str this) :_id (:_id this) )))
+    (hash-map :acc (bs/accession this) :src (pr-str this) :_id (:_id this))))
 
 (extend-protocol storeIndexIO
 
@@ -94,7 +75,8 @@
 (defn get-index
   [name project]
   (mg/use-db! "clj-projects")
-  (bs/bs-read {:src (:i (mc/find-one-as-map "sequences" {:pname (:name project) :iname name}))}))
+  (bs/bs-read {:src (:i (mc/find-one-as-map "sequences"
+                                            {:pname (:name project) :iname name}))}))
 
 (defn drop-index
   [index]
@@ -111,13 +93,23 @@
                              (array-map :acc 1 :pname -1 :iname -1)
                              {:unique true :sparse true})
             (mc/insert-batch "sequences"
-                             (map #(assoc (save-rep %)
-                                     :_id (ObjectId.) :type (:type h) :pname (:pname h) :iname (:name h)
-                                     :i (pr-str h)
-                                     :batch_id u)
-                                  (bs/biosequence-seq r))
+                             (pmap #(assoc (save-rep %)
+                                      :_id (ObjectId.) :type (:type h)
+                                      :pname (:pname h) :iname (:name h)
+                                      :i (pr-str h)
+                                      :batch_id u)
+                                   (bs/biosequence-seq r))
                              WriteConcern/JOURNAL_SAFE))
         (catch Exception e
           (mc/remove "sequences" {:batch_id u})
           (throw e))))
     h))
+
+(defn index-seq
+  [index]
+  (map bs/bs-read
+       (mc/find-maps "sequences" {:pname (:pname index) :iname (:name index)})))
+
+(defn index-file
+  [file alphabet project name]
+  (index-source (bs/init-fasta-file file alphabet) project name))

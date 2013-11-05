@@ -35,11 +35,6 @@
   (alphabet [this]
     :iupacNucleicAcids)
 
-  (bs-save [this]
-    (let [s (pr-str (dissoc this :_id))]
-      (merge {:src s}
-             (dissoc this :description :sequence :quality))))
-
   fastqSequenceData
 
   (qualities [this]
