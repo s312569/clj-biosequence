@@ -1,114 +1,123 @@
 (ns clj-biosequence.store
-  (:require [fs.core :as fs]
+  (:require [clj-biosequence.core :as bs]
+            [fs.core :as fs]
             [clojure.data.xml :as xml]
             [clojure.java.io :as io]
             [monger.core :as mg]
             [monger.collection :as mc]
             [monger.conversion :as con]
-            [monger.db :as mdb])
-  (:import [com.mongodb MongoOptions ServerAddress]
+            [monger.db :as mdb]
+            [monger.util :as mu])
+  (:import [clj_biosequence.core fastaSequence fastaFile]
+           [com.mongodb MongoOptions ServerAddress WriteConcern]
            [org.bson.types ObjectId]))
 
-(declare prep-obj)
+;; interface
 
-;; db interactions
+(defprotocol storeItemIO
+  (save-rep [this]))
 
-(defn connect
-  []
-  (mg/connect!))
-
-(defn find-all
-  [d c & {:keys [query] :or {query nil}}]
-  (mg/use-db! d)
-  (if query
-    (mc/find c query)
-    (mc/find c)))
-
-(defn record-seq
-  "Returns a lazy sequence of all records in the collection `c`."
-  [c]
-  (map #(let [r (con/from-db-object % true)]
-          (assoc (bs-read (:src r)) :_id (:_id r))) (seq c)))
-
-(defn update-record
-  "Updates record `m` in database `d` and collection `c`."
-  [m d c]
-  (mg/use-db! d)
-  (let [w  (mc/update-by-id c (:_id m) m)]))
-
-(defn save-records
-  "Saves a list of records `l` into database `d` and collection `c`."
-  [l d c]
-  (mg/use-db! d)
-  (mc/insert-batch c (pmap #(assoc % :_id (ObjectId.)) l))
-  (mc/ensure-index c (array-map :acc 1)
-                   {:unique true :name "unique_acc"}))
-
-(defn get-record
-  "Returns a record corresponding to the query hash, `h`, from
-   database, `d`, and collection, `c`."
-  [h d c]
-  (mg/use-db! d)
-  (let [r (first (mc/find-maps c h))]
-    (assoc (bs-read (:src r)) :_id (:_id r))))
-
-;; housekeeping
-
-(defn register-project
-  "Registers a project as a clj-biosequence project."
-  [name]
-  (mg/use-db! "clj-projects")
-  (let [r (mc/insert-and-return "projects" {:name name})]
-    (mc/ensure-index "clj-projects" (array-map :name 1)
-                     {:unique true})
-    name))
-
-(defn register-index
-  "Registers an index in a project."
-  [project name type]
-  )
-
-(defn list-projects
-  "Returns a set of clj-biosequence projects on a server."
-  []
-  (mg/use-db! "clj-projects")
-  (set (map :name (mc/find-maps "projects"))))
-
-(defn list-indexes
-  "Returns a set of indexes in a project."
-  [project]
-  (mg/use-db! project)
-  (mc/find-maps "indexes"))
+(defprotocol storeIndexIO
+  (save-index [this project name]))
 
 ;; project
 
-(defrecord biosequenceProject [name])
+(defrecord mongoProject [name])
+
+;; IO for biosequences
+
+(defrecord indexReader [cursor]
+
+  bs/biosequenceReader
+
+  (biosequence-seq [this]
+    (ps/record-seq (:cursor this)))
+
+  java.io.Closeable
+
+  (close [this]
+    nil))
+
+(defrecord biosequenceIndex [name pname type]
+
+  bs/biosequenceIO
+
+  (bs-reader [this]
+    (->indexReader (ps/find-all (:pname this) (:name this)))))
+
+(defmethod print-method clj_biosequence.store.biosequenceIndex
+  [this ^java.io.Writer w]
+  (bs/print-tagged this w))
+
+;; extend persistence
+
+(extend-protocol storeItemIO
+
+ fastaSequence
+
+  (save-rep [this]
+    (hash-map :acc (bs/accession this) :src (pr-str this) :_id (:_id this) )))
+
+(extend-protocol storeIndexIO
+
+  fastaFile
+
+  (save-index [this project name]
+    (->biosequenceIndex name (:name project) "biosequence/fasta")))
+
+;; functions
+
+(defn mongo-connect
+  []
+  (mg/connect!))
 
 (defn init-project
-  "Returns a new project with specified name."
   [name]
-  (->biosequenceProject (ps/register-project name)))
+  (->mongoProject name))
 
-(defn init-index
-  [db collection type]
-  (mg/use-db! project)
-  (let [r (mc/insert-and-return "indexes" {:name collection :type type})]
-    (mc/ensure-index "indexes" (array-map :name 1)
-                     {:unique true})
-    r))
+(defn list-projects
+  []
+  (mg/use-db! "clj-projects")
+  (set (mc/distinct "sequences" :pname)))
+
+(defn drop-project
+  [project]
+  (mg/use-db! "clj-projects")
+  (mc/remove "sequences" {:pname (:name project)}))
+
+(defn list-indexes
+  [project]
+  (mg/use-db! "clj-projects")
+  (map #(hash-map % (:type (mc/find-one-as-map "sequences" {:iname %} [:type])))
+       (mc/distinct "sequences" :iname)))
 
 (defn get-index
-  "Reteieves a biosequenceIndex from a biosequenceProject."
-  [bp name]
-  (let [i (first (filter (fn [{n :name t :type}]
-                           (and (= name n) (= t "biosequence")))
-                         (ps/list-indexes (:name bp))))]
-    (if i
-      (->biosequenceIndex (:name i) (:name bp) (:type i)))))
+  [name project]
+  (mg/use-db! "clj-projects")
+  (bs/bs-read {:src (:i (mc/find-one-as-map "sequences" {:pname (:name project) :iname name}))}))
 
-(defn list-all-projects
-  "Lists all projects."
-  []
-  (ps/list-projects))
+(defn drop-index
+  [index]
+  (mc/remove "sequences" {:iname (:name index) :pname (:pname index)}))
 
-
+(defn index-source
+  [src project name]
+  (mg/use-db! "clj-projects")
+  (let [h (save-index src project name)
+        u (mu/random-uuid)]
+    (with-open [r (bs/bs-reader src)]
+      (try
+        (do (mc/ensure-index "sequences"
+                             (array-map :acc 1 :pname -1 :iname -1)
+                             {:unique true :sparse true})
+            (mc/insert-batch "sequences"
+                             (map #(assoc (save-rep %)
+                                     :_id (ObjectId.) :type (:type h) :pname (:pname h) :iname (:name h)
+                                     :i (pr-str h)
+                                     :batch_id u)
+                                  (bs/biosequence-seq r))
+                             WriteConcern/JOURNAL_SAFE))
+        (catch Exception e
+          (mc/remove "sequences" {:batch_id u})
+          (throw e))))
+    h))

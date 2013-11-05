@@ -50,8 +50,9 @@
     (throw (Throwable. (str "Record not supported: " tag)))))
 
 (defn bs-read
-  [s]
-  (ed/read-string
-   {:default #'default-reader
-    :readers {'clojure.data.xml.Element clojure.data.xml/map->Element}}
-   s))
+  [h]
+  (if-let [o (ed/read-string
+              {:default #'default-reader
+               :readers {'clojure.data.xml.Element clojure.data.xml/map->Element}}
+              (:src h))]
+    (assoc o :_id (:_id h))))
