@@ -1,62 +1,114 @@
 (ns clj-biosequence.store
-  (:require [clj-biosequence.core :as bs]
-            [clj-biosequence.persistence :as ps]))
+  (:require [fs.core :as fs]
+            [clojure.data.xml :as xml]
+            [clojure.java.io :as io]
+            [monger.core :as mg]
+            [monger.collection :as mc]
+            [monger.conversion :as con]
+            [monger.db :as mdb])
+  (:import [com.mongodb MongoOptions ServerAddress]
+           [org.bson.types ObjectId]))
 
 (declare prep-obj)
 
-(defrecord storeReader [cursor]
+;; db interactions
 
-  bs/biosequenceReader
+(defn connect
+  []
+  (mg/connect!))
 
-  (biosequence-seq [this]
-    (ps/record-seq (:cursor this)))
+(defn find-all
+  [d c & {:keys [query] :or {query nil}}]
+  (mg/use-db! d)
+  (if query
+    (mc/find c query)
+    (mc/find c)))
 
-  java.io.Closeable
+(defn record-seq
+  "Returns a lazy sequence of all records in the collection `c`."
+  [c]
+  (map #(let [r (con/from-db-object % true)]
+          (assoc (bs-read (:src r)) :_id (:_id r))) (seq c)))
 
-  (close [this]
-    nil))
+(defn update-record
+  "Updates record `m` in database `d` and collection `c`."
+  [m d c]
+  (mg/use-db! d)
+  (let [w  (mc/update-by-id c (:_id m) m)]))
 
-(defrecord biosequenceStore [name]
+(defn save-records
+  "Saves a list of records `l` into database `d` and collection `c`."
+  [l d c]
+  (mg/use-db! d)
+  (mc/insert-batch c (pmap #(assoc % :_id (ObjectId.)) l))
+  (mc/ensure-index c (array-map :acc 1)
+                   {:unique true :name "unique_acc"}))
 
-  bs/biosequenceIO
+(defn get-record
+  "Returns a record corresponding to the query hash, `h`, from
+   database, `d`, and collection, `c`."
+  [h d c]
+  (mg/use-db! d)
+  (let [r (first (mc/find-maps c h))]
+    (assoc (bs-read (:src r)) :_id (:_id r))))
 
-  (bs-reader [this]
-    (->storeReader (ps/find-all (:name this) "sequence"))))
+;; housekeeping
 
-(defn save-biosequences
-  "Takes a list of biosequences and saves them to the biosequenceStore
-  `s`."
-  [lst s]
-  (ps/save-records (pmap prep-obj lst) (:name s) "sequence"))
-
-(defn index-biosequence-file
-  "Takes a biosequence file, a project designation and a name for the
-  index and returns a biosequenceStore."
-  [file name]
-  (let [s (->biosequenceStore name)]
-    (do
-      (with-open [r (bs/bs-reader file)]
-        (save-biosequences (bs/biosequence-seq r) s))
-      s)))
-
-(defn init-store
-  "Returns a new biosequenceStore with the specified name."
+(defn register-project
+  "Registers a project as a clj-biosequence project."
   [name]
-  (->biosequenceStore name))
+  (mg/use-db! "clj-projects")
+  (let [r (mc/insert-and-return "projects" {:name name})]
+    (mc/ensure-index "clj-projects" (array-map :name 1)
+                     {:unique true})
+    name))
 
-(defn update-biosequence
-  "Updates a biosequence in the store `s`."
-  [bs s]
-  (ps/update-record (prep-obj bs) (:name s) "sequence"))
+(defn register-index
+  "Registers an index in a project."
+  [project name type]
+  )
 
-(defn get-biosequence
-  "Returns a biosequence from the store, `s`, with the accession,
-  `a`."
-  [a s]
-  (ps/get-record {:acc a} (:name s) "sequence"))
+(defn list-projects
+  "Returns a set of clj-biosequence projects on a server."
+  []
+  (mg/use-db! "clj-projects")
+  (set (map :name (mc/find-maps "projects"))))
 
-;; utilities
+(defn list-indexes
+  "Returns a set of indexes in a project."
+  [project]
+  (mg/use-db! project)
+  (mc/find-maps "indexes"))
 
-(defn- prep-obj
-  [o]
-  (hash-map :acc (bs/accession o) :src (pr-str o) :_id (:_id o)))
+;; project
+
+(defrecord biosequenceProject [name])
+
+(defn init-project
+  "Returns a new project with specified name."
+  [name]
+  (->biosequenceProject (ps/register-project name)))
+
+(defn init-index
+  [db collection type]
+  (mg/use-db! project)
+  (let [r (mc/insert-and-return "indexes" {:name collection :type type})]
+    (mc/ensure-index "indexes" (array-map :name 1)
+                     {:unique true})
+    r))
+
+(defn get-index
+  "Reteieves a biosequenceIndex from a biosequenceProject."
+  [bp name]
+  (let [i (first (filter (fn [{n :name t :type}]
+                           (and (= name n) (= t "biosequence")))
+                         (ps/list-indexes (:name bp))))]
+    (if i
+      (->biosequenceIndex (:name i) (:name bp) (:type i)))))
+
+(defn list-all-projects
+  "Lists all projects."
+  []
+  (ps/list-projects))
+
+

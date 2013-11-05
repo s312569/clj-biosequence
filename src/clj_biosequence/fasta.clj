@@ -29,7 +29,15 @@
     (str ">" (accession this) " " (def-line this) "\n" (bioseq->string this) "\n"))
   
   (alphabet [this]
-    (:alphabet this)))
+    (:alphabet this))
+
+  
+
+  (save-rep [this]
+    (hash-map :acc (accession this) :src (pr-str this) :_id (:_id this)))
+
+  (save-index [this]
+    ))
 
 (defmethod print-method clj_biosequence.core.fastaSequence
   [this ^java.io.Writer w]

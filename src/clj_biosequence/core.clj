@@ -4,7 +4,9 @@
             [clj-http.client :as client]
             [clojure.string :as string]
             [miner.tagged :as tag]
-            [clj-biosequence.alphabet :as ala]))
+            [clj-biosequence.alphabet :as ala]
+            [clj-biosequence.store :as st]
+            [clojure.edn :as ed]))
 
 (declare init-fasta-store init-fasta-sequence translate)
 
@@ -29,11 +31,13 @@
   (protein? [this]
     "Returns true if a protein and false otherwise.")
   (alphabet [this]
-    "Returns the alphabet of a biosequence."))
+    "Returns the alphabet of a biosequence.")
+  (save-rep [this]))
 
 (defprotocol biosequenceFile
   (bs-path [this]
-    "Returns the path of the file as string."))
+    "Returns the path of the file as string.")
+  (index-type [this]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions
@@ -132,6 +136,46 @@
                      (.write w n)))
                 bs)))
   file)
+
+;; store
+
+(defn mongo-connect
+  []
+  (st/connect))
+
+(defrecord indexReader [cursor]
+
+  biosequenceReader
+
+  (biosequence-seq [this]
+    (ps/record-seq (:cursor this)))
+
+  java.io.Closeable
+
+  (close [this]
+    nil))
+
+(defrecord biosequenceIndex [name pname]
+
+  biosequenceIO
+
+  (bs-reader [this]
+    (->indexReader (ps/find-all (:pname this) (:name this)))))
+
+(defn new-index
+  "Adds an indexed biosequenceFile to a biosequenceProject under the
+  specified name."
+  [bp src name]
+  (let [s (assoc (->biosequenceIndex name (:name project))
+            :_id (:_id (st/init-index (:name project name (index-type src)))))]
+    (do
+      (with-open [r (bs/bs-reader src)]
+        (st/save-records (map bs/save-rep (bs/biosequence-seq r)) (:name bp) (:name s)))
+      s)))
+
+(defn get-index
+  [name]
+  ())
 
 ;; helper files
 
