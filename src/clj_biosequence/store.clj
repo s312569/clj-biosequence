@@ -12,26 +12,36 @@
            [com.mongodb MongoOptions ServerAddress WriteConcern]
            [org.bson.types ObjectId]))
 
-(declare save-list store-read biosequence-save-helper)
+(declare save-list store-read biosequence-save-helper collection-seq-helper)
 
 ;; interface
 
-(defprotocol storeIndexIO
-  (mongo-save-file [this project name]))
+(defprotocol storeCollectionIO
+  (mongo-save-file [this project name]
+    "Saves a biosequenceFile to a mongoDB for random access."))
+
+(defprotocol storeCollectionAccess
+  (collection-seq [this]
+    "Returns a lazy list of entries in a biosequenceCollection."))
 
 ;; project
 
 (defrecord mongoProject [name])
 
-(defrecord biosequenceIndex [name pname type])
+(defrecord biosequenceCollection [name pname type]
 
-(defmethod print-method clj_biosequence.store.biosequenceIndex
+  storeCollectionAccess
+
+  (collection-seq [this]
+    (collection-seq-helper this)))
+
+(defmethod print-method clj_biosequence.store.biosequenceCollection
   [this ^java.io.Writer w]
   (bs/print-tagged this w))
 
 ;; extend persistence
 
-(extend-protocol storeIndexIO
+(extend-protocol storeCollectionIO
   fastaFile
   (mongo-save-file [this project name]
     (biosequence-save-helper this project name "biosequence/fasta")))
@@ -39,49 +49,56 @@
 ;; functions
 
 (defn mongo-connect
+  "Connects to the default mongo database server."
   []
   (mg/connect!))
 
+(defn mongo-disconnect
+  []
+  "Disconnects from the default mongo database server."
+  (mg/disconnect!))
+
 (defn init-project
+  "Returns a mongoProject for storing sequence collections. Used for
+  accessing existing projects or initialising new ones."
   [name]
   (->mongoProject name))
 
 (defn list-projects
+  "Returns a set of projects on the server."
   []
   (mg/use-db! "clj-projects")
   (set (mc/distinct "sequences" :pname)))
 
 (defn drop-project
+  "Takes a mongoProject and drops it from the database."
   [project]
   (mg/use-db! "clj-projects")
   (mc/remove "sequences" {:pname (:name project)}))
 
-(defn list-indexes
+(defn list-collections
+  "Takes a mongoProject and returns a hash-map of collection names and
+  types in the project."
   [project]
   (mg/use-db! "clj-projects")
   (map #(hash-map % (:type (mc/find-one-as-map "sequences" {:iname %} [:type])))
        (mc/distinct "sequences" :iname)))
 
-(defn get-index
+(defn get-collection
+  "Returns an collection object."
   [name project]
   (mg/use-db! "clj-projects")
   (bs/bs-read (:i (mc/find-one-as-map "sequences"
                                       {:pname (:name project) :iname name}))))
 
-(defn drop-index
-  [index]
-  (mc/remove "sequences" {:iname (:name index) :pname (:pname index)}))
-
-(defn index-seq
-  [index]
-  (map store-read
-       (mc/find-maps "sequences" {:pname (:pname index) :iname (:name index)})))
-
-(defn index-file
-  [file alphabet project name]
-  (index-source (bs/init-fasta-file file alphabet) project name))
+(defn drop-collection
+  "takes a collection object and drops it from the database."
+  [collection]
+  (mc/remove "sequences" {:iname (:name collection) :pname (:pname collection)}))
 
 (defn save-list
+  "Takes a list of hash-maps for insertion into a mongoDB and a
+  collection object and inserts all members of the list."
   [l i]
   (let [u (mu/random-uuid)]
     (try
@@ -107,10 +124,16 @@
 
 (defn- biosequence-save-helper
   [this project name type]
-  (let [i (->biosequenceIndex name (:name project) type)]
+  (let [i (->biosequenceCollection name (:name project) type)]
     (with-open [r (bs/bs-reader this)]
       (save-list (pmap #(hash-map :acc (bs/accession %)
                                   :src (pr-str %))
                        (bs/biosequence-seq r))
                  i))
     i))
+
+(defn collection-seq-helper
+  [collection]
+  (map store-read
+       (mc/find-maps "sequences" {:pname (:pname collection) :iname (:name collection)})))
+
