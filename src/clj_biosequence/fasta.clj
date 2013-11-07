@@ -66,7 +66,7 @@
   (close [this]
     (.close ^java.io.BufferedReader (:strm this))))
 
-(defn- init-fasta-reader
+(defn init-fasta-reader
   [strm alphabet]
   (->fastaReader strm alphabet))
 

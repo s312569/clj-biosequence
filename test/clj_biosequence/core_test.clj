@@ -1,7 +1,9 @@
 (ns clj-biosequence.core-test
   (:require [clojure.java.io :as io])
   (:use clojure.test
-        clj-biosequence.core))
+        clj-biosequence.core
+        clj-biosequence.store
+        clj-biosequence.uniprot))
 
 (deftest fasta
   (testing "Fasta:"
@@ -31,8 +33,36 @@
                    (bs-seq (sub-bioseq (first (biosequence-seq r)) 0 7)))))
           (with-open [r (bs-reader fs)]
             (is (= [\G \T \A \C \A \A \A]
-                   (bs-seq (sub-bioseq (first (biosequence-seq r)) 0 7)))))))
+                   (bs-seq (sub-bioseq (first (biosequence-seq r)) 0 7)))))
+          (testing "Store"
+            (let [p (init-project "clj-test")
+                  c (mongo-connect)
+                  i (mongo-save-file ff p "testing")]
+              (is (= 6 (count (collection-seq i))))
+              (is (= "gi|116025203|gb|EG339215.1|EG339215"
+                     (accession (first (collection-seq i)))))
+              (drop-project p)
+              (mongo-disconnect)))))
       (testing "Mapping"
         (is (= "B5B3Z7" ((id-convert '("196122523") "P_GI" "ACC"
                                      "jason.mulvenna@gmail.com")
                          "196122523")))))))
+
+(deftest uniprot
+  (testing "Uniprot"
+    (let [uf (io/resource "test-files/uniprot-s-mansoni-20121217.xml")
+          uff (init-uniprotxml-file uf)
+          up (with-open [r (bs-reader uff)]
+               (first (biosequence-seq r)))
+          us (init-uniprot-string (slurp uf))
+          uc (init-uniprot-connection '("P56871" "P56879" "P84641" "P84642")
+                                      :xml "jason.mulvenna@gmail.com")]
+      (is (= [\X \M \E \Q \C \V] (bs-seq (sub-bioseq up 0 6))))
+      (is (= "C4PYP8" (accession up)))
+      (is (= "P35661" (with-open [r (bs-reader us)]
+                        (accession (second (biosequence-seq r))))))
+      (is (= "P56871"
+             (first (wget-uniprot-search "cyclotide" "jason.mulvenna@gmail.com"))))
+      (is (= "P84641"
+             (with-open [r (bs-reader uc)]
+               (accession (nth (biosequence-seq r) 2))))))))

@@ -1,14 +1,15 @@
 (ns clj-biosequence.uniprot
-  (:require [clojure.data.xml :as xml]
+  (:require [clojure.data.xml :refer [parse]]
             [clojure.data.zip.xml :as zf]
-            [clojure.java.io :as io]
-            [clojure.zip :as zip]
-            [clojure.string :as string]
+            [clojure.java.io :refer [reader]]
+            [clojure.zip :refer [node xml-zip]]
+            [clojure.string :refer [split]]
             [clj-biosequence.core :as bios]
+            [clj-biosequence.store :as st]
             [clj-http.client :as client]
-            [fs.core :as fs]))
+            [fs.core :refer [file? temp-file delete]]))
 
-(declare prot-name meta-data amino-acids nomenclature uniprot-process-request get-uniprot-stream organism)
+(declare prot-name meta-data nomenclature get-uniprot-stream organism)
 
 ;; protein
 
@@ -17,35 +18,21 @@
   bios/Biosequence
   
   (accessions [uniprot]
-    (zf/xml-> (zip/xml-zip (:src uniprot)) :accession zf/text))
+    (zf/xml-> (xml-zip (:src uniprot)) :accession zf/text))
 
   (accession
     [this]
     (first (bios/accessions this)))
 
   (def-line [this]
-    (let [nom (zip/xml-zip (nomenclature this))]
-      (str (zf/xml1-> nom
-                      :recommendedName
-                      :fullName
-                      zf/text)
-           " | "
-           (zf/xml1-> nom
-                      :alternativeName
-                      :fullName
-                      zf/text)
-           " ["
-           (zf/xml1-> (zip/xml-zip (organism this))
-                      :name
-                      (zf/attr= :type "scientific")
-                      zf/text)
-           "]")))
+    (let [nom (xml-zip (nomenclature this))]
+      (str (first (nomenclature this "recommendedName")) " | "
+           (first (nomenclature this "alternativeName")) " ["
+           (first (organism this "scientific")) "]")))
 
   (bs-seq [this]
     (bios/clean-sequence
-     (zf/xml1-> (zip/xml-zip (amino-acids this))
-                zf/text)
-     :iupacAminoAcids))
+     (zf/xml1-> (xml-zip (:src this)) :sequence zf/text) :iupacAminoAcids))
 
   (fasta-string [this]
     (let [db (condp = (:dataset (meta-data this))
@@ -64,6 +51,10 @@
   (alphabet [this]
     :iupacAminoAcids))
 
+(defmethod print-method clj_biosequence.uniprot.uniprotProtein
+  [this ^java.io.Writer w]
+  (bios/print-biosequence this w))
+
 ;; IO
 
 (defrecord uniprotReader [strm]
@@ -71,7 +62,7 @@
   bios/biosequenceReader
 
   (bios/biosequence-seq [this]
-    (let [xml (xml/parse (:strm this))]
+    (let [xml (parse (:strm this))]
       (map (fn [x]
              (->uniprotProtein x))
            (filter #(= (:tag %) :entry)
@@ -82,7 +73,8 @@
   (close [this]
     (.close ^java.io.BufferedReader (:strm this))))
 
-(defn init-uniprot-reader
+(defn- init-uniprot-reader
+  "Initialises a uniprot reader."
   [strm]
   (->uniprotReader strm))
 
@@ -91,14 +83,19 @@
   bios/biosequenceIO
 
   (bs-reader [this]
-    (init-uniprot-reader (io/reader (:file this)))))
+    (init-uniprot-reader (reader (:file this))))
+
+  st/storeCollectionIO
+
+  (mongo-save-file [this project name]
+    (bios/biosequence-save this project name "biosequence/uniprot")))
 
 (defrecord uniprotString [str]
 
   bios/biosequenceIO
 
   (bs-reader [this]
-    (init-uniprot-reader (io/reader (:str this)))))
+    (init-uniprot-reader (java.io.BufferedReader. (java.io.StringReader. (:str this))))))
 
 (defrecord uniprotConnection [acc-list retype email]
 
@@ -107,21 +104,25 @@
   (bs-reader [this]
     (let [s (get-uniprot-stream (:acc-list this) (:retype this) (:email this))]
       (condp = (:retype this)
-        :xml (init-uniprot-reader (io/reader s))
-        :fasta (bios/init-fasta-reader (io/reader s) :iupacAminoAcids)))))
+        :xml (init-uniprot-reader (reader s))
+        :fasta (bios/init-fasta-reader (reader s) :iupacAminoAcids)))))
 
 (defn init-uniprotxml-file
-  "Initialises a uniprotXmlFile object."
+  "Initialises a uniprotXmlFile object for use with bs-reader."
   [path]
-  (if (fs/file? path)
+  (if (file? path)
     (->uniprotFile path)
     (throw (Throwable. (str "File not found: " path)))))
 
 (defn init-uniprot-string
+  "Initialises a uniprot string for use with bs-reader. String needs
+  to be valid uniprot xml."
   [str]
   (->uniprotString str))
 
 (defn init-uniprot-connection
+  "Initialises a connection which can be used with bs-reader to open a
+  lazy list of uniprotProteins from the Uniprot servers."
   [accessions retype email]
   (if (#{:xml :fasta} retype)
     (let [l (if (coll? accessions) accessions (list accessions))]
@@ -157,7 +158,7 @@
                           {:client-params {"http.useragent"
                                            (str "clj-http " email)}})
                          (:body)
-                         (string/split #"\n")))]
+                         (split #"\n")))]
        (if (empty? r)
          nil
          (lazy-cat r (wget-uniprot-search term email (+ offset 1000)))))))
@@ -165,42 +166,59 @@
 ;; uniprot convienence functions
 
 (defn organism
-  "Returns organism information from Uniprot biosequence as xml elements.
-   Includes organism name and taxonomy information."
+  "Returns a list of organism data corresponding to `kinds`. Kinds can
+   be any term used by uniprot in `name` tags. Typical 'kinds' are
+   \"scientific\", \"common\" and \"NCBI Taxonomy\", which returns the
+   NCBI taxonomic id. Any number of kinds can be used resulting in a
+   list of the values."
+  [uniprot & kinds]
+  (let [o (zf/xml1-> (xml-zip (:src uniprot))
+                     :organism)]
+    (map #(if (= % "NCBI Taxonomy")
+            (zf/xml1-> o :dbReference (zf/attr= :type %) (zf/attr :id))
+            (zf/xml1-> o :name (zf/attr= :type %) zf/text)) kinds)))
+
+(defn lineage
+  "Returns a list of the taxon terms of an organism"
   [uniprot]
-  (zip/node (zf/xml1-> (zip/xml-zip (:src uniprot))
-                       :organism)))
+  (zf/xml-> (xml-zip (:src uniprot)) :organism :lineage :taxon zf/text))
 
 (defn prot-name
   "Returns the name of a uniprot as a string."
   [uniprot]
-  (zf/xml1-> (zip/xml-zip (:src uniprot)) :name zf/text))
+  (zf/xml1-> (xml-zip (:src uniprot)) :name zf/text))
 
-(defn amino-acids
-  "Returns sequence information as xml elements. Information includes mass, 
-   checksum, modified, version and amino-acids."
-  [uniprot]
-  (zip/node (zf/xml1-> (zip/xml-zip (:src uniprot))
-                       :sequence)))
+(defn sequence-info
+  "Returns a list of sequence information. Kinds can be the following:
+  \"length\", \"mass\", \"checksum\", \"modified\", and \"version\".
+  Multiple 'kinds' returns multiple items in a list."
+  [uniprot & kinds]
+  (let [aa (zf/xml1-> (xml-zip (:src uniprot))
+                      :sequence)]
+    (map #(zf/xml1-> aa (zf/attr (keyword %))) kinds)))
 
 (defn nomenclature
-  "Returns protein naming information as xml elements. Includes information on
-   recommended, submitted, alternative, allergen, biotech, cdantigen names."
-  [uniprot]
-  (zip/node (zf/xml1-> (zip/xml-zip (:src uniprot))
-                       :protein)))
+  "Returns a list of naming information. Kinds can be the following:
+  \"recommendedName\", and \"alternativeName\"."
+  [uniprot & kinds]
+  (let [n (zf/xml1-> (xml-zip (:src uniprot))
+                     :protein)]
+    (map #(zf/xml1-> n (keyword %) :fullName zf/text) kinds)))
 
 (defn gene
-  "Returns gene information as a list of xml elements. Includes type and name 
-   information."
+  "Returns a list of maps comprised of gene names and types."
   [uniprot]
-  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot)) :gene)))
+  (map #(merge (:attrs (node (zf/xml1-> % :name)))
+               (hash-map :gene (zf/xml1-> % :name zf/text)))
+       (zf/xml-> (xml-zip (:src uniprot)) :gene)))
 
 (defn gene-location
-  "Returns gene location information as a list of xml elements."
+  "Returns a list of maps describing the gene location."
   [uniprot]
-  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
-                          :geneLocation)))
+  (map #(merge (:attrs (node (zf/xml1-> %)))
+               (hash-map :other (zf/xml1-> % zf/text)))
+       (zf/xml-> (xml-zip (:src uniprot))
+                 :geneLocation)))
 
 (defn citations
   "Returns citation information as a list of xml elements. Contains information
@@ -208,31 +226,38 @@
    (page), title, city, scope, type, consortium, number, authors, source,
    editors, publisher, volume and db."
   [uniprot]
-  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
+  (map node (zf/xml-> (xml-zip (:src uniprot))
                           :reference)))
 
 (defn comment-value
-  "'subcellular location', 'alternative products', 'interactions', 'mass spectrometry', "
+  "Returns a list of maps containing text for a particular comment
+  value, i.e. \"function\" or \"cofactor\". A list of comments in a
+  uniprot entry can be produced using the `comments` function."
   [uniprot comment]
-  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
-                          :comment
-                          (zf/attr= :type comment))))
+  (map #(merge (:attrs (node (zf/xml1-> % :text)))
+               (hash-map :text (zf/xml1-> % zf/text)))
+       (zf/xml-> (xml-zip (:src uniprot))
+                     :comment
+                     (zf/attr= :type comment))))
 
 (defn comments
   "Change this to list all comment keys."
   [uniprot]
-  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
-                          :comment)))
+  (map #(zf/xml1-> % (zf/attr :type))
+       (zf/xml-> (xml-zip (:src uniprot))
+                 :comment)))
 
 (defn db-references
   "Returns all db-references as a list of xml elements."
   [uniprot]
-  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
+  (map node (zf/xml-> (xml-zip (:src uniprot))
                           :dbReference)))
 
 (defn go-terms
+  "Returns a list of GO terms. Only returns the term itself and not
+   any other information, for more information see `db-references`."
   [uniprot]
-  (zf/xml-> (zip/xml-zip (:src uniprot))
+  (zf/xml-> (xml-zip (:src uniprot))
             :dbReference
             (zf/attr= :type "GO")
             :property
@@ -240,29 +265,31 @@
             (zf/attr :value)))
 
 (defn existence
-  "Protein existence evidence as a list of xml elements."
+  "Protein existence evidence as a list of strings."
   [uniprot]
-  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
-                          :proteinExistence)))
+  (zf/xml-> (xml-zip (:src uniprot))
+            :proteinExistence
+            (zf/attr :type)))
 
 (defn keywords
-  "Keywords as a list of xml elements."
+  "Keywords as a list of maps."
   [uniprot]
-  (map zip/node
-       (zf/xml-> (zip/xml-zip (:src uniprot))
+  (map #(merge (:attrs (node (zf/xml1-> %)))
+               (hash-map :text (zf/xml1-> % zf/text)))
+       (zf/xml-> (xml-zip (:src uniprot))
                  :keyword)))
 
 (defn features
   "Features as a list of xml elements."
   [uniprot]
-  (map zip/node (zf/xml-> (zip/xml-zip (:src uniprot))
+  (map node (zf/xml-> (xml-zip (:src uniprot))
                           :feature)))
 
 (defn meta-data
   "Returns a map with uniprot meta-data. Keys - :dataset, :created, :modified
    and :version. All values are strings except :version, which is an integer."
   [uniprot]
-  (let [s (zip/xml-zip (:src uniprot))]
+  (let [s (xml-zip (:src uniprot))]
     {:dataset (zf/attr s :dataset)
      :created (zf/attr s :created)
      :modified (zf/attr s :modified)
@@ -303,7 +330,7 @@
   [accessions class email]
   (if (empty? accessions)
     nil
-    (let [f (let [file (fs/temp-file "up-seq-")]
+    (let [f (let [file (temp-file "up-seq-")]
               (doseq [s accessions]
                 (spit file (str s "\n") :append true))
               file)]
@@ -317,6 +344,4 @@
                        {:name "format" :content (name class)}]
            :follow-redirects false}
           f))
-        (catch Exception e
-          (throw e))
-        (finally (fs/delete f))))))
+        (finally (delete f))))))
