@@ -27,31 +27,20 @@
                                   (w %) nil
                                   :else %) (vec s))))))
 
-;; printing objects
+;; store utilities
 
-(defn print-tagged
-  "Used for printing objects tagged so that edn/read-string can read
-  them in."
-  [obj w]
-  (tag/pr-tagged-record-on obj w))
+(defn biosequence-save
+  [this project name type]
+  (let [i (st/init-biosequence-collection name (:name project) type)]
+    (with-open [r (bs-reader this)]
+      (st/save-list (pmap #(hash-map :acc (accession %)
+                                  :src (pr-str %))
+                       (biosequence-seq r))
+                 i))
+    i))
 
-(defn my-tag->factory
-  "Returns the map-style record factory for the `tag` symbol.  Returns nil if `tag` does not
-  refer to a record."
-  [tag]
-  (when (namespace tag)
-    (resolve (symbol (str (namespace tag) "/map->" (name tag))))))
+;; printing
 
-(defn default-reader
-  [tag value]
-  (if-let [factory (and (map? value)
-                     (my-tag->factory tag))]
-    (factory value)
-    (throw (Throwable. (str "Record not supported: " tag)))))
-
-(defn bs-read
-  [s]
-  (ed/read-string
-   {:default #'default-reader
-    :readers {'clojure.data.xml.Element clojure.data.xml/map->Element}}
-   s))
+(defn print-biosequence
+  [biosequence w]
+  (print-tagged biosequence w))

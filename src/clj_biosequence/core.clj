@@ -3,10 +3,9 @@
             [fs.core :as fs]
             [clj-http.client :as client]
             [clojure.string :as string]
-            [miner.tagged :as tag]
-            [clojure.data.xml :as xml]
+            [clj-biosequence.write :refer [print-tagged]]
             [clj-biosequence.alphabet :as ala]
-            [clojure.edn :as ed]))
+            [clj-biosequence.store :as st]))
 
 (declare init-fasta-store init-fasta-sequence translate)
 

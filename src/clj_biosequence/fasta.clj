@@ -33,7 +33,7 @@
 
 (defmethod print-method clj_biosequence.core.fastaSequence
   [this ^java.io.Writer w]
-  (print-tagged this w))
+  (print-biosequence this w))
 
 (defn init-fasta-sequence
   "Returns a new fastaSequence. Currently :iupacNucleicAcids
@@ -81,7 +81,12 @@
   biosequenceFile
 
   (bs-path [this]
-    (:file this)))
+    (:file this))
+
+  st/storeCollectionIO
+  
+  (mongo-save-file [this project name]
+    (biosequence-save this project name "biosequence/fasta")))
 
 (defrecord fastaString [str alphabet]
 
