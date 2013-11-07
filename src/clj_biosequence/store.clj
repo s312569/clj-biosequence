@@ -81,7 +81,7 @@
 
 (defn get-collection
   "Returns an collection object."
-  [name project]
+  [project name]
   (mg/use-db! "clj-projects")
   (wr/bs-read (:i (mc/find-one-as-map "sequences"
                                    {:pname (:name project) :iname name}))))
@@ -93,9 +93,12 @@
 
 (defn get-record
   ([collection value] (get-record collection value :acc))
-  ([collection value key]
+  ([collection key value & kv]
      (mg/use-db! "clj-projects")
-     (mc/find-maps "sequences" {key value})))
+     (map store-read (mc/find-maps "sequences" (merge {key value
+                                                       :iname (:name collection)
+                                                       :pname (:pname collection)}
+                                                      (apply hash-map kv))))))
 
 (defn save-list
   "Takes a list of hash-maps for insertion into a mongoDB and a
