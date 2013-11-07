@@ -34,7 +34,7 @@
   (let [i (st/init-biosequence-collection name (:name project) type)]
     (with-open [r (bs-reader this)]
       (st/save-list (pmap #(hash-map :acc (accession %)
-                                  :src (pr-str %))
+                                     :src (pr-str %))
                        (biosequence-seq r))
                  i))
     i))

@@ -91,6 +91,12 @@
   [collection]
   (mc/remove "sequences" {:iname (:name collection) :pname (:pname collection)}))
 
+(defn get-record
+  ([collection value] (get-record collection value :acc))
+  ([collection value key]
+     (mg/use-db! "clj-projects")
+     (mc/find-maps (:name collection) {key value})))
+
 (defn save-list
   "Takes a list of hash-maps for insertion into a mongoDB and a
   collection object and inserts all members of the list."
