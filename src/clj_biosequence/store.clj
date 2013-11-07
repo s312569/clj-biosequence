@@ -95,7 +95,7 @@
   ([collection value] (get-record collection value :acc))
   ([collection value key]
      (mg/use-db! "clj-projects")
-     (mc/find-maps (:name collection) {key value})))
+     (mc/find-maps "sequences" {key value})))
 
 (defn save-list
   "Takes a list of hash-maps for insertion into a mongoDB and a
