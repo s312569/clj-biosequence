@@ -5,15 +5,16 @@
             [clojure.data.zip.xml :as zf]
             [clojure.zip :as zip]
             [clj-biosequence.core :as bios]
+            [clj-biosequence.store :as sto]
             [clojure.pprint :as pp]
-            [clojure.string :as st]
+            [clojure.string :refer [split]]
             [clojure.data.xml :as xml]
             [clj-biosequence.alphabet :as ala])
   (:import [clj_biosequence.core fastaSequence]))
 
 (import '(java.io BufferedReader StringReader))
 
-(declare blastp-defaults run-blast get-sequence-from-blast-db blast-default-params split-hsp-align iteration-query-id)
+(declare blastp-defaults run-blast get-sequence-from-blast-db blast-default-params split-hsp-align iteration-query-id init-blast-collection)
 
 ;; blast hsp
 
@@ -21,7 +22,7 @@
 
 (defmethod print-method clj_biosequence.blast.blastHSP
   [this ^java.io.Writer w]
-  (bios/print-tagged this w))
+  (bios/print-biosequence this w))
 
 (defn get-hsp-value
   "Takes a blastHSP object and returns the value corresponding to key.
@@ -50,29 +51,7 @@
     :Hsp_pattern-to
     :Hsp_density"
   [this key]
-  (if (= key :Hsp_midline)
-    (first (:content
-            (first
-             (filter #(= (:tag %) :Hsp_midline)
-                     (:content (:src this))))))
-    (zf/xml1-> (zip/xml-zip (:src this))
-               key
-               zf/text)))
-
-(defn alignment-string
-  "Takes a blastHSP object and returns a string of its alignment."
-  [this]
-  (pp/cl-format nil "~{~A~%~A~%~A~%~%~}"
-                (interleave
-                 (split-hsp-align
-                  (get-hsp-value this :Hsp_qseq)
-                  (read-string (get-hsp-value this :Hsp_query-from)))
-                 (map #(pp/cl-format nil "~7@< ~>~A~7< ~>"
-                                     (apply str %))
-                      (partition-all 58 (get-hsp-value this :Hsp_midline)))
-                 (split-hsp-align
-                  (get-hsp-value this :Hsp_hseq)
-                  (read-string (get-hsp-value this :Hsp_hit-from))))))
+  (zf/xml1-> (zip/xml-zip (:src this)) key zf/text))
 
 ;; blast hit
 
@@ -80,7 +59,7 @@
 
 (defmethod print-method clj_biosequence.blast.blastHit
   [this ^java.io.Writer w]
-  (bios/print-tagged this w))
+  (bios/print-biosequence this w))
 
 (defn get-hit-value
   "Takes a blastHit object and returns the value corresponding to key. 
@@ -92,9 +71,7 @@
    :Hit_def
    :Hit_num"
   [this key]
-  (zf/xml1-> (zip/xml-zip (:src this))
-             key
-             zf/text))
+  (zf/xml1-> (zip/xml-zip (:src this)) key zf/text))
 
 (defn hsp-seq
   "Takes a blastHit object and returns a lazy list of the blastHSP 
@@ -112,45 +89,17 @@
   (or (first (hsp-seq this))
       (->blastHSP nil)))
 
-(defn hit-bit-score
-  "Takes a blastHit object and returns the bit score of the top scoring HSP
-   in the hit. Returns 0 if the blastHit was empty."
-  [this]
-  (if (:src this)
-    (Float/parseFloat (get-hsp-value (top-hsp this) :Hsp_bit-score))
-    0))
+(defn hit-bit-scores
+  "Takes a blastHit object and returns a list of floats corresponding
+  to the bit scores of the HSPs composing the hit."
+  [hit]
+  (map #(Float/parseFloat (get-hsp-value % :Hsp_bit-score)) (hsp-seq hit)))
 
 (defn hit-e-value
-  "Takes a blastHit object and returns the bit score of the top scoring HSP
-   in the hit. Returns 0 if the blastHit was empty."
-  [this]
-  (if (:src this)
-    (Float/parseFloat (get-hsp-value (top-hsp this) :Hsp_evalue))))
-
-(defn hit-string
-  "A convenience function that takes a blastHit object and returns a formatted
-     summary of the top scoring HSP in the hit. Includes accession, bit score
-     (of the top scoring hit), definition of the hit and the alignment. Returns 
-    'No hits in search' if empty blastHit. Example output:
-
-   Accession: sp|Q8HY10|CLC4M_NOMCO
-   Bit score: 50.0617822382917
-   Def: C-type lectin domain family 4 member M OS=Nomascus concolor GN=CLEC
-   Alignment:
-   
-   72     QAQQRDIEKEIESQKTSLTESWKKIIAEDIENRTNR-----SELKMEGQLSDLQEALT    124
-          +++Q++I +E+   K ++ E  +K   ++I     R      EL  + +   + + LT       
-   198    KSKQQEIYQELTRLKAAVGELPEKSKQQEIYQELTRLKAAVGELPDQSKQQQIYQELT    255"
-  [this]
-  (if (:src this)
-    (let [hsp (top-hsp this)]
-      (pp/cl-format nil "Accession: ~A~%Bit score: ~A~%Def: ~A~%Alignment:~%~%~A"
-                    (get-hit-value this :Hit_id)
-                    (get-hsp-value hsp :Hsp_bit-score)
-                    (first (map #(apply str %)
-                                (partition-all 67 (get-hit-value this :Hit_def))))
-                    (alignment-string hsp)))
-    "No hits in search.\n"))
+  "Takes a blastHit object and returns a list of floats corresponding
+  to the e-values of the HSPs composing the hit."
+  [hit]
+  (map #(Float/parseFloat (get-hsp-value % :Hsp_evalue)) (hsp-seq hit)))
 
 ;; blast iteration
 
@@ -159,47 +108,80 @@
   bios/Biosequence
 
   (accession [this]
-    (iteration-query-id this))
-
-  (bs-save [this]
-    (assoc this :src (pr-str (dissoc this :_id))
-           :acc (bios/accession this))))
+    (iteration-query-id this)))
 
 (defmethod print-method clj_biosequence.blast.blastIteration
   [this ^java.io.Writer w]
-  (bios/print-tagged this w))
+  (bios/print-biosequence this w))
 
 (defn iteration-query-id
   "Takes a blastIteration object and returns the query ID."
   [this]
-  (-> (zf/xml1-> (zip/xml-zip (:src this))
-                 :Iteration_query-def
-                 zf/text)
-      (st/split #"\s")
+  (-> (zf/xml1-> (zip/xml-zip (:src this)) :Iteration_query-def zf/text)
+      (split #"\s")
       (first)))
 
 (defn hit-seq
   "Returns a (lazy) list of blastHit objects from a blastIteration object."
   [this]
   (map #(->blastHit (zip/node %))
-       (zf/xml-> (zip/xml-zip (:src this))
-                 :Iteration_hits
-                 :Hit)))
+       (zf/xml-> (zip/xml-zip (:src this)) :Iteration_hits :Hit)))
 
 (defn top-hit
   "Returns the highest scoring blastHit object from a blastIteration object."
   [this]
-  (or (first (hit-seq this))
-      (->blastHit nil)))
+  (or (first (hit-seq this)) (->blastHit nil)))
+
+;; parameters
+
+(defrecord blastParameters [src])
+
+(defn parameter-value
+  "Returns the value of a blast parameter from a blastParameters. Key
+   denotes parameter keys used in the blast xml. All values returned
+   as strings. Typical keys include:
+   :Parameters_matrix
+   :Parameters_expect
+   :Parameters_include
+   :Parameters_sc-match
+   :Parameters_sc-mismatch
+   :Parameters_gap-open
+   :Parameters_gap-extend
+   :Parameters_filter"
+  [p key]
+  (zf/xml1-> (zip/xml-zip (:src p))
+             key
+             zf/text))
+
+(defn- init-blast-params
+  [src]
+  (->blastParameters src))
+
+(defmethod print-method clj_biosequence.blast.blastParameters
+  [this ^java.io.Writer w]
+  (bios/print-biosequence this w))
 
 ;; blastSearch
 
-(defrecord blastReader [strm]
+(defprotocol blastSearchAccess
+  (result-by-accession [this accession]
+    "Returns the blast search for the specified protein.")
+  (parameters [this]
+    "returns a blastParameters from the search.")
+  (database [this]
+    "Returns the path (as a string) of the database used in a blast
+     search from a blastSearch object.")
+  (version [this]
+    "returns the version of the blast used in the search.")
+  (program [this]
+    "Returns the program used in a blast search from a blastSearch object."))
+
+(defrecord blastReader [strm xml]
 
   bios/biosequenceReader
 
   (biosequence-seq [this]
-    (->> (:content (xml/parse (:strm this)))
+    (->> (:content (:xml this))
          (filter #(= :BlastOutput_iterations (:tag %)))
          first
          :content
@@ -209,64 +191,114 @@
   java.io.Closeable
 
   (close [this]
-    (.close ^java.io.BufferedReader (:strm this))))
+    (.close ^java.io.BufferedReader (:strm this)))
+
+  blastSearchAccess
+
+  (result-by-accession [this accession]
+    (some #(if (= accession (iteration-query-id %))
+             %)
+          (bios/biosequence-seq this)))
+
+  (parameters [this]
+    (->> (:content (:xml this))
+         (filter #(= :BlastOutput_param (:tag %)))
+         first
+         :content
+         first
+         init-blast-params))
+
+  (database [this]
+    (->> (:content (:xml this))
+         (filter #(= :BlastOutput_db (:tag %)))
+         first
+         :content
+         first))
+
+  (version [this]
+    (->> (:content (:xml this))
+         (filter #(= :BlastOutput_version (:tag %)))
+         first
+         :content
+         first))
+
+  (program [this]
+    (->> (:content (:xml this))
+         (filter #(= :BlastOutput_program (:tag %)))
+         first
+         :content
+         first)))
 
 (defrecord blastSearch [file]
 
   bios/biosequenceIO
 
   (bs-reader [this]
-    (->blastReader (io/reader (:file this)))))
+    (let [s (io/reader (:file this))]
+      (->blastReader s (xml/parse s))))
+
+  sto/storeCollectionIO
+
+  (mongo-save-file [this project name]
+    (let [i (init-blast-collection name (:name project) "biosequence/blast")]
+      (with-open [r (bios/bs-reader this)]
+        (sto/save-list (concat
+                        (list (hash-map :acc (str (java.util.UUID/randomUUID))
+                                        :src (pr-str (database r))
+                                        :element "db")
+                              (hash-map :acc (str (java.util.UUID/randomUUID))
+                                        :src (pr-str (program r))
+                                        :element "program")
+                              (hash-map :acc (str (java.util.UUID/randomUUID))
+                                        :src (pr-str (version r))
+                                        :element "version")
+                              (hash-map :acc (str (java.util.UUID/randomUUID))
+                                        :src (pr-str (parameters r))
+                                        :element "parameters"))
+                        (map #(hash-map :acc (bios/accession %)
+                                         :src (pr-str %)
+                                         :element "sequence")
+                              (bios/biosequence-seq r)))
+                       i))
+      i)))
 
 (defn init-blast-search
   [file]
   (->blastSearch (fs/absolute-path file)))
 
-(defn get-iteration-by-id
-  "Returns the blastIteration object for the specified biosequence from
-     a blastSearch object."
-  [this accession]
-  (with-open [^java.io.BufferedReader r (bios/bs-reader (:src this))]
-    (some #(if (= accession (iteration-query-id %))
-             %)
-          (bios/biosequence-seq r))))
+;; store
 
-(defn get-parameter-value
-  "Returns the value of a blast parameter from a blastSearch object. Key 
-     denotes parameter keys used in the blast xml. All values returned as
-     strings. Typical keys include:
-   :Parameters_matrix
-   :Parameters_expect
-   :Parameters_include
-   :Parameters_sc-match
-   :Parameters_sc-mismatch
-   :Parameters_gap-open
-   :Parameters_gap-extend
-   :Parameters_filter"
-  [this key]
-  (with-open [rdr (io/reader (:src this))]
-    (zf/xml1-> (zip/xml-zip (xml/parse rdr))
-               :BlastOutput_param
-               :Parameters
-               key
-               zf/text)))
+(defrecord blastResultCollection [name pname type]
 
-(defn database-searched
-  "Returns the path (as a string) of the database used in a blast search
-     from a blastSearch object."
-  [this]
-  (with-open [rdr (io/reader (:src this))]
-    (zf/xml1-> (zip/xml-zip (xml/parse rdr))
-               :BlastOutput_db
-               zf/text)))
+  blastSearchAccess
 
-(defn program-used
-  "Returns the program used in a blast search from a blastSearch object."
-  [this]
-  (with-open [rdr (io/reader (:src this))]
-    (zf/xml1-> (zip/xml-zip (xml/parse rdr))
-               :BlastOutput_program
-               zf/text)))
+  (result-by-accession [this accession]
+    (first (sto/get-record this :acc accession :element "sequence")))
+
+  (parameters [this]
+    (first (sto/get-record this :element "parameters")))
+
+  (database [this]
+    (first (sto/get-record this :element "db")))
+
+  (version [this]
+    (first (sto/get-record this :element "version")))
+
+  (program [this]
+    (first (sto/get-record this :element "program")))
+
+  sto/storeCollectionAccess
+
+  (collection-seq [this]
+    (sto/get-record this :element "sequence")))
+
+(defmethod print-method clj_biosequence.blast.blastResultCollection
+  [this ^java.io.Writer w]
+  (bios/print-biosequence this w))
+
+(defn init-blast-collection
+  [name pname type]
+  (->blastResultCollection name pname type))
 
 ;; blast db
 
@@ -304,23 +336,6 @@
       (finally (fs/delete i)))))
 
 ;; helpers
-
-(defn- split-hsp-align
-  "Helper function that takes a list of blast query or hit alignment strings
-   and produces a list of strings formatted for the 'alignment-string' function.
-   Basically it calculates the sequence numbers and sticks them on the start and end."
-  [string begin]
-  (loop [s (partition-all 58 string)
-         b begin
-         st []]
-    (if (empty? s)
-      st
-      (let [l (count (remove #(= % \-) (first s)))]
-        (recur (rest s)
-               (+ b l)
-               (conj st
-                     (pp/cl-format nil "~7@<~A~>~A~7<~A~>" 
-                                   b (apply str (first s)) (+ b (- l 1)))))))))
 
 (defn- get-sequence-from-blast-db [db id]
   (let [s @(exec/sh (list "blastdbcmd" "-entry" id "-db" (:path db)))]

@@ -125,5 +125,7 @@
 (defn- store-read
   [h]
   (if-let [o (wr/bs-read (:src h))]
-    (merge o (dissoc h :src))))
+    (if (string? o)
+      o
+      (merge o (dissoc h :src)))))
 
