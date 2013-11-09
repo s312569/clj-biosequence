@@ -57,6 +57,15 @@
   "Returns a mongoProject for storing sequence collections. Used for
   accessing existing projects or initialising new ones."
   [name]
+  (mg/use-db! "clj-projects")
+  (when (not (mc/exists? "sequence"))
+    (mc/create "sequence" {})
+    (mc/ensure-index "sequences"
+                     (array-map :acc 1 :pname 1 :iname 1)
+                     {:unique true})
+    (mc/ensure-index "sequences"
+                     (array-map :pname 1 :iname 1)
+                     {:sparse true}))
   (->mongoProject name))
 
 (defn list-projects
@@ -76,15 +85,22 @@
   types in the project."
   [project]
   (mg/use-db! "clj-projects")
-  (map #(hash-map % (:type (mc/find-one-as-map "sequences" {:iname %} [:type])))
-       (mc/distinct "sequences" :iname)))
+  (->> (mc/find-maps "sequences" {:pname (:name project)} [:iname :type])
+       (map #(dissoc % :_id))
+       set))
 
-(defn get-collection
-  "Returns an collection object."
-  [project name]
-  (mg/use-db! "clj-projects")
-  (wr/bs-read (:i (mc/find-one-as-map "sequences"
-                                   {:pname (:name project) :iname name}))))
+(defn get-collections
+  "Returns a list of collection objects.FIX THIS"
+  ([project] (get-collections project nil))
+  ([project collection]
+     (mg/use-db! "clj-projects")
+     (let [c (if collection {:iname collection} {})]
+       (if collection
+         (-> (mc/find-one-as-map "sequences" (merge {:pname (:name project)} c))
+             :i wr/bs-read list set)
+         (set (map #(wr/bs-read (:i %))
+                   (mc/find-maps "sequences" {:pname (:name project)}
+                                 [:i])))))))
 
 (defn drop-collection
   "takes a collection object and drops it from the database."
@@ -92,7 +108,7 @@
   (mc/remove "sequences" {:iname (:name collection) :pname (:pname collection)}))
 
 (defn get-record
-  ([collection value] (get-record collection value :acc))
+  ([collection value] (get-record collection :acc value))
   ([collection key value & kv]
      (mg/use-db! "clj-projects")
      (map store-read (mc/find-maps "sequences" (merge {key value
@@ -107,9 +123,7 @@
   (mg/use-db! "clj-projects")
   (let [u (mu/random-uuid)]
     (try
-      (do (mc/ensure-index "sequences"
-                           (array-map :acc 1 :pname -1 :iname -1)
-                           {:unique true :sparse true})
+      (do 
           (mc/insert-batch "sequences"
                            (pmap #(assoc % :_id (ObjectId.) :type (:type i)
                                          :pname (:pname i) :iname (:name i)
