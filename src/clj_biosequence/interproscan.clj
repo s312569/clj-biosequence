@@ -6,6 +6,7 @@
             [clojure.zip :as zip]
             [clojure.string :as string]
             [clj-biosequence.core :as bios]
+            [clj-biosequence.store :as st]
             [fs.core :as fs]))
 
 (declare run-ips)
@@ -16,7 +17,7 @@
 
 (defmethod print-method clj_biosequence.interproscan.interproscanGO
   [this ^java.io.Writer w]
-  (bios/print-tagged this w))
+  (bios/print-biosequence this w))
 
 (defn go-component
   [go]
@@ -39,7 +40,7 @@
 
 (defmethod print-method clj_biosequence.interproscan.interproscanEntry
   [this ^java.io.Writer w]
-  (bios/print-tagged this w))
+  (bios/print-biosequence this w))
 
 (defn init-ips-entry
   [src]
@@ -69,16 +70,16 @@
   bios/Biosequence
 
   (accession [this]
-    (zf/xml1-> (zip/xml-zip (:src this))
-               (zf/attr :id)))
-
-  (bs-save [this]
-    (assoc this :src (pr-str (dissoc this :_id))
-           :acc (bios/accession this))))
+    (apply str
+           (interpose "_"
+                      (drop-last 2
+                                 (string/split (zf/xml1-> (zip/xml-zip (:src this))
+                                                          (zf/attr :id))
+                                               #"_"))))))
 
 (defmethod print-method clj_biosequence.interproscan.interproscanProtein
   [this ^java.io.Writer w]
-  (bios/print-tagged this w))
+  (bios/print-biosequence this w))
 
 (defn init-ips-protein
   [src]
@@ -109,16 +110,26 @@
   (close [this]
     (.close ^java.io.BufferedReader (:strm this))))
 
-(defrecord interproscanSearch [file]
+(defrecord interproscanFile [file]
 
   bios/biosequenceIO
 
   (bs-reader [this]
-    (->interproscanReader (io/reader (:file this)))))
+    (->interproscanReader (io/reader (:file this))))
 
-(defn init-ips-search
+  bios/biosequenceFile
+
+  (bs-path [this]
+    (:file this))
+
+  st/storeCollectionIO
+
+  (mongo-save-file [this project name]
+    (bios/biosequence-save this project name "biosequence/interproscan")))
+
+(defn init-ips-result-file
   [file]
-  (->interproscanSearch (fs/absolute-path file)))
+  (->interproscanFile (fs/absolute-path file)))
 
 ;; ips run
 

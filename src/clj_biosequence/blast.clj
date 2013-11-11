@@ -108,7 +108,12 @@
   bios/Biosequence
 
   (accession [this]
-    (iteration-query-id this)))
+    (iteration-query-id this))
+
+  (save-rep [this]
+    (hash-map :acc (bios/accession this)
+              :src (pr-str this)
+              :element) "sequence"))
 
 (defmethod print-method clj_biosequence.blast.blastIteration
   [this ^java.io.Writer w]
@@ -181,12 +186,10 @@
   bios/biosequenceReader
 
   (biosequence-seq [this]
-    (->> (:content (:xml this))
-         (filter #(= :BlastOutput_iterations (:tag %)))
-         first
-         :content
-         (filter #(= :Iteration (:tag %)))
-         (map #(->blastIteration %))))
+    (map #(->blastIteration (zip/node %))
+          (zf/xml-> (zip/xml-zip (:xml this))
+                    :BlastOutput_iterations
+                    :Iteration)))
 
   java.io.Closeable
 
@@ -255,12 +258,8 @@
                               (hash-map :acc (str (java.util.UUID/randomUUID))
                                         :src (pr-str (parameters r))
                                         :element "parameters"))
-                        (map #(hash-map :acc (bios/accession %)
-                                         :src (pr-str %)
-                                         :element "sequence")
-                              (bios/biosequence-seq r)))
-                       i))
-      i)))
+                        (map bios/save-rep (bios/biosequence-seq r)))
+                       i)))))
 
 (defn init-blast-search
   [file]

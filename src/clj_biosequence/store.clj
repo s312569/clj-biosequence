@@ -30,7 +30,7 @@
 
   (collection-seq [this]
     (map store-read
-         (mc/find-maps "sequences" {:batch_id this}))))
+         (mc/find-maps "sequences" {:pname (:pname this) :iname (:name this)}))))
 
 (defmethod print-method clj_biosequence.store.biosequenceCollection
   [this ^java.io.Writer w]
@@ -79,14 +79,6 @@
   (mg/use-db! "clj-projects")
   (mc/remove "sequences" {:pname (:name project)}))
 
-(defn list-collections
-  "Takes a mongoProject and returns a hash-map of collection names and
-  types in the project."
-  [project]
-  (mg/use-db! "clj-projects")
-  (->> (get-collections project)
-       (map (fn [{n :name t :type}] {n t}))))
-
 (defn get-collections
   "Returns a list of collections in a project."
   ([project] (get-collections project nil))
@@ -96,24 +88,32 @@
        (->> (mc/find-maps "sequences"
                           (merge {:pname (:name project) :coll "t"} c)
                           [:src])
-            (map #(wr/bs-read (:src %)))))))
+            (map #(wr/bs-read (:src %)))
+            (map #(dissoc % :batch_id))
+            distinct))))
+
+(defn list-collections
+  "Takes a mongoProject and returns a hash-map of collection names and
+  types in the project."
+  [project]
+  (mg/use-db! "clj-projects")
+  (->> (get-collections project)
+       (map (fn [{n :name t :type}] {n t}))))
 
 (defn drop-collection
   "takes a collection object and drops it from the database."
   [collection]
   (mg/use-db! "clj-projects")
   (mc/remove "sequences"
-             {:batch_id (-> (get-collections (init-project (:pname collection))
-                                             (:name collection))
-                            first
-                            :batch_id)}))
+             {:pname (:pname collection) :iname (:name collection)}))
 
 (defn get-record
   ([collection value] (get-record collection :acc value))
   ([collection key value & kv]
      (mg/use-db! "clj-projects")
      (map store-read (mc/find-maps "sequences" (merge {key value
-                                                       :batch_id (:batch_id collection)}
+                                                       :pname (:pname collection)
+                                                       :iname (:name collection)}
                                                       (apply hash-map kv))))))
 
 (defn save-list
@@ -123,16 +123,18 @@
   (mg/use-db! "clj-projects")
   (let [u (mu/random-uuid)]
     (try
-      (mc/insert-batch "sequences"
-                       (cons
-                        {:_id (ObjectId.) :acc (mu/random-uuid)
-                         :src (pr-str (assoc i :batch_id u))
-                         :pname (:pname i) :iname (:name i)
-                         :coll "t" :batch_id u}
-                        (pmap #(assoc % :_id (ObjectId.) :batch_id u
-                                      :pname (:pname i) :iname (:name i))
-                              l))
-                       WriteConcern/JOURNAL_SAFE)
+      (dorun (pmap #(mc/insert-batch "sequences"
+                                     %
+                                     WriteConcern/JOURNAL_SAFE)
+                   (partition-all 1000
+                                  (cons
+                                   {:_id (ObjectId.) :acc (mu/random-uuid)
+                                    :src (pr-str (assoc i :batch_id u))
+                                    :pname (:pname i) :iname (:name i)
+                                    :coll "t" :batch_id u}
+                                   (pmap #(assoc % :_id (ObjectId.) :batch_id u
+                                                 :pname (:pname i) :iname (:name i))
+                                         l)))))
       (catch Exception e
         (mc/remove "sequences" {:batch_id u})
         (throw e)))

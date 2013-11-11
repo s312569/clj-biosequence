@@ -30,7 +30,8 @@
   (protein? [this]
     "Returns true if a protein and false otherwise.")
   (alphabet [this]
-    "Returns the alphabet of a biosequence."))
+    "Returns the alphabet of a biosequence.")
+  (save-rep [this]))
 
 (defprotocol biosequenceFile
   (bs-path [this]

@@ -33,11 +33,13 @@
   [this project name type]
   (let [i (st/init-biosequence-collection name (:name project) type)]
     (with-open [r (bs-reader this)]
-      (st/save-list (pmap #(hash-map :acc (accession %)
-                                     :src (pr-str %))
-                       (biosequence-seq r))
-                 i))
-    i))
+      (st/save-list (pmap save-rep (biosequence-seq r))
+                    i))))
+
+(defn mongo-save-list
+  [l project name type]
+  (let [i (st/init-biosequence-collection name (:name project) type)]
+    (st/save-list (pmap #(save-rep (dissoc % :_id :batch_id)) l) i)))
 
 ;; printing
 
