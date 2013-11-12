@@ -8,7 +8,7 @@
   (:import [com.mongodb MongoOptions ServerAddress WriteConcern]
            [org.bson.types ObjectId]))
 
-(declare save-list store-read)
+(declare save-list store-read get-record)
 
 ;; interface
 
@@ -29,8 +29,7 @@
   storeCollectionAccess
 
   (collection-seq [this]
-    (map store-read
-         (mc/find-maps "sequences" {:pname (:pname this) :iname (:name this)}))))
+    (get-record this :element "sequence")))
 
 (defmethod print-method clj_biosequence.store.biosequenceCollection
   [this ^java.io.Writer w]
@@ -56,22 +55,27 @@
   "Returns a mongoProject for storing sequence collections. Used for
   accessing existing projects or initialising new ones."
   [name]
-  (when (not (mc/exists? "sequence"))
-    (mg/use-db! "clj-projects")
-    (mc/create "sequence" {})
-    (mc/ensure-index "sequences"
-                     (array-map :acc 1 :batch_id 1 :_id 1)
-                     {:unique true})
-    (mc/ensure-index "sequences"
-                     (array-map :pname 1 :iname 1 :coll 1 :_id 1)
-                     {:sparse true}))
-  (->mongoProject name))
+  (mg/use-db! "clj-projects")
+  (if (not (mc/exists? "sequences"))
+    (let [p (mc/insert-and-return "sequences" {:pname name :project "t" :started (new java.util.Date)})]
+      (mc/ensure-index "sequences"
+                       (array-map :acc 1 :batch_id 1 :_id 1)
+                       {:unique true})
+      (mc/ensure-index "sequences"
+                       (array-map :pname 1 :iname 1 :coll 1 :_id 1)
+                       {:sparse true})
+      (assoc (->mongoProject name) :started (:started p)))
+    (let [p (first (mc/find-maps "sequences" {:pname name :project "t"}))]
+      (if p
+        (assoc (->mongoProject name) :started (:started p))
+        (assoc (->mongoProject name) :started
+          (mc/insert-and-return "sequences" {:pname name :project "t" :started (new java.util.Date)}))))))
 
 (defn list-projects
   "Returns a set of projects on the server."
   []
   (mg/use-db! "clj-projects")
-  (distinct (map :pname (mc/find-maps "sequences" {:coll "t"} [:pname]))))
+  (distinct (map :pname (mc/find-maps "sequences" {:project "t"} [:pname]))))
 
 (defn drop-project
   "Takes a mongoProject and drops it from the database."
@@ -128,12 +132,13 @@
                                      WriteConcern/JOURNAL_SAFE)
                    (partition-all 1000
                                   (cons
-                                   {:_id (ObjectId.) :acc (mu/random-uuid)
+                                   {:_id (ObjectId.)
                                     :src (pr-str (assoc i :batch_id u))
                                     :pname (:pname i) :iname (:name i)
                                     :coll "t" :batch_id u}
-                                   (pmap #(assoc % :_id (ObjectId.) :batch_id u
-                                                 :pname (:pname i) :iname (:name i))
+                                   (pmap #(merge {:_id (ObjectId.) :batch_id u
+                                                  :pname (:pname i) :iname (:name i)
+                                                  :element "sequence"} %)
                                          l)))))
       (catch Exception e
         (mc/remove "sequences" {:batch_id u})

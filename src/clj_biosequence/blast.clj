@@ -99,21 +99,22 @@
   "Takes a blastHit object and returns a list of floats corresponding
   to the e-values of the HSPs composing the hit."
   [hit]
-  (map #(Float/parseFloat (get-hsp-value % :Hsp_evalue)) (hsp-seq hit)))
+  (let [v (map #(Float/parseFloat (get-hsp-value % :Hsp_evalue)) (hsp-seq hit))]
+    (if (not (empty? v)) v (list 1000000))))
 
 ;; blast iteration
 
 (defrecord blastIteration [src]
-
+  
   bios/Biosequence
-
+  
   (accession [this]
     (iteration-query-id this))
-
+  
   (save-rep [this]
     (hash-map :acc (bios/accession this)
               :src (pr-str this)
-              :element) "sequence"))
+              :element "sequence")))
 
 (defmethod print-method clj_biosequence.blast.blastIteration
   [this ^java.io.Writer w]
