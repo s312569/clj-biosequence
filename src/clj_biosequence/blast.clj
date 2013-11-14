@@ -102,6 +102,23 @@
   (let [v (map #(Float/parseFloat (get-hsp-value % :Hsp_evalue)) (hsp-seq hit))]
     (if (not (empty? v)) v (list 1000000))))
 
+(defn print-alignment [hit]
+  (let [ss (fn [x] (map (partial apply str) (partition-all 52 x)))
+        h (first (hsp-seq hit))
+        l (apply interleave (map ss (list (get-hsp-value h :Hsp_qseq)
+                                          (get-hsp-value h :Hsp_midline)
+                                          (get-hsp-value h :Hsp_hseq))))]
+    (doseq [s (partition 3 l)]
+      (doseq [f s]
+        (println f))
+      (println))))
+
+(defn remove-hit-duplicates
+  "Needs TESTING"
+  [l]
+  (map (fn [[k v]]
+         (apply max-key #(first (hit-bit-scores %)) v)) (seq (group-by #(get-hit-value % :Hit_accession) l))))
+
 ;; blast iteration
 
 (defrecord blastIteration [src]
