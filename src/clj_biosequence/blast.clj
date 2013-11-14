@@ -53,6 +53,11 @@
   [this key]
   (zf/xml1-> (zip/xml-zip (:src this)) key zf/text))
 
+(defn frame
+  "Returns the frame of query match (if there is one)."
+  [hsp]
+  (Integer/parseInt (get-hit-value hsp :Hsp_query-frame)))
+
 ;; blast hit
 
 (defrecord blastHit [src])
@@ -137,6 +142,12 @@
   "Returns the highest scoring blastHit object from a blastIteration object."
   [this]
   (or (first (hit-seq this)) (->blastHit nil)))
+
+(defn top-hsp
+  "Returns the highest scoring hsp from the highest scoring hit in a blast iteration."
+  [it]
+  (or (->> it hit-seq first hsp-seq first)
+      (->blastHSP nil)))
 
 ;; parameters
 
