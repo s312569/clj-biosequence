@@ -42,7 +42,7 @@
 
 (defmethod print-method clj_biosequence.core.fastaSequence
   [this ^java.io.Writer w]
-  (bios/print-tagged this w))
+  (bios/print-biosequence this w))
 
 (defn check-fastq
   [fq]

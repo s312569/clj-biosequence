@@ -14,7 +14,7 @@
 
 (import '(java.io BufferedReader StringReader))
 
-(declare blastp-defaults run-blast get-sequence-from-blast-db blast-default-params split-hsp-align iteration-query-id init-blast-collection)
+(declare blastp-defaults run-blast get-sequence-from-blast-db blast-default-params split-hsp-align iteration-query-id init-blast-collection get-hit-value)
 
 ;; blast hsp
 
