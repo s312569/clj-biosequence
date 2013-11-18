@@ -42,7 +42,7 @@
 
 (defmethod print-method clj_biosequence.core.fastaSequence
   [this ^java.io.Writer w]
-  (bios/print-tagged this w))
+  (bios/print-biosequence this w))
 
 (defn check-fastq
   [fq]
@@ -70,10 +70,11 @@
            (if (and (= \@ (first d))
                     (= \+ (first d1))
                     (= (count s) (count q)))
-             (init-fastq-sequence d s q)
+             (do (println d)
+                 (init-fastq-sequence d s q))
              (throw (Throwable.
                      (str "Data corrupted at: " d)))))
-         (iterate #(take 4 %) (line-seq (:strm this)))))
+         (partition 4 (line-seq (:strm this)))))
 
   java.io.Closeable
 
