@@ -294,6 +294,11 @@
   [file]
   (->blastSearch (fs/absolute-path file)))
 
+
+(defn delete-blast-search
+  [search]
+  (fs/delete (:file search)))
+
 ;; store
 
 (defrecord blastResultCollection [name pname type]
