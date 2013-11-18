@@ -93,24 +93,23 @@
 (defn translate
   "Returns a fastaSequence sequence with a sequence translated in the
    specified frame."
-  ([bs frame] (translate bs frame (ala/codon-tables 1)))
-  ([bs frame table]
-     (let [f ({1 1 2 2 3 3 4 4 5 5 6 6 -1 4 -2 5 -3 6} frame)]
-      (cond (protein? bs)
-            (throw (IllegalArgumentException. "Can't translate a protein sequence!"))
-            (not (#{1 2 3 4 5 6} f))
-            (throw (IllegalArgumentException. (str "Invalid frame: " frame)))
-            :else
-            (init-fasta-sequence (str (accession bs) "-" f)
-                                 (str (def-line bs) " - Translated frame: " f)
-                                 :iupacAminoAcids
-                                 (let [v (cond (#{1 2 3} f)
-                                               (sub-bioseq bs (- f 1))
-                                               (#{4 5 6} f)
-                                               (-> (reverse-comp bs)
-                                                   (sub-bioseq ( - f 4))))]
-                                   (vec (map #(ala/codon->aa % table)
-                                             (partition-bioseq v 3)))))))))
+  [bs frame & {:keys [table id-alter] :or {table (ala/codon-tables 1) id-alter true}}]
+  (let [f ({1 1 2 2 3 3 4 4 5 5 6 6 -1 4 -2 5 -3 6} frame)]
+    (cond (protein? bs)
+          (throw (IllegalArgumentException. "Can't translate a protein sequence!"))
+          (not (#{1 2 3 4 5 6} f))
+          (throw (IllegalArgumentException. (str "Invalid frame: " frame)))
+          :else
+          (init-fasta-sequence (if id-alter (str (accession bs) "-" f) (accession bs))
+                               (str (def-line bs) " - Translated frame: " f)
+                               :iupacAminoAcids
+                               (let [v (cond (#{1 2 3} f)
+                                             (sub-bioseq bs (- f 1))
+                                             (#{4 5 6} f)
+                                             (-> (reverse-comp bs)
+                                                 (sub-bioseq ( - f 4))))]
+                                 (vec (map #(ala/codon->aa % table)
+                                           (partition-bioseq v 3))))))))
 
 (defn six-frame-translation
   "Returns a lazy list of fastaSequence objects representing translations of
