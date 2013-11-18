@@ -70,8 +70,7 @@
            (if (and (= \@ (first d))
                     (= \+ (first d1))
                     (= (count s) (count q)))
-             (do (println d)
-                 (init-fastq-sequence d s q))
+             (init-fastq-sequence d s q)
              (throw (Throwable.
                      (str "Data corrupted at: " d)))))
          (partition 4 (line-seq (:strm this)))))
