@@ -126,8 +126,7 @@
   printed output, the default is fasta-string which will print the
   biosequences to the file in fasta format."
   [bs file & {:keys [append func] :or {append true func fasta-string}}]
-  (if (not append) (fs/delete (fs/absolute-path file)))
-  (with-open [w (io/writer file)]
+  (with-open [w (io/writer file :append append)]
     (dorun (map #(let [n (func %)]
                    (if n
                      (.write w n)))
