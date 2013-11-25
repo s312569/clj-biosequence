@@ -59,7 +59,7 @@
   (if (not (mc/exists? "sequences"))
     (let [p (mc/insert-and-return "sequences" {:pname name :project "t" :started (new java.util.Date)})]
       (mc/ensure-index "sequences"
-                       (array-map :acc 1 :pname 1 :iname -1)
+                       (array-map :acc 1 :pname 1 :iname 1 :_id 1)
                        {:unique true})
       (assoc (->mongoProject name) :started (:started p)))
     (let [p (first (mc/find-maps "sequences" {:pname name :project "t"}))]

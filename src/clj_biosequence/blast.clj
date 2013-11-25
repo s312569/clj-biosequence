@@ -87,18 +87,12 @@
                  :Hit_hsps
                  :Hsp)))
 
-(defn top-hsp
-  "Takes a blastHit object and returns the top scoring blastHSP 
-   object in the hit. Returns an empty blastHSP if blastHit was empty."
-  [this]
-  (or (first (hsp-seq this))
-      (->blastHSP nil)))
-
 (defn hit-bit-scores
   "Takes a blastHit object and returns a list of floats corresponding
   to the bit scores of the HSPs composing the hit."
   [hit]
-  (map #(Float/parseFloat (get-hsp-value % :Hsp_bit-score)) (hsp-seq hit)))
+  (let [v (map #(Float/parseFloat (get-hsp-value % :Hsp_bit-score)) (hsp-seq hit))]
+    (if (not (empty? v)) v (list 0))))
 
 (defn hit-e-value
   "Takes a blastHit object and returns a list of floats corresponding
