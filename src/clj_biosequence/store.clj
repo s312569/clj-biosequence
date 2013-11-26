@@ -57,16 +57,15 @@
   [name]
   (mg/use-db! "clj-projects")
   (if (not (mc/exists? "sequences"))
-    (let [p (mc/insert-and-return "sequences" {:pname name :project "t" :started (new java.util.Date)})]
-      (mc/ensure-index "sequences"
-                       (array-map :acc 1 :pname 1 :iname 1 :_id 1)
-                       {:unique true})
+    (let [p (mc/insert-and-return "sequences"
+                                  {:pname name :project "t" :started (new java.util.Date)})]
       (assoc (->mongoProject name) :started (:started p)))
     (let [p (first (mc/find-maps "sequences" {:pname name :project "t"}))]
       (if p
         (assoc (->mongoProject name) :started (:started p))
         (assoc (->mongoProject name) :started
-          (mc/insert-and-return "sequences" {:pname name :project "t" :started (new java.util.Date)}))))))
+               (mc/insert-and-return "sequences"
+                                     {:pname name :project "t" :started (new java.util.Date)}))))))
 
 (defn list-projects
   "Returns a set of projects on the server."
@@ -80,63 +79,75 @@
   (mg/use-db! "clj-projects")
   (mc/remove "sequences" {:pname (:name project)}))
 
-(defn get-collections
+;; collection functions
+
+(defn get-collection
   "Returns a list of collections in a project."
-  ([project] (get-collections project nil))
-  ([project collection]
-     (mg/use-db! "clj-projects")
-     (let [c (if collection {:iname collection} {})]
-       (->> (mc/find-maps "sequences"
-                          (merge {:pname (:name project) :coll "t"} c)
-                          [:src])
-            (map #(wr/bs-read (:src %)))
-            (map #(dissoc % :batch_id))
-            distinct))))
+  [project collection]
+  (mg/use-db! "clj-projects")
+  (-> (mc/find-maps "sequences"
+                    {:pname (:name project) :coll "t" :name collection}
+                    [:src])
+      first
+      :src
+      wr/bs-read))
 
 (defn list-collections
   "Takes a mongoProject and returns a hash-map of collection names and
   types in the project."
   [project]
   (mg/use-db! "clj-projects")
-  (->> (get-collections project)
-       (map (fn [{n :name t :type}] {n t}))))
+  (into {} (for [x (mc/find-maps "sequences"
+                                 {:pname (:name project) :coll "t"}
+                                 [:name :type])]
+             (vector (:name x) (:type x)))))
 
 (defn drop-collection
   "takes a collection object and drops it from the database."
   [collection]
   (mg/use-db! "clj-projects")
   (mc/remove "sequences"
-             {:pname (:pname collection) :iname (:name collection)}))
+             {:pname (:pname collection) :name (:name collection)}))
+
+;; record functions
 
 (defn get-record
   ([collection value] (get-record collection :acc value))
   ([collection key value & kv]
      (mg/use-db! "clj-projects")
-     (map store-read (mc/find-maps "sequences" (merge {key value
-                                                       :pname (:pname collection)
-                                                       :iname (:name collection)}
-                                                      (apply hash-map kv))))))
+     (store-read (first (mc/find-maps "sequences" (merge {key value
+                                                          :pname (:pname collection)
+                                                          :name (:name collection)}
+                                                         (apply hash-map kv)))))))
+
+;; saving to store
 
 (defn save-list
   "Takes a list of hash-maps for insertion into a mongoDB and a
   collection object and inserts all members of the list."
   [l i]
   (mg/use-db! "clj-projects")
-  (let [u (mu/random-uuid)]
+  (let [u (mu/random-uuid)
+        ci (ObjectId.)]
     (try
-      (dorun (pmap #(mc/insert-batch "sequences"
-                                     %
-                                     WriteConcern/JOURNAL_SAFE)
-                   (partition-all 1000
-                                  (cons
-                                   {:_id (ObjectId.)
-                                    :src (pr-str (assoc i :batch_id u))
-                                    :pname (:pname i) :iname (:name i)
-                                    :coll "t" :batch_id u}
-                                   (pmap #(merge {:_id (ObjectId.) :batch_id u
-                                                  :pname (:pname i) :iname (:name i)
-                                                  :element "sequence"} %)
-                                         l)))))
+      (do (mc/ensure-index "sequences"
+                           (array-map :acc 1 :pname 1 :name 1 :_id 1))
+          (mc/ensure-index "sequences"
+                           (array-map :acc 1 :pname 1 :name 1)
+                           {:unique true})
+          (dorun (pmap #(mc/insert-batch "sequences"
+                                         %
+                                         WriteConcern/JOURNAL_SAFE)
+                       (partition-all 1000
+                                      (cons
+                                       (merge i
+                                              {:_id ci :acc ci
+                                               :src (pr-str (assoc i :batch_id u))
+                                               :coll "t" :batch_id u})
+                                       (pmap #(merge {:_id (ObjectId.) :batch_id u
+                                                      :pname (:pname i) :name (:name i)
+                                                      :element "sequence"} %)
+                                             l))))))
       (catch Exception e
         (mc/remove "sequences" {:batch_id u})
         (throw e)))
