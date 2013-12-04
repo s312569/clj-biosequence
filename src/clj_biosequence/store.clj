@@ -19,7 +19,7 @@
   (mongo-bs-save [this pname cname]))
 
 (defprotocol mongoBSCollectionIO
-  (save-bs-collection [this coll])
+  (save-collection [this coll])
   (collection-types [this])
   (drop-project [this])
   (drop-collection [this]))
@@ -36,7 +36,7 @@
 
   mongoBSCollectionIO
 
-  (save-bs-collection [this coll]
+  (save-collection [this coll]
     (if (or (nil? (:cname (first coll)))
             (= (:cname this) (:cname (first coll)))
             (not (some #(= % this) (all-bs-collections))))
@@ -87,11 +87,11 @@
   [file pname]
   (let [run (init-mongo-collection pname (base-name (bs/bs-path file)))]
     (with-open [r (bs/bs-reader file)]
-      (save-bs-collection run (bs/biosequence-seq r)))))
+      (save-collection run (bs/biosequence-seq r)))))
 
 (defn save-biosequences
   [list coll]
-  (save-bs-collection coll list))
+  (save-collection coll list))
 
 (defn all-biosequence-collections
   []
