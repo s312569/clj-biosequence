@@ -3,9 +3,8 @@
             [fs.core :as fs]
             [clj-http.client :as client]
             [clojure.string :as string]
-            [clj-biosequence.write :refer [print-tagged]]
-            [clj-biosequence.alphabet :as ala]
-            [clj-biosequence.store :as st]))
+            [taoensso.nippy :refer [freeze thaw]]
+            [clj-biosequence.alphabet :as ala]))
 
 (declare init-fasta-store init-fasta-sequence translate)
 
@@ -119,6 +118,10 @@
      (map #(translate nucleotide % table)
           '(1 2 3 -1 -2 -3))))
 
+;;;;;;;;;;;;;;
+;; utilities
+;;;;;;;;;;;;;;
+
 (defn fasta->file
   "Takes a collection of biosequences and prints them to file. To
   append to an existing file use :append true and the :func argument
@@ -133,8 +136,54 @@
                 bs)))
   file)
 
+
+(defn if-string-int
+  "If a string an integer is parsed, if not returns e. Will throw an
+   expception if no integer can be parsed if `error?' is true. Used
+   only when parsing optional fields in files where value could be nil
+   or a string representation of an integer."
+  ([e] (if-string-int e true))
+  ([e error?]
+     (try
+       (if (string? e) (Integer/parseInt e) e)
+       (catch NumberFormatException e
+         (if error?
+           (throw e))))))
+
+;; sequence
+
+(defn clean-sequence
+  "Removes spaces and newlines and checks that all characters are
+   legal characters for the supplied alphabet. Replaces non-valid
+   characters with \\X. If `a' is not a defined alphabet throws an
+   exception."
+  [s a]
+  (let [k (complement (ala/alphabet-chars a))
+        w #{\space \newline}]
+    (vec (remove nil? (map #(cond (k %) \X
+                                  (w %) nil
+                                  :else %) (vec s))))))
+
+;; stats
+
+(defn std-dev [samples]
+  (let [n (count samples)
+        mean (/ (reduce + samples) n)
+        intermediate (map #(Math/pow (- %1 mean) 2) samples)]
+    (Math/sqrt 
+     (/ (reduce + intermediate) n))))
+
+;; serialising
+
+(defn bs-freeze
+  [this]
+  (freeze this))
+
+(defn bs-thaw
+  [this]
+  (thaw this))
+
 ;; helper files
 
 (load "mapping")
-(load "utilities")
 (load "fasta")

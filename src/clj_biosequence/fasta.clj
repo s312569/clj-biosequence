@@ -29,14 +29,7 @@
     (str ">" (accession this) " " (def-line this) "\n" (bioseq->string this) "\n"))
   
   (alphabet [this]
-    (:alphabet this))
-
-  (save-rep [this]
-    (hash-map :acc (accession this) :src (pr-str this))))
-
-(defmethod print-method clj_biosequence.core.fastaSequence
-  [this ^java.io.Writer w]
-  (print-biosequence this w))
+    (:alphabet this)))
 
 (defn init-fasta-sequence
   "Returns a new fastaSequence. Currently :iupacNucleicAcids
@@ -84,12 +77,7 @@
   biosequenceFile
 
   (bs-path [this]
-    (:file this))
-
-  st/storeCollectionIO
-  
-  (mongo-save-file [this project name]
-    (biosequence-save this project name "biosequence/fasta")))
+    (:file this)))
 
 (defrecord fastaString [str alphabet]
 
