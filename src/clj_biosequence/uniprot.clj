@@ -4,7 +4,7 @@
             [clojure.java.io :refer [reader]]
             [clojure.zip :refer [node xml-zip]]
             [clojure.string :refer [split]]
-            [clj-biosequence.core :as bios]
+            [clj-biosequence.core :as bs]
             [clj-biosequence.store :as st]
             [clj-http.client :as client]
             [fs.core :refer [file? temp-file delete]]))
@@ -15,14 +15,14 @@
 
 (defrecord uniprotProtein [src]
 
-  bios/Biosequence
+  bs/Biosequence
   
   (accessions [uniprot]
     (zf/xml-> (xml-zip (:src uniprot)) :accession zf/text))
 
   (accession
     [this]
-    (first (bios/accessions this)))
+    (first (bs/accessions this)))
 
   (def-line [this]
     (let [nom (xml-zip (nomenclature this))]
@@ -31,7 +31,7 @@
            (first (organism this "scientific")) "]")))
 
   (bs-seq [this]
-    (bios/clean-sequence
+    (bs/clean-sequence
      (zf/xml1-> (xml-zip (:src this)) :sequence zf/text) :iupacAminoAcids))
 
   (fasta-string [this]
@@ -39,29 +39,36 @@
                "Swiss-Prot" "sp"
                "TrEMBL" "tr"
                "bs")]
-      (str ">" db "|" (bios/accession this) "|"
+      (str ">" db "|" (bs/accession this) "|"
            (prot-name this)
-           " " (bios/def-line this)
+           " " (bs/def-line this)
            \newline
-           (bios/bioseq->string this)
+           (bs/bioseq->string this)
            \newline)))
 
   (protein? [this] true)
 
   (alphabet [this]
-    :iupacAminoAcids))
+    :iupacAminoAcids)
 
-(defmethod print-method clj_biosequence.uniprot.uniprotProtein
-  [this ^java.io.Writer w]
-  (bios/print-biosequence this w))
+  st/mongoBSRecordIO
+
+  (mongo-bs-save [this pname cname]
+    (let [s (hash-map :acc (bs/accession this) :element "sequence"
+                      :pname pname :cname cname
+                      :type "biosequence/uniprot"
+                      :src (bs/bs-freeze this))]
+      (if (:_id this)
+        (assoc s :_id (:_id this))
+        s))))
 
 ;; IO
 
 (defrecord uniprotReader [strm]
 
-  bios/biosequenceReader
+  bs/biosequenceReader
 
-  (bios/biosequence-seq [this]
+  (bs/biosequence-seq [this]
     (let [xml (parse (:strm this))]
       (map (fn [x]
              (->uniprotProtein x))
@@ -80,32 +87,33 @@
 
 (defrecord uniprotFile [file]
 
-  bios/biosequenceIO
+  bs/biosequenceIO
 
   (bs-reader [this]
     (init-uniprot-reader (reader (:file this))))
 
-  st/storeCollectionIO
+  bs/biosequenceFile
 
-  (mongo-save-file [this project name]
-    (bios/biosequence-save this project name "biosequence/uniprot")))
+  (bs-path [this]
+    (:file this)))
 
 (defrecord uniprotString [str]
 
-  bios/biosequenceIO
+  bs/biosequenceIO
 
   (bs-reader [this]
-    (init-uniprot-reader (java.io.BufferedReader. (java.io.StringReader. (:str this))))))
+    (init-uniprot-reader (java.io.BufferedReader.
+                          (java.io.StringReader. (:str this))))))
 
 (defrecord uniprotConnection [acc-list retype email]
 
-  bios/biosequenceIO
+  bs/biosequenceIO
 
   (bs-reader [this]
     (let [s (get-uniprot-stream (:acc-list this) (:retype this) (:email this))]
       (condp = (:retype this)
         :xml (init-uniprot-reader (reader s))
-        :fasta (bios/init-fasta-reader (reader s) :iupacAminoAcids)))))
+        :fasta (bs/init-fasta-reader (reader s) :iupacAminoAcids)))))
 
 (defn init-uniprotxml-file
   "Initialises a uniprotXmlFile object for use with bs-reader."

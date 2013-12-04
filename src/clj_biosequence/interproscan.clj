@@ -5,7 +5,7 @@
             [clj-commons-exec :as exec]
             [clojure.zip :as zip]
             [clojure.string :as string]
-            [clj-biosequence.core :as bios]
+            [clj-biosequence.core :as bs]
             [clj-biosequence.store :as st]
             [fs.core :as fs]))
 
@@ -14,10 +14,6 @@
 ;; ips go entry
 
 (defrecord interproscanGO [src])
-
-(defmethod print-method clj_biosequence.interproscan.interproscanGO
-  [this ^java.io.Writer w]
-  (bios/print-biosequence this w))
 
 (defn go-component
   [go]
@@ -37,10 +33,6 @@
 ;; ips entry
 
 (defrecord interproscanEntry [src])
-
-(defmethod print-method clj_biosequence.interproscan.interproscanEntry
-  [this ^java.io.Writer w]
-  (bios/print-biosequence this w))
 
 (defn init-ips-entry
   [src]
@@ -67,7 +59,7 @@
 
 (defrecord interproscanProtein [src]
 
-  bios/Biosequence
+  bs/Biosequence
 
   (accession [this]
     (apply str
@@ -75,11 +67,18 @@
                       (drop-last 2
                                  (string/split (zf/xml1-> (zip/xml-zip (:src this))
                                                           (zf/attr :id))
-                                               #"_"))))))
+                                               #"_")))))
 
-(defmethod print-method clj_biosequence.interproscan.interproscanProtein
-  [this ^java.io.Writer w]
-  (bios/print-biosequence this w))
+  st/mongoBSRecordIO
+
+  (mongo-bs-save [this pname cname]
+    (let [s (hash-map :acc (bs/accession this) :element "sequence"
+                      :pname pname :cname cname
+                      :type "biosequence/interproscan"
+                      :src (bs/bs-freeze this))]
+      (if (:_id this)
+        (assoc s :_id (:_id this))
+        s))))
 
 (defn init-ips-protein
   [src]
@@ -98,7 +97,7 @@
 
 (defrecord interproscanReader [strm]
 
-  bios/biosequenceReader
+  bs/biosequenceReader
 
   (biosequence-seq [this]
     (->> (:content (xml/parse (:strm this)))
@@ -112,20 +111,15 @@
 
 (defrecord interproscanFile [file]
 
-  bios/biosequenceIO
+  bs/biosequenceIO
 
   (bs-reader [this]
     (->interproscanReader (io/reader (:file this))))
 
-  bios/biosequenceFile
+  bs/biosequenceFile
 
   (bs-path [this]
-    (:file this))
-
-  st/storeCollectionIO
-
-  (mongo-save-file [this project name]
-    (bios/biosequence-save this project name "biosequence/interproscan")))
+    (:file this)))
 
 (defn init-ips-result-file
   [file]
@@ -139,9 +133,9 @@
                                                           lookup true
                                                           goterms true}}]
   (if (#{"p" "n"} seqtype)
-    (let [i (bios/fasta->file bs (fs/temp-file "seq-") :append false
-                              :func (fn [x] (if (not (> (count (bios/bs-seq x)) 10000))
-                                             (bios/fasta-string x))))]
+    (let [i (bs/fasta->file bs (fs/temp-file "seq-") :append false
+                              :func (fn [x] (if (not (> (count (bs/bs-seq x)) 10000))
+                                             (bs/fasta-string x))))]
       (try
         (run-ips (fs/absolute-path i) (fs/absolute-path outfile)
                  seqtype appl lookup goterms)
@@ -164,7 +158,7 @@
   (try
     (let [ips @(exec/sh (ips-command i o s a l g))]
       (if (= 0 (:exit ips))
-        (->interproscanSearch o)
+        (->interproscanFile o)
         (throw (Throwable. (str "Interproscan error: " (:err ips))))))
     (catch Exception e
       (str "Exception: " (:exception ips))

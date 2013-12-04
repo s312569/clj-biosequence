@@ -20,7 +20,7 @@
 
 (defprotocol mongoBSCollectionIO
   (save-bs-collection [this coll])
-  (run-type [this])
+  (collection-types [this])
   (drop-project [this])
   (drop-collection [this]))
 
@@ -30,7 +30,7 @@
   []
   (mg/connect!))
 
-;; run
+;; biosequence collection
 
 (defrecord mongoBSCollection [pname cname]
 
@@ -45,7 +45,8 @@
                            {:unique true})
           (let [b (mu/random-uuid)]
             (try
-              (do (dorun (->> (map #(mongo-bs-save % (:pname this) (:cname this)) coll)
+              (do (dorun (->> (map #(mongo-bs-save % (:pname this) (:cname this))
+                                   coll)
                               (pmap #(mc/save "sequences" (assoc % :batch b)
                                               WriteConcern/SAFE))))
                   this)
@@ -54,7 +55,7 @@
                 (throw e)))))
       (throw (Throwable. "Illegal operation"))))
 
-  (run-type [this]
+  (collection-types [this]
     (mc/distinct "sequences" :type {:pname (:pname this)
                                     :cname (:ename this)}))
 
@@ -72,7 +73,8 @@
 
   (biosequence-seq [this]
     (mg/use-db! "clj-biosequence")
-    (map store-read (mc/find-maps "sequences" {:pname (:pname this) :cname (:cname this)
+    (map store-read (mc/find-maps "sequences" {:pname (:pname this)
+                                               :cname (:cname this)
                                                :element "sequence"}))))
 
 (defn init-mongo-collection
@@ -87,13 +89,18 @@
     (with-open [r (bs/bs-reader file)]
       (save-bs-collection run (bs/biosequence-seq r)))))
 
+(defn save-biosequences
+  [list coll]
+  (save-bs-collection coll list))
+
 (defn all-biosequence-collections
   []
   (mg/use-db! "clj-biosequence")
   (map (fn [{:keys [pname cname]}]
          (init-mongo-collection pname cname))
        (distinct (map #(dissoc % :_id)
-                      (mc/find-maps "sequences" {:cname {"$regex" ".*"}}
+                      (mc/find-maps "sequences"
+                                    {:cname {"$regex" ".*"}}
                                     [:pname :cname])))))
 
 (defn biosequence-collections
@@ -131,7 +138,8 @@
   (mongo-bs-save [this pname cname]
     (let [s (hash-map :acc (bs/accession this) :element "sequence"
                       :pname pname :cname cname
-                      :type "biosequence/fasta" :src (bs/bs-freeze this))]
+                      :type "biosequence/fasta"
+                      :src (bs/bs-freeze this))]
       (if (:_id this)
         (assoc s :_id (:_id this))
         s))))

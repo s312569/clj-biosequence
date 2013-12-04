@@ -7,17 +7,14 @@
             [clojure.java.io :as io]
             [fs.core :as fs]
             [clj-biosequence.alphabet :as ala]
-            [clj-biosequence.core :as bs]))
+            [clj-biosequence.core :as bs]
+            [clj-biosequence.store :as st]))
 
 (declare qualifier-extract init-genbank-store feature-seq genbank-search-helper genbank-sequence-helper moltype get-genbank-stream check-db check-rt)
 
 ; interval
 
 (defrecord genbankInterval [src])
-
-(defmethod print-method clj_biosequence.genbank.genbankInterval
-  [this ^java.io.Writer w]
-  (bs/print-tagged this w))
 
 (defn start
   "Start index of a genbankInterval."
@@ -72,10 +69,6 @@
 ; feature
 
 (defrecord genbankFeature [src])
-
-(defmethod print-method clj_biosequence.genbank.genbankFeature
-  [this ^java.io.Writer w]
-  (bs/print-tagged this w))
 
 (defn feature-seq
   "Returns a lazy list of features from a genbankSequence."
@@ -164,11 +157,20 @@
 
 ; sequence
 
-(defrecord genbankSequence [src])
+(defrecord genbankSequence [src]
 
-(extend-protocol bs/Biosequence
+  st/mongoBSRecordIO
 
-  genbankSequence
+  (mongo-bs-save [this pname cname]
+    (let [s (hash-map :acc (bs/accession this) :element "sequence"
+                      :pname pname :cname cname
+                      :type "biosequence/genbank"
+                      :src (bs/bs-freeze this))]
+      (if (:_id this)
+        (assoc s :_id (:_id this))
+        s)))
+
+  bs/Biosequence
 
   (accession [this]
     (zf/xml1-> (zip/xml-zip (:src this))
@@ -211,10 +213,6 @@
           :else
           (throw (Throwable. (str "Unknown moltype: " (moltype this)))))))
 
-(defmethod print-method clj_biosequence.genbank.genbankSequence
-  [this ^java.io.Writer w]
-  (bs/print-tagged this w))
-
 ; IO
 
 (defrecord genbankReader [strm]
@@ -242,7 +240,12 @@
   bs/biosequenceIO
 
   (bs-reader [this]
-    (init-genbank-reader (io/reader (:file this)))))
+    (init-genbank-reader (io/reader (:file this))))
+
+  bs/biosequenceFile
+
+  (bs-path [this]
+    (:file this)))
 
 (defrecord genbankString [str]
 

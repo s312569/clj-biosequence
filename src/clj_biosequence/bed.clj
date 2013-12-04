@@ -1,39 +1,42 @@
 (ns clj-biosequence.bed
   (:require [clojure.java.io :as io]
             [clojure.string :as string]
-            [clj-biosequence.core :as bios]
+            [clj-biosequence.core :as bs]
+            [clj-biosequence.store :as st]
             [fs.core :as fs]))
 
 ;; entry
 
 (defrecord bedSequence [chrom start end name score strand thickstart thickend itemrgb blockcount blocksizes blockstarts]
 
-  bios/Biosequence
+  bs/Biosequence
 
   (accession [this]
     (:name this))
 
-  (bs-save [this]
-    (let [s (pr-str (dissoc this :_id))]
-      (assoc {:src s}
-        (:_id this)))))
+  st/mongoBSRecordIO
 
-(defmethod print-method clj_biosequence.bed.bedSequence
-  [this ^java.io.Writer w]
-  (bios/print-tagged this w))
+  (mongo-bs-save [this pname cname]
+    (let [s (hash-map :acc (bs/accession this) :element "sequence"
+                      :pname pname :cname cname
+                      :type "biosequence/bed"
+                      :src (bs/bs-freeze this))]
+      (if (:_id this)
+        (assoc s :_id (:_id this))
+        s))))
 
 (defn init-bed-sequence
   [chrom start end name score strand thickstart thickend itemrgb blockcount blocksizes blockstarts]
   (->bedSequence chrom
-                 (bios/if-string-int start false)
-                 (bios/if-string-int end false)
+                 (bs/if-string-int start false)
+                 (bs/if-string-int end false)
                  name score
                  (if (#{"+" "-"} strand) strand
                      (throw (Throwable. (str  "Disallowed strand value: " strand))))
-                 (bios/if-string-int thickstart false)
-                 (bios/if-string-int thickend false)
+                 (bs/if-string-int thickstart false)
+                 (bs/if-string-int thickend false)
                  itemrgb
-                 (bios/if-string-int blockcount false)
+                 (bs/if-string-int blockcount false)
                  blocksizes
                  blockstarts))
 
@@ -41,7 +44,7 @@
 
 (defrecord bedReader [strm]
 
-  bios/biosequenceReader
+  bs/biosequenceReader
 
   (biosequence-seq [this]
     (map #(apply init-bed-sequence (first (partition 12 12 (repeat "") %)))
@@ -56,19 +59,19 @@
 
 (defrecord bedFile [file]
 
-  bios/biosequenceIO
+  bs/biosequenceIO
 
   (bs-reader [this]
     (->bedReader (io/reader (:file this))))
 
-  bios/biosequenceFile
+  bs/biosequenceFile
 
   (bs-path [this]
     (:file this)))
 
 (defrecord bedString [str]
 
-  bios/biosequenceIO
+  bs/biosequenceIO
 
   (bs-reader [this]
     (->bedReader (java.io.BufferedReader. (java.io.StringReader. (:str this))))))
@@ -83,7 +86,9 @@
   [str]
   (->bedString str))
 
+
 ;; Format details:
+
 ;; chrom - The name of the chromosome on which the genome feature exists.
 ;; Any string can be used. For example, “chr1”, “III”, “myChrom”, “contig1112.23”.
 ;; This column is required.

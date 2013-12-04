@@ -35,7 +35,7 @@
   (close [this]
     (.close ^java.io.BufferedReader (:strm this))))
 
-(defrecord signalpResult [file]
+(defrecord signalpFile [file]
 
   bios/biosequenceIO
 
@@ -51,7 +51,7 @@
     (with-open [out (io/output-stream outfile)]
       (let [sp @(exec/sh (signal-command params in) {:out out})]
         (if (= 0 (:exit sp))
-          (->signalpResult (fs/absolute-path outfile))
+          (->signalpFile (fs/absolute-path outfile))
           (if (:err sp)
             (throw (Throwable. (str "SignalP error: " (:err sp))))
             (throw (Throwable. (str "Exception: " (:exception sp))))))))))

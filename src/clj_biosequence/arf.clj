@@ -34,10 +34,6 @@
       (assoc {:src s}
         (:_id this)))))
 
-(defmethod print-method clj_biosequence.arf.arfSequence
-  [this ^java.io.Writer w]
-  (bios/print-tagged this w))
-
 (defn init-arf-sequence [lst]
   (let [[accession length start-read end-read seq-read genome-id length-genome start-genome end-genome seq-genome strand mismatches match-string]
         lst]
