@@ -57,6 +57,8 @@
                                         (clean-sequence seqs (:alphabet this))))))
          (partition 2 (partition-by #(re-find #"^>" %) (line-seq (:strm this))))))
 
+  (parameters [this])
+
   java.io.Closeable
 
   (close [this]

@@ -34,6 +34,9 @@
     (map #(make-tmhmm-result %)
          (line-seq strm)))
 
+  (parameters [this]
+    ())
+
   java.io.Closeable
 
   (close [this]

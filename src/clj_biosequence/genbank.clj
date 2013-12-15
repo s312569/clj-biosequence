@@ -226,6 +226,9 @@
            (filter #(= (:tag %) :GBSeq)
                    (:content xml)))))
 
+  (parameters [this]
+    ())
+
   java.io.Closeable
 
   (close [this]

@@ -26,7 +26,7 @@
 
 ;; connect
 
-(defn mongo-connect
+(defn mongo-bs-connect
   []
   (mg/connect!))
 
@@ -75,7 +75,19 @@
     (mg/use-db! "clj-biosequence")
     (map store-read (mc/find-maps "sequences" {:pname (:pname this)
                                                :cname (:cname this)
-                                               :element "sequence"}))))
+                                               :element "sequence"})))
+
+  (parameters [this]
+    (mg/use-db! "clj-biosequence")
+    (first (map store-read (mc/find-maps "sequences" {:pname (:pname this)
+                                                      :cname (:cname this)
+                                                      :element "parameter"}))))
+
+  (get-biosequence [this accession]
+    (first (map store-read (mc/find-maps "sequences" {:pname (:pname this)
+                                                      :cname (:cname this)
+                                                      :acc accession
+                                                      :element "sequence"})))))
 
 (defn init-mongo-collection
   [pname cname]
@@ -87,7 +99,8 @@
   [file pname]
   (let [run (init-mongo-collection pname (base-name (bs/bs-path file)))]
     (with-open [r (bs/bs-reader file)]
-      (save-collection run (bs/biosequence-seq r)))))
+      (save-collection run (bs/biosequence-seq r))
+      (save-collection run (bs/parameters r)))))
 
 (defn save-biosequences
   [list coll]

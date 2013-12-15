@@ -13,7 +13,9 @@
   biosequences. Use with `with-open'"))
 
 (defprotocol biosequenceReader
-  (biosequence-seq [this]))
+  (biosequence-seq [this])
+  (parameters [this])
+  (get-biosequence [this accession]))
 
 (defprotocol Biosequence
   (accession [this]
@@ -29,12 +31,21 @@
   (protein? [this]
     "Returns true if a protein and false otherwise.")
   (alphabet [this]
-    "Returns the alphabet of a biosequence.")
-  (save-rep [this]))
+    "Returns the alphabet of a biosequence."))
 
 (defprotocol biosequenceFile
   (bs-path [this]
     "Returns the path of the file as string."))
+
+(defprotocol biosequenceCitation
+  (ref-type [this])
+  (title [this])
+  (journal [this])
+  (year [this])
+  (volume [this])
+  (pstart [this])
+  (pend [this])
+  (authors [this]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions

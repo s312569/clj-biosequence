@@ -4,8 +4,8 @@
             [clj-commons-exec :as exec]
             [clojure.data.zip.xml :as zf]
             [clojure.zip :as zip]
-            [clj-biosequence.core :as bios]
-            [clj-biosequence.store :as sto]
+            [clj-biosequence.core :as bs]
+            [clj-biosequence.store :as st]
             [clojure.pprint :as pp]
             [clojure.string :refer [split]]
             [clojure.data.xml :as xml]
@@ -19,10 +19,6 @@
 ;; blast hsp
 
 (defrecord blastHSP [src])
-
-(defmethod print-method clj_biosequence.blast.blastHSP
-  [this ^java.io.Writer w]
-  (bios/print-biosequence this w))
 
 (defn get-hsp-value
   "Takes a blastHSP object and returns the value corresponding to key.
@@ -61,10 +57,6 @@
 ;; blast hit
 
 (defrecord blastHit [src])
-
-(defmethod print-method clj_biosequence.blast.blastHit
-  [this ^java.io.Writer w]
-  (bios/print-biosequence this w))
 
 (defn get-hit-value
   "Takes a blastHit object and returns the value corresponding to key. 
@@ -116,25 +108,28 @@
   "Needs TESTING"
   [l]
   (map (fn [[k v]]
-         (apply max-key #(first (hit-bit-scores %)) v)) (seq (group-by #(get-hit-value % :Hit_accession) l))))
+         (apply max-key #(first (hit-bit-scores %)) v))
+       (seq (group-by #(get-hit-value % :Hit_accession) l))))
 
 ;; blast iteration
 
 (defrecord blastIteration [src]
   
-  bios/Biosequence
+  bs/Biosequence
   
   (accession [this]
     (iteration-query-id this))
-  
-  (save-rep [this]
-    (hash-map :acc (bios/accession this)
-              :src (pr-str this)
-              :element "sequence")))
 
-(defmethod print-method clj_biosequence.blast.blastIteration
-  [this ^java.io.Writer w]
-  (bios/print-biosequence this w))
+  st/mongoBSRecordIO
+
+  (mongo-bs-save [this pname cname]
+    (let [s (hash-map :acc (bs/accession this) :element "sequence"
+                      :pname pname :cname cname
+                      :type "biosequence/blast-iteration"
+                      :src (bs/bs-freeze this))]
+      (if (:_id this)
+        (assoc s :_id (:_id this))
+        s))))
 
 (defn iteration-query-id
   "Takes a blastIteration object and returns the query ID."
@@ -162,9 +157,20 @@
 
 ;; parameters
 
-(defrecord blastParameters [src])
+(defrecord blastParameters [src]
 
-(defn parameter-value
+  st/mongoBSRecordIO
+
+  (mongo-bs-save [this pname cname]
+    (let [s (hash-map :acc (bs/accession this) :element "parameter"
+                      :pname pname :cname cname
+                      :type "biosequence/blast-parameters"
+                      :src (bs/bs-freeze this))]
+      (if (:_id this)
+        (assoc s :_id (:_id this))
+        s))))
+
+(defn blast-parameter-value
   "Returns the value of a blast parameter from a blastParameters. Key
    denotes parameter keys used in the blast xml. All values returned
    as strings. Typical keys include:
@@ -181,108 +187,80 @@
              key
              zf/text))
 
+(defn blast-database
+  [param]
+  (:database (:src param)))
+
+(defn blast-version
+  [param]
+  (:version (:src param)))
+
+(defn blast-program
+  [param]
+  (:program (:src param)))
+
 (defn- init-blast-params
   [src]
   (->blastParameters src))
-
-(defmethod print-method clj_biosequence.blast.blastParameters
-  [this ^java.io.Writer w]
-  (bios/print-biosequence this w))
 
 ;; blastSearch
 
 (defprotocol blastSearchAccess
   (result-by-accession [this accession]
-    "Returns the blast search for the specified protein.")
-  (parameters [this]
-    "returns a blastParameters from the search.")
-  (database [this]
-    "Returns the path (as a string) of the database used in a blast
-     search from a blastSearch object.")
-  (version [this]
-    "returns the version of the blast used in the search.")
-  (program [this]
-    "Returns the program used in a blast search from a blastSearch object."))
+    "Returns the blast search for the specified protein."))
 
 (defrecord blastReader [strm xml]
 
-  bios/biosequenceReader
+  bs/biosequenceReader
 
   (biosequence-seq [this]
     (map #(->blastIteration (zip/node %))
           (zf/xml-> (zip/xml-zip (:xml this))
                     :BlastOutput_iterations
                     :Iteration)))
-
+  
+  (parameters [this]
+    (let [p (->> (:content (:xml this))
+                 (filter #(= :BlastOutput_param (:tag %)))
+                 first
+                 :content
+                 first)]
+      (list
+       (init-blast-params (assoc p
+                            :database (->> (:content (:xml this))
+                                           (filter #(= :BlastOutput_db (:tag %)))
+                                           first
+                                           :content
+                                           first)
+                            :version (->> (:content (:xml this))
+                                          (filter #(= :BlastOutput_version (:tag %)))
+                                          first
+                                          :content
+                                          first)
+                            :program (->> (:content (:xml this))
+                                          (filter #(= :BlastOutput_program (:tag %)))
+                                          first
+                                          :content
+                                          first))))))
   java.io.Closeable
-
+  
   (close [this]
     (.close ^java.io.BufferedReader (:strm this)))
-
+  
   blastSearchAccess
-
+  
   (result-by-accession [this accession]
     (some #(if (= accession (iteration-query-id %))
              %)
-          (bios/biosequence-seq this)))
-
-  (parameters [this]
-    (->> (:content (:xml this))
-         (filter #(= :BlastOutput_param (:tag %)))
-         first
-         :content
-         first
-         init-blast-params))
-
-  (database [this]
-    (->> (:content (:xml this))
-         (filter #(= :BlastOutput_db (:tag %)))
-         first
-         :content
-         first))
-
-  (version [this]
-    (->> (:content (:xml this))
-         (filter #(= :BlastOutput_version (:tag %)))
-         first
-         :content
-         first))
-
-  (program [this]
-    (->> (:content (:xml this))
-         (filter #(= :BlastOutput_program (:tag %)))
-         first
-         :content
-         first)))
+          (bs/biosequence-seq this))))
 
 (defrecord blastSearch [file]
 
-  bios/biosequenceIO
+  bs/biosequenceIO
 
   (bs-reader [this]
     (let [s (io/reader (:file this))]
-      (->blastReader s (xml/parse s))))
-
-  sto/storeCollectionIO
-
-  (mongo-save-file [this project name]
-    (let [i (init-blast-collection name (:name project) "biosequence/blast")]
-      (with-open [r (bios/bs-reader this)]
-        (sto/save-list (concat
-                        (list (hash-map :acc (str (java.util.UUID/randomUUID))
-                                        :src (pr-str (database r))
-                                        :element "db")
-                              (hash-map :acc (str (java.util.UUID/randomUUID))
-                                        :src (pr-str (program r))
-                                        :element "program")
-                              (hash-map :acc (str (java.util.UUID/randomUUID))
-                                        :src (pr-str (version r))
-                                        :element "version")
-                              (hash-map :acc (str (java.util.UUID/randomUUID))
-                                        :src (pr-str (parameters r))
-                                        :element "parameters"))
-                        (map bios/save-rep (bios/biosequence-seq r)))
-                       i)))))
+      (->blastReader s (xml/parse s)))))
 
 (defn init-blast-search
   [file]
@@ -293,52 +271,18 @@
   [search]
   (fs/delete (:file search)))
 
-;; store
-
-(defrecord blastResultCollection [name pname type]
-
-  blastSearchAccess
-
-  (result-by-accession [this accession]
-    (first (sto/get-record this :acc accession :element "sequence")))
-
-  (parameters [this]
-    (first (sto/get-record this :element "parameters")))
-
-  (database [this]
-    (first (sto/get-record this :element "db")))
-
-  (version [this]
-    (first (sto/get-record this :element "version")))
-
-  (program [this]
-    (first (sto/get-record this :element "program")))
-
-  sto/storeCollectionAccess
-
-  (collection-seq [this]
-    (sto/get-record this :element "sequence")))
-
-(defmethod print-method clj_biosequence.blast.blastResultCollection
-  [this ^java.io.Writer w]
-  (bios/print-biosequence this w))
-
-(defn init-blast-collection
-  [name pname type]
-  (->blastResultCollection name pname type))
-
 ;; blast db
 
 (defrecord blastDB [path alphabet])
 
-(defn get-sequence
+(defn blast-get-sequence
   "Returns the specified sequence from a blastDB object as a fastaSequence object."
   [db id]
   (if id
     (let [fs (-> (get-sequence-from-blast-db db id)
-                 (bios/init-fasta-string (:alphabet db)))]
-      (with-open [r (bios/bs-reader fs)]
-        (first (bios/biosequence-seq r))))))
+                 (bs/init-fasta-string (:alphabet db)))]
+      (with-open [r (bs/bs-reader fs)]
+        (first (bs/biosequence-seq r))))))
 
 (defn init-blast-db
   "Initialises a blastDB object."
@@ -354,7 +298,7 @@
 (defn blast
   [bs program db & {:keys [outfile params] :or {outfile (fs/temp-file "blast")
                                                 params {}}}]
-  (let [i (bios/fasta->file bs (fs/temp-file "seq-") :append false)]
+  (let [i (bs/fasta->file bs (fs/temp-file "seq-") :append false)]
     (try
       (run-blast program db
                  (fs/absolute-path i)

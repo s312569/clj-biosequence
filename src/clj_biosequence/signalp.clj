@@ -30,6 +30,9 @@
     (map #(make-signal-result %)
          (drop 2 (line-seq strm))))
 
+  (parameters [this]
+    ())
+
   java.io.Closeable
 
   (close [this]

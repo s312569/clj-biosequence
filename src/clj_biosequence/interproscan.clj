@@ -104,6 +104,9 @@
          (filter #(= :protein (:tag %)))
          (map #(->interproscanProtein %))))
 
+  (parameters [this]
+    ())
+
   java.io.Closeable
 
   (close [this]

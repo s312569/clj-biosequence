@@ -14,6 +14,12 @@
   (accession [this]
     (:name this))
 
+  (accessions [this]
+    (list (bs/accession this)))
+
+  (protein? [this]
+    false)
+
   st/mongoBSRecordIO
 
   (mongo-bs-save [this pname cname]
@@ -51,6 +57,13 @@
          (filter (fn [x] (not (#{"browser" "track"} (first x))))
                  (map #(string/split % #"\s+")
                       (line-seq (:strm this))))))
+
+  (parameters [this]
+    nil)
+
+  (get-biosequence [this accession]
+    (first (filter #(= (bs/accession %) accession)
+                   (bs/biosequence-seq this))))
 
   java.io.Closeable
 

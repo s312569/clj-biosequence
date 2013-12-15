@@ -3,13 +3,51 @@
             [clojure.data.zip.xml :as zf]
             [clojure.java.io :refer [reader]]
             [clojure.zip :refer [node xml-zip]]
-            [clojure.string :refer [split]]
+            [clojure.string :refer [split trim]]
             [clj-biosequence.core :as bs]
             [clj-biosequence.store :as st]
             [clj-http.client :as client]
             [fs.core :refer [file? temp-file delete]]))
 
 (declare prot-name meta-data nomenclature get-uniprot-stream organism)
+
+;; citation
+
+(defrecord uniprotCitation [src]
+
+  bs/biosequenceCitation
+
+  (ref-type [this]
+    (zf/xml1-> (xml-zip (:src this))
+               :citation (zf/attr :type)))
+
+  (title [this]
+    (zf/xml1-> (xml-zip (:src this))
+               :citation :title zf/text))
+
+  (journal [this]
+    (zf/xml1-> (xml-zip (:src this))
+               :citation (zf/attr :name)))
+
+  (year [this]
+    (Integer/parseInt (zf/xml1-> (xml-zip (:src this))
+                                 :citation (zf/attr :date))))
+
+  (volume [this]
+    (Integer/parseInt (zf/xml1-> (xml-zip (:src this))
+                                 :citation (zf/attr :volume))))
+
+  (pstart [this]
+    (Integer/parseInt (zf/xml1-> (xml-zip (:src this))
+                                 :citation (zf/attr :first))))
+
+  (pend [this]
+    (Integer/parseInt (zf/xml1-> (xml-zip (:src this))
+                                 :citation (zf/attr :last))))
+
+  (authors [this]
+    (zf/xml-> (xml-zip (:src this))
+              :citation :authorList :person (zf/attr :name))))
 
 ;; protein
 
@@ -32,7 +70,7 @@
 
   (bs-seq [this]
     (bs/clean-sequence
-     (zf/xml1-> (xml-zip (:src this)) :sequence zf/text) :iupacAminoAcids))
+     (trim (zf/xml1-> (xml-zip (:src this)) :sequence zf/text)) :iupacAminoAcids))
 
   (fasta-string [this]
     (let [db (condp = (:dataset (meta-data this))
@@ -74,6 +112,8 @@
              (->uniprotProtein x))
            (filter #(= (:tag %) :entry)
                    (:content xml)))))
+
+  (parameters [this])
 
   java.io.Closeable
 
@@ -221,7 +261,7 @@
        (zf/xml-> (xml-zip (:src uniprot)) :gene)))
 
 (defn gene-location
-  "Returns a list of maps describing the gene location."
+  "Returns a list of maps describing gene locations."
   [uniprot]
   (map #(merge (:attrs (node (zf/xml1-> %)))
                (hash-map :other (zf/xml1-> % zf/text)))
@@ -229,13 +269,9 @@
                  :geneLocation)))
 
 (defn citations
-  "Returns citation information as a list of xml elements. Contains information
-   country, last (page), date, pubmed, institute, name (journal), first 
-   (page), title, city, scope, type, consortium, number, authors, source,
-   editors, publisher, volume and db."
   [uniprot]
-  (map node (zf/xml-> (xml-zip (:src uniprot))
-                          :reference)))
+  (->> (zf/xml-> (xml-zip (:src uniprot)) :reference)
+       (map #(->uniprotCitation (node %)))))
 
 (defn comment-value
   "Returns a list of maps containing text for a particular comment
