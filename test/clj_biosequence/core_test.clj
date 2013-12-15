@@ -5,64 +5,79 @@
         clj-biosequence.store
         clj-biosequence.uniprot))
 
+(def fasta-nuc (with-open [f (bs-reader (init-fasta-file
+                                         (io/resource "test-files/nuc-sequence.fasta")
+                                         :iupacNucleicAcids))]
+                 (first (biosequence-seq f))))
+
+(def un-seq (with-open [f (bs-reader
+                           (init-uniprotxml-file
+                            (io/resource "test-files/uniprot-s-mansoni-20121217.xml")))]
+              (first (biosequence-seq f))))
+
 (deftest fasta
-  (testing "Fasta:"
-    (let [nuc (init-fasta-sequence "gi|196122522|gb|EU910552.1|" "Viola baoshanensis cyclotide precursor 7c mRNA, complete cds" :iupacNucleicAcids "ATGAAGATGTTTGTTGCCCTTGTGCTCTTTGCAGCCTTCGCTCTCCCCGCTGCCTTTGCAGCTCAGCAAGATGTCATCACTCTCCGAGCTTATGAGGAGCTTCTCAAGAATGGGGCTGCTAATGGAATGACCAAAACTGTCATCTCAAGCCCTGTTCTTGAAGAGGCTCTCGTCTCTTACTCCAAGAACAAGCTCGGCGGTCTTCCTGTCTGCGGAGAGACTTGCGTCGGTGGAACATGCAACACCCCTGGGTGCGGCTGCAGCTGGCCAGTCTGCACCAGAAACTCTCTTGAAAGCACCAAATCTGCAAACCCTCTCCTTGAAGAGGCACTCACCACGTTCGCCAAGAAAGGTCTTGGCGGTCTTCCCGTCTGCGGTGAGACTTGCGTCGGCGGAACATGCAACACCCCTGGGTGCACTTGCAGCTGGCCTGTTTGCACCAGAAATGCTCTTGAGACTCAGAAACCCAACCATTTGCTCGAAGAGGCACTCATTGCATTCGCCAAGAAAGGTAACCTCGGTGGTCTTCCCGTATGCGGCGAAACTTGCGTTGGTGGAACATGCAACACCCCTGGGTGCTCCTGCAGCTGGCCTGTTTGCACCAGAAACTCTCTTGCCATGTAAGACTGAGATTTAGGCATATGGCTGGACAATGCTCGATTTGTTGTTTGTCGTTCTCGTTCTTGTTGTTTGTCGGAGAGGAGGCTATACATGCTGGTGACATATGAAATTACCTAAAATTAAAATGTAAAGCATGCCTCCTTTCCCT")
-          prot (init-fasta-sequence "tr|Q93X48|Q93X48_LENER" "Lectin OS=Lens ervoides GN=lectin PE=4 SV=2" :iupacAminoAcids "MASLQTQMISFYLIFLSILLTTIFFFKVNSTETTSFSITKFSPDQQNLIFQGDGYTTKEKLTLTKAVKNTVGRALYSTPIHIWDRDTGNVANFVTSFTFVINAPNSYNVADGFTFFIAPVDTKPQTGGGYLGVFNSKDYDKTSQTVAVEFDTFYNAAWDPSNKDRHIGIDVNSIKSVSTKSWNLQNGERANVVIAFNAATNVLTVTLTYPNSLEEENVTSYTLNEVVPMKDVLPEWVRIGFSATTGAEFAAHEVLSWSFHSELGGTSSSKQAADA")]
-      (testing "Translation:"
-        (is (= "MKMFVALVLFAAFALPAAFAAQQDVITLRAYEELLKNGAANGMTKTVISSPVLEEALVSYSKNKLGGLPVCGETCVGGTCNTPGCGCSWPVCTRNSLESTKSANPLLEEALTTFAKKGLGGLPVCGETCVGGTCNTPGCTCSWPVCTRNALETQKPNHLLEEALIAFAKKGNLGGLPVCGETCVGGTCNTPGCSCSWPVCTRNSLAM*D*DLGIWLDNARFVVCRSRSCCLSERRLYMLVTYEIT*N*NVKHASFPX"
-               (bioseq->string (translate nuc 1))))
-        (is (= "RERRHALHFNFR*FHMSPACIASSPTNNKNENDKQQIEHCPAICLNLSLTWQESFWCKQASCRSTQGCCMFHQRKFRRIREDHRGYLSWRMQ*VPLRANGWVSESQEHFWCKQASCKCTQGCCMFRRRKSHRRREDRQDLSWRTW*VPLQGEGLQIWCFQESFWCRLASCSRTQGCCMFHRRKSLRRQEDRRACSWSKRREPLQEQGLR*QFWSFH*QPHS*EAPHKLGE**HLAELQRQRGERRLQRAQGQQTSSX"
-               (bioseq->string (nth (six-frame-translation nuc) 3)))))
-      (testing "Fasta string"
-        (is (= ">gi|196122522|gb|EU910552.1| Viola baoshanensis cyclotide precursor 7c mRNA, complete cds\nATGAAGATGTTTGTTGCCCTTGTGCTCTTTGCAGCCTTCGCTCTCCCCGCTGCCTTTGCAGCTCAGCAAGATGTCATCACTCTCCGAGCTTATGAGGAGCTTCTCAAGAATGGGGCTGCTAATGGAATGACCAAAACTGTCATCTCAAGCCCTGTTCTTGAAGAGGCTCTCGTCTCTTACTCCAAGAACAAGCTCGGCGGTCTTCCTGTCTGCGGAGAGACTTGCGTCGGTGGAACATGCAACACCCCTGGGTGCGGCTGCAGCTGGCCAGTCTGCACCAGAAACTCTCTTGAAAGCACCAAATCTGCAAACCCTCTCCTTGAAGAGGCACTCACCACGTTCGCCAAGAAAGGTCTTGGCGGTCTTCCCGTCTGCGGTGAGACTTGCGTCGGCGGAACATGCAACACCCCTGGGTGCACTTGCAGCTGGCCTGTTTGCACCAGAAATGCTCTTGAGACTCAGAAACCCAACCATTTGCTCGAAGAGGCACTCATTGCATTCGCCAAGAAAGGTAACCTCGGTGGTCTTCCCGTATGCGGCGAAACTTGCGTTGGTGGAACATGCAACACCCCTGGGTGCTCCTGCAGCTGGCCTGTTTGCACCAGAAACTCTCTTGCCATGTAAGACTGAGATTTAGGCATATGGCTGGACAATGCTCGATTTGTTGTTTGTCGTTCTCGTTCTTGTTGTTTGTCGGAGAGGAGGCTATACATGCTGGTGACATATGAAATTACCTAAAATTAAAATGTAAAGCATGCCTCCTTTCCCT\n"
-               (fasta-string nuc))))
-      (testing "Core biosequence functions"
-        (is (= [\A \G \G \G \A \A \A \G \G \A \G]
-               (bs-seq (sub-bioseq (reverse-comp nuc) 0 11))))
-        (is (= [\M \K \M \F \V \A \L \V \L \F]
-               (bs-seq (sub-bioseq (translate nuc 1) 0 10))))
-        (is (= [\G \K \E \A \C \F \T \F]
-               (bs-seq (sub-bioseq (nth (six-frame-translation nuc) 5) 0 8)))))
-      (testing "File access"
-        (let [f (io/resource "test-files/nuc-sequence.fasta")
-              ff (init-fasta-file f :iupacNucleicAcids)
-              fs (init-fasta-string (slurp f) :iupacNucleicAcids)]
-          (with-open [r (bs-reader ff)]
-            (is (= [\G \T \A \C \A \A \A]
-                   (bs-seq (sub-bioseq (first (biosequence-seq r)) 0 7)))))
-          (with-open [r (bs-reader fs)]
-            (is (= [\G \T \A \C \A \A \A]
-                   (bs-seq (sub-bioseq (first (biosequence-seq r)) 0 7)))))
-          (testing "Store"
-            (let [p (init-project "clj-test")
-                  c (mongo-connect)
-                  i (mongo-save-file ff p "testing")]
-              (is (= 6 (count (collection-seq i))))
-              (is (= "gi|116025203|gb|EG339215.1|EG339215"
-                     (accession (first (collection-seq i)))))
-              (drop-project p)
-              (mongo-disconnect)))))
-      (testing "Mapping"
-        (is (= "B5B3Z7" ((id-convert '("196122523") "P_GI" "ACC"
-                                     "jason.mulvenna@gmail.com")
-                         "196122523")))))))
+  (testing "Fasta"
+    (is (= "gi|116025203|gb|EG339215.1|EG339215" (accession fasta-nuc)))
+    (is (= (list "gi|116025203|gb|EG339215.1|EG339215") (accessions fasta-nuc)))
+    (is (= (vec "KAAN-aaa29f08.b1") (subvec (vec (def-line fasta-nuc)) 0 16)))
+    (is (= [\G \T \A \C \A \A \A] (subvec (bs-seq fasta-nuc) 0 7)))
+    (is (= false (protein? fasta-nuc)))
+    (is (= :iupacNucleicAcids (alphabet fasta-nuc)))
+    (is (= java.lang.String (class (bioseq->string fasta-nuc))))
+    (is (= 143 (get (residue-frequencies fasta-nuc) \G)))
+    (is (= [\G \T \A \C \A \A \A] (bs-seq (sub-bioseq fasta-nuc 0 7))))
+    (is (= [\G \T \A] (first (partition-bioseq fasta-nuc))))
+    (is (= [\T \A \A \T] (bs-seq (sub-bioseq (reverse-comp fasta-nuc) 0 4))))
+    (is (= [\A \T \T \A] (bs-seq (sub-bioseq (reverse-seq fasta-nuc) 0 4))))
+    (is (= "accession" (with-open [s (bs-reader (init-fasta-string
+                                                 ">accession\n desc\n sequence"
+                                                 :iupacNucleicAcids))]
+                         (accession (first (biosequence-seq s))))))
+    (is (= nil
+           (with-open [f (bs-reader (init-fasta-file
+                                     (io/resource "test-files/nuc-sequence.fasta")
+                                     :iupacNucleicAcids))]
+             (parameters f))))))
 
 (deftest uniprot
   (testing "Uniprot"
-    (let [uf (io/resource "test-files/uniprot-s-mansoni-20121217.xml")
-          uff (init-uniprotxml-file uf)
-          up (with-open [r (bs-reader uff)]
-               (first (biosequence-seq r)))
-          us (init-uniprot-string (slurp uf))
-          uc (init-uniprot-connection '("P56871" "P56879" "P84641" "P84642")
-                                      :xml "jason.mulvenna@gmail.com")]
-      (is (= [\X \M \E \Q \C \V] (bs-seq (sub-bioseq up 0 6))))
-      (is (= "C4PYP8" (accession up)))
-      (is (= "P35661" (with-open [r (bs-reader us)]
-                        (accession (second (biosequence-seq r))))))
-      (is (= "P56871"
-             (first (wget-uniprot-search "cyclotide" "jason.mulvenna@gmail.com"))))
-      (is (= "P84641"
-             (with-open [r (bs-reader uc)]
-               (accession (nth (biosequence-seq r) 2))))))))
+    (is (= "C4PYP8" (accession un-seq)))
+    (is (= (list "C4PYP8" "G4VQR6") (accessions un-seq)))
+    (is (= (vec "Anamorsin") (subvec (vec (def-line un-seq)) 0 9)))
+    (is (= [\M \E \Q \C \V \A] (subvec (bs-seq un-seq) 0 6)))
+    (is (= true (protein? un-seq)))
+    (is (= :iupacAminoAcids (alphabet un-seq)))
+    (is (= java.lang.String (class (bioseq->string un-seq))))
+    (is (= 16 (get (residue-frequencies un-seq) \A)))
+    (is (= [\M \E \Q \C \V \A] (bs-seq (sub-bioseq un-seq 0 6))))
+    (is (= [\M \E \Q] (first (partition-bioseq un-seq))))
+    (is (= "C4PYP8"
+           (with-open [f (-> (io/resource "test-files/uniprot-s-mansoni-20121217.xml")
+                             slurp
+                             init-uniprot-string
+                             bs-reader)]
+             (accession (first (biosequence-seq f))))))
+    (is (= nil
+           (with-open [f (-> (io/resource "test-files/uniprot-s-mansoni-20121217.xml")
+                             init-uniprotxml-file
+                             bs-reader)]
+             (parameters f))))
+    (is (= '("Schistosoma mansoni") (organism un-seq "scientific")))
+    (is (= "Eukaryota" (first (lineage un-seq))))
+    (is (= "DRE2_SCHMA" (prot-name un-seq)))
+    (is (= '("Anamorsin homolog") (nomenclature un-seq "recommendedName")))
+    (is (= '("29662") (sequence-info un-seq "mass")))
+    (is (= "Smp_207000" (:gene (first (gene un-seq)))))
+    (testing "Citations"
+      (let [c (first (citations un-seq))]
+        (is (= "journal article" (ref-type c)))
+        (is (= "The genome of the blood fluke Schistosoma mansoni." (title c)))
+        (is (= "Nature" (journal c)))
+        (is (= 2009 (year c)))
+        (is (= 460 (volume c)))
+        (is (= 352 (pstart c)))
+        (is (= 358 (pend c)))
+        (is (= "Berriman M." (first (authors c))))))
+    (is (= "function" (comments un-seq)))
+    (is (= (vec "May be required") (subvec (vec (comment-value un-seq "function"))
+                                           0 15)))))
