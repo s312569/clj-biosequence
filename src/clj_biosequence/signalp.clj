@@ -4,7 +4,7 @@
             [clj-commons-exec :as exec]
             [clojure.data.zip.xml :as zf]
             [clojure.zip :as zip]
-            [clj-biosequence.core :as bios]
+            [clj-biosequence.core :as bs]
             [clojure.string :as string]
             [clojure.pprint :as pp]
             [clojure.data.xml :as xml]))
@@ -15,7 +15,7 @@
 
 (defrecord signalpProtein [name cmax cpos ymax ypos smax spos smean D result Dmaxcut network]
 
-  bios/Biosequence
+  bs/Biosequence
 
   (accession [this]
     (:name this)))
@@ -24,7 +24,7 @@
 
 (defrecord signalpReader [strm]
 
-  bios/biosequenceReader
+  bs/biosequenceReader
 
   (biosequence-seq [this]
     (map #(make-signal-result %)
@@ -40,33 +40,55 @@
 
 (defrecord signalpFile [file]
 
-  bios/biosequenceIO
+  bs/biosequenceIO
 
   (bs-reader [this]
-    (->signalpReader (io/reader (:file this)))))
+    (->signalpReader (io/reader (:file this))))
+
+  bs/biosequenceFile
+
+  (bs-path [this]
+    (:file this)))
 
 (defn signalp
-  [bs & {:keys [params outfile] :or {params {} outfile (fs/temp-file "sp")}}]
-  (let [in (bios/fasta->file bs (fs/temp-file "sp-in")
-                             :append false :func (fn [x] (if (bios/protein? x)
-                                                          (bios/fasta-string x)
-                                                          (throw (Throwable. "SignalP only analyses proteins.")))))]
-    (with-open [out (io/output-stream outfile)]
-      (let [sp @(exec/sh (signal-command params in) {:out out})]
-        (if (= 0 (:exit sp))
-          (->signalpFile (fs/absolute-path outfile))
-          (if (:err sp)
-            (throw (Throwable. (str "SignalP error: " (:err sp))))
-            (throw (Throwable. (str "Exception: " (:exception sp))))))))))
-
-(defn signalp?
-  "Returns true if sequence contains signal sequence, false otherwise. Really slow."
-  [prot]
-  (let [spr (signalp (list prot))]
+  [bs & {:keys [params outfile] :or {params {} outfile nil}}]
+  (let [in (bs/fasta->file
+            bs (fs/temp-file "sp-in")
+            :append false
+            :func (fn [x]
+                    (if (bs/protein? x)
+                      (bs/fasta-string x)
+                      (throw (Throwable. "SignalP only analyses proteins.")))))
+        outf (if outfile outfile (fs/temp-file "sp-"))]
     (try
-      (with-open [r (bios/bs-reader spr)]
-        (= (:result (signalp (list prot))) "Y"))
-      (finally (fs/delete (:file spr))))))
+      (with-open [out (io/output-stream outf)]
+        (let [sp @(exec/sh (signal-command params in) {:out out})]
+          (if (= 0 (:exit sp))
+            (->signalpFile (fs/absolute-path outf))
+            (if (:err sp)
+              (throw (Throwable. (str "SignalP error: " (:err sp))))
+              (throw (Throwable. (str "Exception: " (:exception sp))))))))
+      (finally (fs/delete in)))))
+
+(defn filter-signalp
+  [bsl & {:keys [params] :or {params {}}}]
+  (let [sps (signalp bsl :params params)]
+    (try (let [h (with-open [r (bs/bs-reader sps)]
+                   (doall (into {} (map (fn [x] (vector (bs/accession x)
+                                                       (list (:result x)
+                                                             (:cpos x))))
+                                        (bs/biosequence-seq r)))))]
+           (remove nil?
+                   (map #(if (= "Y" (first (get h (bs/accession %))))
+                           (bs/init-fasta-sequence (bs/accession %)
+                                                   (bs/def-line %)
+                                                   :iupacAminoAcids
+                                                   (subvec
+                                                    (bs/bs-seq %)
+                                                    (+ 1 (second
+                                                          (get h (bs/accession %)))))))
+                        bsl)))
+         (finally (fs/delete (bs/bs-path sps))))))
 
 ;; private
 
