@@ -13,7 +13,7 @@
 
 ;; ips go entry
 
-(defrecord interproscanGO [src])
+(defrecord interproscanGo [src])
 
 (defn go-component
   [go]
@@ -50,7 +50,7 @@
 
 (defn ips-go-seq
   [e]
-  (map #(->interproscanGO (zip/node %))
+  (map #(->interproscanGo (zip/node %))
        (zf/xml-> (zip/xml-zip (:src e))
                  :classification
                  (zf/attr= :class_type "GO"))))
