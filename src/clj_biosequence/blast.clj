@@ -18,10 +18,10 @@
 
 ;; blast hsp
 
-(defrecord blastHSP [src])
+(defrecord blastHsp [src])
 
 (defn get-hsp-value
-  "Takes a blastHSP object and returns the value corresponding to key.
+  "Takes a blastHsp object and returns the value corresponding to key.
      Keys are the keyword version of the XML nodes in the BLAST xml output. 
     All values are returned as strings. Typical BLAST HSP values are:
     :Hsp_bit-score
@@ -71,10 +71,10 @@
   (zf/xml1-> (zip/xml-zip (:src this)) key zf/text))
 
 (defn hsp-seq
-  "Takes a blastHit object and returns a lazy list of the blastHSP 
+  "Takes a blastHit object and returns a lazy list of the blastHsp 
    objects contained in the hit."
   [this]
-  (map #(->blastHSP (zip/node %))
+  (map #(->blastHsp (zip/node %))
        (zf/xml-> (zip/xml-zip (:src this))
                  :Hit_hsps
                  :Hsp)))
@@ -131,6 +131,10 @@
         (assoc s :_id (:_id this))
         s))))
 
+(defn init-blast-iteration
+  [src]
+  (->blastIteration src))
+
 (defn iteration-query-id
   "Takes a blastIteration object and returns the query ID."
   [this]
@@ -153,7 +157,7 @@
   "Returns the highest scoring hsp from the highest scoring hit in a blast iteration."
   [it]
   (or (->> it hit-seq first hsp-seq first)
-      (->blastHSP nil)))
+      (->blastHsp nil)))
 
 ;; parameters
 
@@ -209,39 +213,20 @@
   (result-by-accession [this accession]
     "Returns the blast search for the specified protein."))
 
-(defrecord blastReader [strm xml]
+(defrecord blastReader [strm parameters]
 
   bs/biosequenceReader
 
   (biosequence-seq [this]
-    (map #(->blastIteration (zip/node %))
-          (zf/xml-> (zip/xml-zip (:xml this))
-                    :BlastOutput_iterations
-                    :Iteration)))
+    (->> (:content (xml/parse (:strm this)))
+         (some #(if (= :BlastOutput_iterations (:tag %)) %))
+         :content
+         (filter #(= :Iteration (:tag %)))
+         (map init-blast-iteration)))
   
   (parameters [this]
-    (let [p (->> (:content (:xml this))
-                 (filter #(= :BlastOutput_param (:tag %)))
-                 first
-                 :content
-                 first)]
-      (list
-       (init-blast-params (assoc p
-                            :database (->> (:content (:xml this))
-                                           (filter #(= :BlastOutput_db (:tag %)))
-                                           first
-                                           :content
-                                           first)
-                            :version (->> (:content (:xml this))
-                                          (filter #(= :BlastOutput_version (:tag %)))
-                                          first
-                                          :content
-                                          first)
-                            :program (->> (:content (:xml this))
-                                          (filter #(= :BlastOutput_program (:tag %)))
-                                          first
-                                          :content
-                                          first))))))
+    (:parameters this))
+  
   java.io.Closeable
   
   (close [this]
@@ -254,13 +239,48 @@
              %)
           (bs/biosequence-seq this))))
 
+(defn init-blast-reader
+  [s p]
+  (->blastReader s p))
+
 (defrecord blastSearch [file]
 
   bs/biosequenceIO
 
   (bs-reader [this]
-    (let [s (io/reader (:file this))]
-      (->blastReader s (xml/parse s)))))
+    (let [p (with-open [r (io/reader (:file this))]
+              (let [p (->> (:content (xml/parse r))
+                           (filter #(= :BlastOutput_param (:tag %)))
+                           first
+                           :content
+                           first)]
+                (list
+                 (init-blast-params (assoc p
+                                      :database
+                                      (->> (:content (:xml this))
+                                           (filter #(= :BlastOutput_db (:tag %)))
+                                           first
+                                           :content
+                                           first)
+                                      :version
+                                      (->> (:content (:xml this))
+                                           (filter #(= :BlastOutput_version (:tag %)))
+                                           first
+                                           :content
+                                           first)
+                                      :program
+                                      (->> (:content (:xml this))
+                                           (filter #(= :BlastOutput_program (:tag %)))
+                                           first
+                                           :content
+                                           first))))))
+          r (io/reader (:file this))]
+      (init-blast-reader r p)))
+
+  bs/biosequenceFile
+
+  (bs-path [this]
+    (:file this)))
 
 (defn init-blast-search
   [file]
@@ -306,6 +326,19 @@
                  params)
       (finally (fs/delete i)))))
 
+(defn print-blast-bs
+  [bs program db & {:keys [outfile params] :or {outfile (fs/temp-file "blast")
+                                                params {}}}]
+  (try
+    (let [b (blast (list bs) program db :outfile outfile :params params)]
+      (with-open [r (bs/bs-reader b)]
+        (doall (map #(list (get-hit-value % :Hit_accession)
+                           (get-hit-value % :Hit_def)
+                           (hit-bit-scores %))
+                    (take 3 (hit-seq (first (bs/biosequence-seq r))))))))
+    (finally
+      (fs/delete outfile))))
+
 ;; helpers
 
 (defn- get-sequence-from-blast-db [db id]
@@ -322,7 +355,7 @@
    (remove #(nil? %)
            (flatten (seq (merge {"-evalue" "10"
                                  "-outfmt" "5"
-                                 "-max_target_seqs" "1"
+                                 "-max_target_seqs" "3"
                                  "-query"
                                  in-file
                                  "-out"
