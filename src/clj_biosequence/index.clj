@@ -52,7 +52,8 @@
 
   (get-biosequence [this accession]
     (let [[o l] (get (:index this) accession)]
-      (read-one o l (bs/bs-path (:file this))))))
+      (if o
+        (read-one o l (bs/bs-path (:file this)))))))
 
 (defn save-index
   [idx]
@@ -80,6 +81,29 @@
                     (into {})
                     init-file-index)
           :file ofile)))))
+
+(defn index-biosequence-multi-file
+  [files out]
+  (let [ofile (init-index-file (str (fs/absolute-path out) ".bin"))]
+    (with-open [o (bs/bs-reader ofile)]
+      (-> (apply merge (doall (map
+                                #(with-open [r (bs/bs-reader %)]
+                                   (->> (bs/biosequence-seq r)
+                                        (map (fn [x] (write-and-position x (:strm o))))
+                                        (into {})))
+                                files)))
+          init-file-index
+          (assoc :file ofile)))))
+
+(defn index-biosequence-list
+  [lst outfile]
+  (let [ofile (init-index-file (str (fs/absolute-path outfile) ".bin"))]
+    (with-open [o (bs/bs-reader ofile)]
+      (assoc (->> lst
+                  (map #(write-and-position % (:strm o)))
+                  (into {})
+                  init-file-index)
+        :file ofile))))
 
 ;; utility
 
