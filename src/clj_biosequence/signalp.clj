@@ -90,7 +90,7 @@
                                                     (+ 1 (second
                                                           (get h (bs/accession %)))))))
                         bsl)))
-         (finally (fs/delete (bs/bs-path sps))))))
+         (finally (map #(fs/delete (bs/bs-path %)) sps)))))
 
 ;; private
 
@@ -105,11 +105,8 @@
   (-> (into []
             (merge
              {"-f" "short" ;Setting the output format ('short', 'long', 'summary' or 'all')
-              "-g" "Off" ;Graphics 'png' or 'png+eps'. Default: 'Off'
-              "-k" "Off" ;Keep temporary directory. Default: 'Off'
               "-s" "best" ;Signal peptide networks to use ('best' or 'notm'). Default: 'best'
               "-t" "euk" ;Organism type> (euk, gram+, gram-). Default: 'euk'
-              "-m" "Off" ;Make fasta file with mature sequence. Default: 'Off'
               "-c" "70" ; truncate to sequence length - 0 means no truncation. Default '70'
               "-l" "STDERR" ;Logfile if -v is defined. Default: 'STDERR'
               "-v" "Off"    ;Verbose. Default: 'Off'
