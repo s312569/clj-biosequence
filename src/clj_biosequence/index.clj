@@ -20,7 +20,7 @@
 
 (defn init-index-writer
   [strm]
-  (->indexReader strm))
+  (->indexWriter strm))
 
 ;; indexed file
 
