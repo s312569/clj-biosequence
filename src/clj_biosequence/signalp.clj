@@ -72,12 +72,14 @@
 
 (defn filter-signalp
   [bsl & {:keys [params] :or {params {}}}]
-  (let [sps (signalp bsl :params params)]
-    (try (let [h (with-open [r (bs/bs-reader sps)]
-                   (doall (into {} (map (fn [x] (vector (bs/accession x)
-                                                       (list (:result x)
-                                                             (:cpos x))))
-                                        (bs/biosequence-seq r)))))]
+  (let [sps (pmap #(signalp % :params params)
+                  (partition-all 10000 bsl))]
+    (try (let [h (->> (map #(with-open [r (bs/bs-reader %)]
+                              (doall (into {} (map (fn [x] (vector (bs/accession x)
+                                                                  (list (:result x)
+                                                                        (:cpos x))))
+                                                   (bs/biosequence-seq r))))) sps)
+                      (apply merge))]
            (remove nil?
                    (map #(if (= "Y" (first (get h (bs/accession %))))
                            (bs/init-fasta-sequence (bs/accession %)
