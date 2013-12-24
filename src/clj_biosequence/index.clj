@@ -3,6 +3,7 @@
             [fs.core :as fs]
             [clojure.string :as string]
             [clj-biosequence.core :as bs]
+            [clojure.edn :as edn]
             [taoensso.nippy :as nip])
   (:import [java.io RandomAccessFile]))
 
@@ -10,14 +11,14 @@
 
 ;; reader
 
-(defrecord indexReader [strm]
+(defrecord indexWriter [strm]
 
   java.io.Closeable
   
   (close [this]
     (.close ^java.io.RandomAccessFile (:strm this))))
 
-(defn init-index-reader
+(defn init-index-writer
   [strm]
   (->indexReader strm))
 
@@ -28,12 +29,10 @@
   bs/biosequenceFile
 
   (bs-path [this]
-    (:path this))
+    (:path this)))
 
-  bs/biosequenceIO
-
-  (bs-reader [this]
-    (init-index-reader (RandomAccessFile. (:path this) "rw"))))
+(defn bs-writer [this]
+  (init-index-writer (RandomAccessFile. (:path this) "rw")))
 
 (defn init-index-file
   [path]
@@ -55,55 +54,52 @@
       (if o
         (read-one o l (bs/bs-path (:file this)))))))
 
-(defn save-index
-  [idx]
-  (let [o (str (bs/bs-path (:file idx)) ".idx")]
-    (with-open [out (bs/bs-reader (init-index-file o))]
-      (.write (:strm out) (bs/bs-freeze idx)))))
-
-(defn load-index
-  [file]
-  (let [l (.length (io/file file))
-        bb (byte-array l)]
-    (with-open [r (RandomAccessFile. file "rw")]
-      (.read r bb)
-      (bs/bs-thaw bb))))
-
 ;; creation
 
 (defn index-biosequence-file
   [file]
   (let [ofile (init-index-file (str (bs/bs-path file) ".bin"))]
-    (with-open [o (bs/bs-reader ofile)]
-      (with-open [i (bs/bs-reader file)]
-        (assoc (->> (bs/biosequence-seq i)
-                    (map #(write-and-position % (:strm o)))
-                    (into {})
-                    init-file-index)
-          :file ofile)))))
+    (with-open [o (bs-writer ofile)]
+      (let [i (with-open [i (bs/bs-reader file)]
+                (assoc (->> (bs/biosequence-seq i)
+                            (map #(write-and-position % (:strm o)))
+                            (into {})
+                            init-file-index)
+                  :file ofile))]
+        (spit (str (bs/bs-path file) ".idx") (:index i))
+        i))))
 
 (defn index-biosequence-multi-file
   [files out]
   (let [ofile (init-index-file (str (fs/absolute-path out) ".bin"))]
-    (with-open [o (bs/bs-reader ofile)]
-      (-> (apply merge (doall (map
-                                #(with-open [r (bs/bs-reader %)]
-                                   (->> (bs/biosequence-seq r)
-                                        (map (fn [x] (write-and-position x (:strm o))))
-                                        (into {})))
-                                files)))
-          init-file-index
-          (assoc :file ofile)))))
+    (with-open [o (bs-writer ofile)]
+      (let [i (-> (apply merge (doall (map
+                                       #(with-open [r (bs/bs-reader %)]
+                                          (->> (bs/biosequence-seq r)
+                                               (map (fn [x] (write-and-position x (:strm o))))
+                                               (into {})))
+                                       files)))
+                  init-file-index
+                  (assoc :file ofile))]
+        (spit (str (fs/absolute-path out) ".idx") (:index i))
+        i))))
 
 (defn index-biosequence-list
   [lst outfile]
-  (let [ofile (init-index-file (str (fs/absolute-path outfile) ".bin"))]
-    (with-open [o (bs/bs-reader ofile)]
-      (assoc (->> lst
-                  (map #(write-and-position % (:strm o)))
-                  (into {})
-                  init-file-index)
-        :file ofile))))
+  (let [ofile (init-index-file (str (fs/absolute-path outfile) ".bin"))
+        i (with-open [o (bs-writer ofile)]
+            (assoc (->> lst
+                        (map #(write-and-position % (:strm o)))
+                        (into {})
+                        init-file-index)
+              :file ofile))]
+    (spit (str (fs/absolute-path outfile) ".idx") (:index i))
+    i))
+
+(defn load-biosequence-index
+  [ind]
+  (assoc (init-file-index (edn/read-string (slurp (str (fs/absolute-path ind) ".ind"))))
+    :file (init-index-file (str (fs/absolute-path ind) ".bin"))))
 
 ;; utility
 
