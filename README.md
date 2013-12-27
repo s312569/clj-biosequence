@@ -164,10 +164,9 @@ servers (see below).
 
 ## Indexing
 
-It can get tedious using `with-open` when using sequence files and random access to
-particular biosequences is also slow as it relies on filtering the lazy sequences for
-accession numbers. So `clj-biosequence.index` provides a simple mechanism for indexing
-biosequence files.
+It can get tedious using `with-open` and random access to particular biosequences
+is also slow as it relies on filtering the lazy sequences foraccession numbers.
+So `clj-biosequence.index` provides a simple mechanism for indexing biosequence files.
 
 Typical usage as follows:
 
