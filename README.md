@@ -284,11 +284,11 @@ user> (with-open [r (bs-reader tox-bl)]
 ;; (note that calling `accession` on a BLAST iteraton returns the query accession):
 
 user> (with-open [r (bs-reader tox-bl)]
-                 (doall (->> (biosequence-seq r)
-                             (filter #(>= (-> (hit-seq %) second hit-bit-scores first) 50))
-                             (map #(vector (accession %)
-                                           (-> (hit-seq %) second hit-accession)))
-                                           (into {}))))
+                 (->> (biosequence-seq r)
+                      (filter #(>= (-> (hit-seq %) second hit-bit-scores first) 50))
+                      (map #(vector (accession %)
+                                    (-> (hit-seq %) second hit-accession)))
+                      (into {}))))
 {"sp|P84001|29C0_ANCSP" "B3EWT5", "sp|P0CE81|A1HB1_LOXIN" "P0CE80", "sp|C0JAT9|A1H1_LOXSP"
 "C0JAU1", "sp|P0CE82|A1HB2_LOXIN" "P0CE81", "sp|P0CE80|A1HA_LOXIN" "P0CE81",
 "sp|C0JAT8|A1H4_LOXHI" "C0JAT6", "sp|C0JAT5|A1H2_LOXHI" "C0JAT6", "sp|C0JAT6|A1H3_LOXHI"
@@ -297,6 +297,47 @@ user> (with-open [r (bs-reader tox-bl)]
 "Q5UFR8", "sp|C1IC48|3FN4_WALAE" "C1IC47", "sp|C1IC49|3FN5_WALAE" "Q53B61",
 "sp|P84028|45C1_ANCSP" "O76199", "sp|Q56JA9|A1H_LOXSM" "P0CE81", "sp|P0CE78|A1H1_LOXRE"
 "P0CE79", "sp|P0CE79|A1H2_LOXRE" "P0CE78"}
+
+;; This can be combined with indexes or biosequence files to obtain the original
+;; query biosequences.
+
+user> (with-open [r (bs-reader tox-bl)]
+                 (->> (biosequence-seq r)
+                      (filter #(>= (-> (hit-seq %) second hit-bit-scores first) 50))
+                      (map #(get-biosequence toxin-index (accession %)))
+                      first))
+#clj_biosequence.core.fastaSequence{:acc "sp|P84001|29C0_ANCSP", :description
+"U3-ctenitoxin-Asp1a (Fragment) OS=Ancylometes sp. PE=1 SV=1", :alphabet :iupacAminoAcids,
+:sequence [\A \N \A \C \T \K \Q \A \D \C \A \E \D \E \C \C \L \D \N \L \F \F \K \R \P \Y
+\C \E \M \R \Y \G \A \G \K \R \C \A \A \A \S \V \Y \K \E \D \K \D \L \Y]}
+
+;; or sent off to a file.
+
+user> (with-open [r (bs-reader tox-bl)]
+                 (biosequence->file
+                  (->> (biosequence-seq r)
+                       (filter #(>= (-> (hit-seq %) second hit-bit-scores first) 50))
+                       (map #(get-biosequence toxin-index (accession %))))
+                  "/tmp/blast.fa"))
+"/tmp/blast.fa"
+
+;; BLAST readers also provide access to the parameters used and these
+;; can be accessed by calling `parameters` on the reader. This will return a
+;; blast parameters object with accessors defined in the package.
+
+
+;; As the entire chain is lazy these methods will work with as big a file as
+;; can be thrown at them (hopefully).
+
+;; BLAST searches can be indexed like any other biosequence file. In which case
+;; the index are keyed to the query accession.
+
+user> (def blast-ind (index-biosequence-file tox-bl))
+#'user/blast-ind
+user> (-> (get-biosequence blast-ind "sp|Q56JA9|A1H_LOXSM") hit-seq first hit-accession)
+"P0CE82"
+
+
 ```
 
 
