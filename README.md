@@ -346,15 +346,27 @@ OS=Cupiennius salei PE=1 SV=1 - 89.737335
 ;; can be accessed by calling `parameters` on the reader. This will return a
 ;; blast parameters object with accessors defined in the package.
 
+user> (with-open [r (bs-reader tox-bl)]
+                 (blast-database (parameters r)))
+"/Users/jason/Dropbox/clj-biosequence/resources/test-files/toxins.fasta"
+user> (with-open [r (bs-reader tox-bl)]
+                 (blast-version (parameters r)))
+"BLASTP 2.2.24+"
+user> (with-open [r (bs-reader tox-bl)]
+                 (blast-evalue (parameters r)))
+"10"
+user> (with-open [r (bs-reader tox-bl)]
+                 (blast-filter (parameters r)))
+"F"
+
 ;; BLAST searches can be indexed like any other biosequence file. In which case
-;; the index is keyed to the query accession.
+;; the index is keyed to the query accession. Although, the parameter information
+;; is lost.
 
 user> (def blast-ind (index-biosequence-file tox-bl))
 #'user/blast-ind
 user> (-> (get-biosequence blast-ind "sp|Q56JA9|A1H_LOXSM") hit-seq first hit-accession)
 "P0CE82"
-
-
 ```
 
 
