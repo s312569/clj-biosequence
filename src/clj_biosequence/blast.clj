@@ -84,6 +84,10 @@
   [this key]
   (zf/xml1-> (zip/xml-zip (:src this)) key zf/text))
 
+(defn hit-accession
+  [hit]
+  (get-hit-value hit :Hit_accession))
+
 (defn hsp-seq
   "Takes a blastHit object and returns a lazy list of the blastHsp 
    objects contained in the hit."
@@ -283,7 +287,7 @@
   bs/biosequenceFile
 
   (bs-path [this]
-    (:file this)))
+    (fs/absolute-path (:file this))))
 
 (defn init-blast-search
   [file]
@@ -296,7 +300,12 @@
 
 ;; blast db
 
-(defrecord blastDB [path alphabet])
+(defrecord blastDB [path alphabet]
+
+  bs/biosequenceFile
+
+  (bs-path [this]
+    (fs/absolute-path (:path this))))
 
 (defn blast-get-sequence
   "Returns the specified sequence from a blastDB object as a fastaSequence object."
@@ -312,7 +321,7 @@
   [path alphabet]
   (if-not (ala/alphabet? alphabet)
     (throw (Throwable. "Unrecognised alphabet."))
-    (if (fs/file? path)
+    (if (and (not (nil? path)) (fs/file? path))
       (->blastDB path alphabet)
       (throw (Throwable. (str "File not found: " path))))))
 
@@ -359,7 +368,7 @@
   (let [defs (blast-default-params params
                                    in
                                    out
-                                   (:path db))]
+                                   (bs/bs-path db))]
     (let [bl @(exec/sh (cons prog defs))]
       (if (= 0 (:exit bl))
         (->blastSearch out)

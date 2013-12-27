@@ -36,7 +36,7 @@
 
 (defn init-index-file
   [path]
-  (->indexFile path))
+  (->indexFile (fs/absolute-path path)))
 
 ;; index
 
