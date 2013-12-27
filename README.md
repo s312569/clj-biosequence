@@ -183,7 +183,7 @@ user> (def fasta-in (index-biosequence-file fa-file))
 user> (count (biosequence-seq fasta-in))
 6
 user> (first (biosequence-seq fasta-in))
-#clj_biosequence.core.fastaSequence{:acc "gi|116025203|gb|EG339215.1|EG339215", :description "KAAN-aaa29f08.b1 ... etc
+#clj_biosequence.core.fastaSequence{:acc "gi|116025203|gb|EG339215.1|EG339215", :description "KAAN-aaa29f08.b1 ... etc"
 
 ;; Indexed files also offer random access to the biosequences,
 ;; this is many times faster than using `get-biosequence` with
@@ -193,9 +193,9 @@ user> (accession (get-biosequence fasta-in "gi|114311762|gb|EE738912.1|EE738912"
 "gi|114311762|gb|EE738912.1|EE738912"
 
 ;; when a file is indexed two additional files are created with the same
-;; base-name as the biosequence file and the extensions `.bin` and `.idx`.
-;; The `.bin` is a compressed representation of the sequences and `.idx`
-;; is a text file containing the index. The `.idx` file is readable with
+;; base-name as the biosequence file but with the extensions `.bin` and `.idx`.
+;; The `.bin` file is compressed sequences and the `.idx` file is a 
+;; text file containing the index. The `.idx` file is readable with
 ;; edn/read-string. To load an index use `load-biosequence-index` with the
 ;; path and basename of the index files.
 
