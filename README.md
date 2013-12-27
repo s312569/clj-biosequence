@@ -68,7 +68,6 @@ false
 user> (with-open [r (bs-reader fa-file)]
                  (count (biosequence-seq r)))
 6
-user> 
 ```
 
 And thats just about it. The same pattern is used for all sequence
@@ -82,7 +81,7 @@ Some examples:
 
 ```clojure
 
-;; to provide a lazy sequence of translations in six reading frames
+;; a lazy sequence of translations in six reading frames
 
 user> (with-open [r (bs-reader fa-file)]
                  (->> (biosequence-seq r)
@@ -103,21 +102,27 @@ user> (def uniprot-f (init-uniprotxml-file
                        (resource "test-files/uniprot-s-mansoni-20121217.xml")))
 #'user/uniprot-f
 user> (with-open [r (bs-reader uniprot-f)]
-                 (->> (biosequence-seq r)
-                   first
-                   fasta-string))
-">sp|C4PYP8|DRE2_SCHMA Anamorsin homolog | Fe-S cluster assembly protein DRE2 homolog [Schistosoma mansoni]\nMEQCVADCLNSDDCVMIVWSGEVQEDVMRGLQVAVSTYVKKLQFENLEKFVDSSAVDSQLXHECSVILCGWPNSISVNILKLGLLSNLLSCLRPGGRFFGRDLITGDWDSLKKNLTLSGYIXNPYQLSCENHLIFSASVPSNYTQGSSVKLPWANSDVEAAWENVDNSSDANGNIINTNTLLXQKSDLKTPLSVCGKEAATDSVGKKKRACKNCTCGLAEIEAAEEDKSDVPISSCGNCYLGDXAFRCSTCPYRGLPPFKPGERILIPDDVLRADL\n"
+                 (println (->> (biosequence-seq r) first fasta-string)))
+
+>sp|C4PYP8|DRE2_SCHMA Anamorsin homolog | Fe-S cluster assembly protein DRE2 homolog [Schistosoma mansoni]
+MEQCVADCLNSDDCVMIVWSGEVQEDVMRGLQVAVSTYVKKLQFENLEKFVDSSAVDSQLXHECSVILCGWPNSISVNILK
+LGLLSNLLSCLRPGGRFFGRDLITGDWDSLKKNLTLSGYIXNPYQLSCENHLIFSASVPSNYTQGSSVKLPWANSDVEAAW
+ENVDNSSDANGNIINTNTLLXQKSDLKTPLSVCGKEAATDSVGKKKRACKNCTCGLAEIEAAEEDKSDVPISSCGNCYLGD
+XAFRCSTCPYRGLPPFKPGERILIPDDVLRADL
+
+;; filters can be implemented pretty easily
 
 user> (with-open [r (bs-reader fa-file)]
                  (->> (biosequence-seq r)
-                   (filter #(second (re-find #"(Mus musculus)" (def-line %))))
-                   first
-                   accession))
+                      (filter #(second (re-find #"(Mus musculus)" (def-line %))))
+                      first
+                      accession))
 "gi|114311762|gb|EE738912.1|EE738912"
-user> 
 
 ;; The function `biosequence->file` sends biosequences to a file and
-;; also accetps a function argument to transform the biosequence
-;; before writing.
+;; also accepts a function argument to transform the biosequence
+;; before writing (the default is `fasta-string`):
+
+
 
 ```
