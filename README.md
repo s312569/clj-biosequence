@@ -28,8 +28,37 @@ To use in your namespace:
 ```clojure
 (ns my-app.core
   (:require [clj-biosequence.core :as cbs] ;; for base functionality and fasta
-  	    [clj-biosequence.uniprot :as up] ;; for Uniprot functionality
-	    [clj-biosequence.genbank :as gb] ;; for Genbank functionality
-	    [clj-biosequence.blast :as bl] ;; for BLAST functionality
-	    [clj-biosequence.signalp :as sp] ;; for a wrapper to signalp))
+  	        [clj-biosequence.uniprot :as up] ;; for Uniprot functionality
+	        [clj-biosequence.genbank :as gb] ;; for Genbank functionality
+	        [clj-biosequence.blast :as bl] ;; for BLAST functionality
+            [clj-biosequence.fastq :as fq] ;; for fastq functionality
+            [clj-biosequence.index :as ind] ;; for indexing functionality
+            [clj-biosequence.interproscan :as ips] ;; for interproscan functionality
+	        [clj-biosequence.signalp :as sp] ;; for a wrapper for signalp
+            [clj-biosequence.store :as st] ;; for a mongoDB interface
+            [clj-biosequence.tmhmm :as tm] ;; for a wrapper for TMHMM))
 ```
+
+## Basic usage
+
+`clj-biosequence` provides a reader and sequence mechanism for the
+lazy access of biosequences in a variety of formats. For example, if
+working with fasta sequences a typical session in the REPL could go
+something like:
+
+```clojure
+
+;; import core and fasta functions
+
+user> (use 'clj-biosequence.core)
+
+;; to use test files included in library use clojure.java.io.
+;; Otherwise string or java file object can be used.
+;; For fasta an alphabet is also required to initialise a file.
+
+user> (def fa-file (init-fasta-file (resource "test-files/nuc-sequence.fasta") :iupacNucleicAcids))
+#'user/fa-file
+user> 
+```
+
+
