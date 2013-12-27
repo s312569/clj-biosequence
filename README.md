@@ -121,8 +121,38 @@ user> (with-open [r (bs-reader fa-file)]
 
 ;; The function `biosequence->file` sends biosequences to a file and
 ;; also accepts a function argument to transform the biosequence
-;; before writing (the default is `fasta-string`):
+;; before writing (the default is `fasta-string`).
 
+;; a Uniprot to fasta converter is thus:
 
+user> (with-open [r (bs-reader uniprot-f)]
+                 (biosequence->file (biosequence-seq r) "/tmp/fasta.fa"))
+"/tmp/fasta.fa"
+user> (with-open [r (bs-reader (init-fasta-file "/tmp/fasta.fa" :iupacAminoAcids))]
+                 (count (biosequence-seq r)))
+2
+user> (with-open [r (bs-reader (init-fasta-file "/tmp/fasta.fa" :iupacAminoAcids))]
+                 (class (first (biosequence-seq r))))
+clj_biosequence.core.fastaSequence
+
+;; sequences can be filtered to file using this function
+
+user> (with-open [r (bs-reader uniprot-f)]
+                 (biosequence->file
+                  (->> (biosequence-seq r)
+                    (filter #(some (partial = "Cytoplasm")
+                                   (map :text (subcellular-location %)))))
+                  "/tmp/fasta.fa"))
+"/tmp/fasta.fa"
+user> (with-open [r (bs-reader (init-fasta-file "/tmp/fasta.fa" :iupacAminoAcids))]
+                 (count (biosequence-seq r)))
+1
+user> (with-open [r (bs-reader (init-fasta-file "/tmp/fasta.fa" :iupacAminoAcids))]
+                 (println (fasta-string (first (biosequence-seq r)))))
+>sp|C4PYP8|DRE2_SCHMA Anamorsin homolog | Fe-S cluster assembly protein DRE2 homolog [Schistosoma mansoni]
+MEQCVADCLNSDDCVMIVWSGEVQEDVMRGLQVAVSTYVKKLQFENLEKFVDSSAVDSQLXHECSVILCGWPNSISVNILK
+LGLLSNLLSCLRPGGRFFGRDLITGDWDSLKKNLTLSGYIXNPYQLSCENHLIFSASVPSNYTQGSSVKLPWANSDVEAAW
+ENVDNSSDANGNIINTNTLLXQKSDLKTPLSVCGKEAATDSVGKKKRACKNCTCGLAEIEAAEEDKSDVPISSCGNCYLGD
+XAFRCSTCPYRGLPPFKPGERILIPDDVLRADL
 
 ```
