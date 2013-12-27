@@ -127,7 +127,7 @@
    a nucleotide biosequence object in six frames."
   ([nucleotide] (six-frame-translation nucleotide (ala/codon-tables 1)))
   ([nucleotide table]
-     (map #(translate nucleotide % table)
+     (map #(translate nucleotide % :table table)
           '(1 2 3 -1 -2 -3))))
 
 ;;;;;;;;;;;;;;

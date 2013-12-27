@@ -58,7 +58,51 @@ user> (use 'clj-biosequence.core)
 
 user> (def fa-file (init-fasta-file (resource "test-files/nuc-sequence.fasta") :iupacNucleicAcids))
 #'user/fa-file
+
+;; then `bs-reader` can be used with `with-open` and `biosequence-seq`
+;; to get access to a lazy sequence of fasta sequences in the file.
+
+user> (with-open [r (bs-reader fa-file)]
+                 (realized? (biosequence-seq r)))
+false
+user> (with-open [r (bs-reader fa-file)]
+                 (count (biosequence-seq r)))
+6
 user> 
 ```
 
+And thats just about it. The same pattern is used for all sequence
+formats supported (at the moment this includes Genbank xml, Uniprot
+xml, fasta, fastq, bed and arf formats) and each format has a number
+of accessor functions providing access to information contained in the
+format. `clj-biosequence.core` also defines a set of functions
+supported by all formats as outlined here.
 
+Some examples:
+
+```clojure
+
+;; to provide a lazy sequence of translations in six reading frames
+
+user> (with-open [r (bs-reader fa-file)]
+                 (->> (biosequence-seq r)
+                   (mapcat #(six-frame-translation %))
+                   realized?))
+false
+user> (with-open [r (bs-reader fa-file)]
+                 (->> (biosequence-seq r)
+                   (mapcat #(six-frame-translation %))
+                   count))
+36
+
+;; `fasta-string` can be used to convert biosequences to fasta strings
+
+user> (with-open [r (bs-reader fa-file)]
+                 (dorun (->> (biosequence-seq r)
+                          (mapcat #(six-frame-translation %))
+                          (map #(println (fasta-string %))))))
+>gi|116025203|gb|EG339215.1|EG339215-1 KAAN-aaa29f08.b1 Platypus_EST_Cell_line_1.0-4.0kb Ornithorhynchus anatinus cDNA similar to ref|NP_005715.1| tetraspan 3; tetraspanin TM4-A; tetraspan TM4SF; transmembrane 4 superfamily, member 8; tetraspanin 3 [Homo sapiens] sp|O60637|T4S8_HUMAN Transmembrane 4 superfamily, member 8 (Tetraspanin 3) (Tspan-3) (Tetraspanin TM4-A) pir|A592, mRNA sequence - Translated frame: 1
+VQKSWPRQDRQQQEEEPPPPPPPXXAAAISPRAAAAAAAAAMGQCGITSSKTVLVFLNLIFWAAAGILCYVGAYVFITYDDYDHFFEDVYTLIPAVVIIAVGTLLFIIGLIGCCATIRESRCGLATFVIILLLVFVTEVVVVVLGYIYRAKVENEVDRSIEKVYRAYNETSSDAARLAIDX
+
+>gi|116025203|gb ......
+```
