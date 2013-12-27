@@ -321,16 +321,12 @@ user> (with-open [r (bs-reader tox-bl)]
                   "/tmp/blast.fa"))
 "/tmp/blast.fa"
 
-;; BLAST readers also provide access to the parameters used and these
-;; can be accessed by calling `parameters` on the reader. This will return a
-;; blast parameters object with accessors defined in the package.
-
-
 ;; As the entire chain is lazy these methods will work with as big a file as
 ;; can be thrown at them (hopefully). So one could annotate a large fasta file
-;; with something like:
+;; starting with a fasta index and a blast DB by:
 
-user> (with-open [r (bs-reader tox-bl)]
+user> (with-open [r (bs-reader (blast (biosequence-seq toxin-index) "blastp" toxindb
+                                      "/tmp/outfile.xml"))]
                  (biosequence->file
                   (->> (biosequence-seq r)
                        (filter #(>= (-> (hit-seq %) second hit-bit-scores first) 50))
@@ -349,7 +345,11 @@ U3-ctenitoxin-Asp1a (Fragment) OS=Ancylometes sp. PE=1 SV=1 - Similar to Toxin C
 OS=Cupiennius salei PE=1 SV=1 - 89.737335
 
 ;; Although this is getting a bit complicated for the REPL and should probably
-;; be a function of itself.
+;; be a function(s) of itself (and the blast outfile might need to be deleted).
+
+;; BLAST readers also provide access to the parameters used and these
+;; can be accessed by calling `parameters` on the reader. This will return a
+;; blast parameters object with accessors defined in the package.
 
 ;; BLAST searches can be indexed like any other biosequence file. In which case
 ;; the index are keyed to the query accession.
