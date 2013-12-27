@@ -281,8 +281,17 @@
   (map #(merge (:attrs (node (zf/xml1-> % :text)))
                (hash-map :text (zf/xml1-> % zf/text)))
        (zf/xml-> (xml-zip (:src uniprot))
-                     :comment
-                     (zf/attr= :type comment))))
+                 :comment
+                 (zf/attr= :type comment))))
+
+(defn subcellular-location
+  [uniprot]
+  (->> (zf/xml-> (xml-zip (:src uniprot))
+                 :comment
+                 (zf/attr= :type "subcellular location")
+                 :subcellularLocation :location)
+       (map node)
+       (map #(assoc (:attrs %) :text (first (:content %))))))
 
 (defn comments
   "Change this to list all comment keys."
