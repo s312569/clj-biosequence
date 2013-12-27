@@ -43,6 +43,11 @@
   (zf/xml1-> (zip/xml-zip (:src e))
              (zf/attr :type)))
 
+(defn ips-entry-name
+  [e]
+  (zf/xml1-> (zip/xml-zip (:src e))
+             (zf/attr :name)))
+
 (defn ips-entry-accession
   [e]
   (zf/xml1-> (zip/xml-zip (:src e))
