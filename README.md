@@ -225,4 +225,7 @@ user> (def secreted (with-open [r (bs-reader toxins)]
 user> (count (biosequence-seq secreted))
 6
 
+;; Finally, multi biosequence files can be merged into a single index using.
+;; `index-biosequence-multi-file`. Once again the path and basename of the index
+;; files needs to be supplied.
 ```
