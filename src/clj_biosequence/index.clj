@@ -98,7 +98,7 @@
 
 (defn load-biosequence-index
   [ind]
-  (assoc (init-file-index (edn/read-string (slurp (str (fs/absolute-path ind) ".ind"))))
+  (assoc (init-file-index (edn/read-string (slurp (str (fs/absolute-path ind) ".idx"))))
     :file (init-index-file (str (fs/absolute-path ind) ".bin"))))
 
 ;; utility
