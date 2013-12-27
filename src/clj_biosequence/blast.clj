@@ -54,6 +54,16 @@
   [hsp]
   (Integer/parseInt (get-hit-value hsp :Hsp_query-frame)))
 
+(defn print-alignment [hsp]
+  (let [ss (fn [x] (map (partial apply str) (partition-all 52 x)))
+        l (apply interleave (map ss (list (get-hsp-value hsp :Hsp_qseq)
+                                          (get-hsp-value hsp :Hsp_midline)
+                                          (get-hsp-value hsp :Hsp_hseq))))]
+    (doseq [s (partition 3 l)]
+      (doseq [f s]
+        (println f))
+      (println))))
+
 ;; blast hit
 
 (defrecord blastHit [src])
@@ -92,17 +102,6 @@
   [hit]
   (let [v (map #(Float/parseFloat (get-hsp-value % :Hsp_evalue)) (hsp-seq hit))]
     (if (not (empty? v)) v (list 1000000))))
-
-(defn print-alignment [hit]
-  (let [ss (fn [x] (map (partial apply str) (partition-all 52 x)))
-        h (first (hsp-seq hit))
-        l (apply interleave (map ss (list (get-hsp-value h :Hsp_qseq)
-                                          (get-hsp-value h :Hsp_midline)
-                                          (get-hsp-value h :Hsp_hseq))))]
-    (doseq [s (partition 3 l)]
-      (doseq [f s]
-        (println f))
-      (println))))
 
 (defn remove-hit-duplicates
   "Needs TESTING"
@@ -316,28 +315,15 @@
 ;; blasting
 
 (defn blast
-  [bs program db & {:keys [outfile params] :or {outfile (fs/temp-file "blast")
-                                                params {}}}]
-  (let [i (bs/fasta->file bs (fs/temp-file "seq-") :append false)]
-    (try
-      (run-blast program db
-                 (fs/absolute-path i)
-                 (fs/absolute-path outfile)
-                 params)
-      (finally (fs/delete i)))))
-
-(defn print-blast-bs
-  [bs program db & {:keys [outfile params] :or {outfile (fs/temp-file "blast")
-                                                params {}}}]
-  (try
-    (let [b (blast (list bs) program db :outfile outfile :params params)]
-      (with-open [r (bs/bs-reader b)]
-        (doall (map #(list (get-hit-value % :Hit_accession)
-                           (get-hit-value % :Hit_def)
-                           (hit-bit-scores %))
-                    (take 3 (hit-seq (first (bs/biosequence-seq r))))))))
-    (finally
-      (fs/delete outfile))))
+  ([bs program db outfile] (blast bs program db outfile {}))
+  ([bs program db outfile params]
+     (let [i (bs/fasta->file bs (fs/temp-file "seq-") :append false)]
+       (try
+         (run-blast program db
+                    (fs/absolute-path i)
+                    (fs/absolute-path outfile)
+                    params)
+         (finally (fs/delete i))))))
 
 ;; helpers
 
