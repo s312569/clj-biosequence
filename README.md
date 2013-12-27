@@ -14,3 +14,22 @@ biological sequence data easier. Basic functions include:
 - Translation functions for DNA and RNA sequences.
 - ID mapping functionality using the Uniprot's ID mapping tool.
 
+## Installation
+
+Available from [Clojars](https://clojars.org/clj-biosequence). For the
+current version add the following to your project.clj file:
+
+```clojure
+[clj-biosequence "0.1.4-SNAPSHOT"]
+```
+
+To use in your namespace:
+
+```clojure
+(ns my-app.core
+  (:require [clj-biosequence.core :as cbs] ;; for base functionality and fasta
+  	    [clj-biosequence.uniprot :as up] ;; for Uniprot functionality
+	    [clj-biosequence.genbank :as gb] ;; for Genbank functionality
+	    [clj-biosequence.blast :as bl] ;; for BLAST functionality
+	    [clj-biosequence.signalp :as sp] ;; for a wrapper to signalp))
+```
