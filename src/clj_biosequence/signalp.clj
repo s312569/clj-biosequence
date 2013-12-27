@@ -48,49 +48,63 @@
   bs/biosequenceFile
 
   (bs-path [this]
-    (:file this)))
+    (fs/absolute-path (:file this))))
 
 (defn signalp
-  [bs & {:keys [params outfile] :or {params {} outfile nil}}]
-  (let [in (bs/fasta->file
-            bs (fs/temp-file "sp-in")
-            :append false
-            :func (fn [x]
-                    (if (bs/protein? x)
-                      (bs/fasta-string x)
-                      (throw (Throwable. "SignalP only analyses proteins.")))))
-        outf (if outfile outfile (fs/temp-file "sp-"))]
-    (try
-      (with-open [out (io/output-stream outf)]
-        (let [sp @(exec/sh (signal-command params in) {:out out})]
-          (if (= 0 (:exit sp))
-            (->signalpFile (fs/absolute-path outf))
-            (if (:err sp)
-              (throw (Throwable. (str "SignalP error: " (:err sp))))
-              (throw (Throwable. (str "Exception: " (:exception sp))))))))
-      (finally (fs/delete in)))))
+  ([bs outfile] (signalp bs outfile {}))
+  ([bs outfile params]
+     (let [in (bs/fasta->file
+               bs (fs/temp-file "sp-in")
+               :append false
+               :func (fn [x]
+                       (if (bs/protein? x)
+                         (bs/fasta-string x)
+                         (throw (Throwable. "SignalP only analyses proteins.")))))]
+       (try
+         (with-open [out (io/output-stream outfile)]
+           (let [sp @(exec/sh (signal-command params in) {:out out})]
+             (if (and (= 0 (:exit sp)) (nil? (:err sp)))
+               (->signalpFile (fs/absolute-path outfile))
+               (if (:err sp)
+                 (throw (Throwable. (str "SignalP error: " (:err sp))))
+                 (throw (Throwable. (str "Exception: " (:exception sp))))))))
+         (catch Exception e
+           (fs/delete outfile)
+           (fs/delete in)
+           (println e))
+         (finally (fs/delete in))))))
+
+(defn- register-outfile
+  [a]
+  (first (swap! a #(cons (fs/temp-file "sp-") %))))
 
 (defn filter-signalp
-  [bsl & {:keys [params] :or {params {}}}]
-  (let [sps (pmap #(signalp % :params params)
-                  (partition-all 10000 bsl))]
-    (try (let [h (->> (map #(with-open [r (bs/bs-reader %)]
-                              (doall (into {} (map (fn [x] (vector (bs/accession x)
-                                                                  (list (:result x)
-                                                                        (:cpos x))))
-                                                   (bs/biosequence-seq r))))) sps)
+  [bsl & {:keys [trim params] :or {trim false params {}}}]
+  (let [flist (atom ())
+        c (atom 0)
+        sps (map #(signalp % (register-outfile flist) params)
+                 (partition-all 10000 bsl))]
+    (try (let [h (->> (doall (pmap #(with-open [r (bs/bs-reader %)]
+                                      (into {}
+                                            (map (fn [x] (vector (bs/accession x)
+                                                                (list (:result x)
+                                                                      (:cpos x))))
+                                                 (bs/biosequence-seq r)))) sps))
                       (apply merge))]
            (remove nil?
                    (map #(if (= "Y" (first (get h (bs/accession %))))
-                           (bs/init-fasta-sequence (bs/accession %)
-                                                   (bs/def-line %)
-                                                   :iupacAminoAcids
-                                                   (subvec
-                                                    (bs/bs-seq %)
-                                                    (+ 1 (second
-                                                          (get h (bs/accession %)))))))
+                           (if trim
+                             (bs/init-fasta-sequence (bs/accession %)
+                                                     (bs/def-line %)
+                                                     :iupacAminoAcids
+                                                     (subvec
+                                                      (bs/bs-seq %)
+                                                      (+ 1 (second
+                                                            (get h (bs/accession %))))))
+                             %))
                         bsl)))
-         (finally (map #(fs/delete (bs/bs-path %)) sps)))))
+         (finally
+           (doall (map #(fs/delete %) @flist))))))
 
 ;; private
 
@@ -102,16 +116,12 @@
 
 (defn- signal-command
   [params infile]
-  (-> (into []
-            (merge
-             {"-f" "short" ;Setting the output format ('short', 'long', 'summary' or 'all')
-              "-s" "best" ;Signal peptide networks to use ('best' or 'notm'). Default: 'best'
-              "-t" "euk" ;Organism type> (euk, gram+, gram-). Default: 'euk'
-              "-c" "70" ; truncate to sequence length - 0 means no truncation. Default '70'
-              "-l" "STDERR" ;Logfile if -v is defined. Default: 'STDERR'
-              "-v" "Off"    ;Verbose. Default: 'Off'
-              } params))
-      flatten
-      (conj "signalp")
-      vec
-      (conj (fs/absolute-path infile))))
+  (conj (->> (concat
+              ["-f" "short"        
+               "-s" "best"
+               "-t" "euk"
+               "-c" "70"]
+              (flatten (vec params)))
+             (cons "signalp")
+             vec)
+        (fs/absolute-path infile)))

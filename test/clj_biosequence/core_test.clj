@@ -1,9 +1,11 @@
 (ns clj-biosequence.core-test
-  (:require [clojure.java.io :as io])
+  (:require [clojure.java.io :as io]
+            [fs.core :as fs])
   (:use clojure.test
         clj-biosequence.core
         clj-biosequence.store
-        clj-biosequence.uniprot))
+        clj-biosequence.uniprot
+        clj-biosequence.signalp))
 
 (def fasta-nuc (with-open [f (bs-reader (init-fasta-file
                                          (io/resource "test-files/nuc-sequence.fasta")
@@ -78,6 +80,15 @@
         (is (= 352 (pstart c)))
         (is (= 358 (pend c)))
         (is (= "Berriman M." (first (authors c))))))
-    (is (= "function" (comments un-seq)))
-    (is (= (vec "May be required") (subvec (vec (comment-value un-seq "function"))
-                                           0 15)))))
+    (is (= "function" (first (comments un-seq))))
+    (is (= (vec "May be required") (subvec
+                                    (vec (:text (first (comment-value un-seq "function"))))
+                                    0 15)))))
+
+(deftest signalp-test
+  (testing "Signalp"
+    (let [bs (with-open [r (bs-reader (init-fasta-file
+                                       (io/resource "test-files/toxins.fasta")
+                                       :iupacAminoAcids))]
+               (doall (take 20 (biosequence-seq r))))]
+      (is (= "sp|C1IC47|3FN3_WALAE" (accession (first (filter-signalp bs))))))))
