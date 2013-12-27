@@ -136,12 +136,13 @@ user> (with-open [r (bs-reader (init-fasta-file "/tmp/fasta.fa" :iupacAminoAcids
 clj_biosequence.core.fastaSequence
 
 ;; sequences can be filtered to file using this function
+;; filter Cytoplasmic proteins to file in fasta format
 
 user> (with-open [r (bs-reader uniprot-f)]
                  (biosequence->file
                   (->> (biosequence-seq r)
-                    (filter #(some (partial = "Cytoplasm")
-                                   (map :text (subcellular-location %)))))
+                       (filter #(some (partial = "Cytoplasm")
+                           (map :text (subcellular-location %)))))
                   "/tmp/fasta.fa"))
 "/tmp/fasta.fa"
 user> (with-open [r (bs-reader (init-fasta-file "/tmp/fasta.fa" :iupacAminoAcids))]
