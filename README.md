@@ -229,3 +229,79 @@ user> (count (biosequence-seq secreted))
 ;; `index-biosequence-multi-file`. Once again the path and basename of the index
 ;; files needs to be supplied.
 ```
+## BLAST
+
+`clj-biosequence` supports most forms of BLAST, with the exception of PSI-BLAST. As
+with other parts of clj-biosequence the BLAST functions seek to be as lazy and composable
+as possible.
+
+Typical usage as follows:
+
+```clojure
+;; initialise a BLAST db by passing the basename of the indexes to `init-blast-db`
+
+user> (use 'clj-biosequence.blast)
+nil
+user> (def toxindb (init-blast-db (resource "test-files/toxins.fasta") :iupacAminoAcids))
+#'user/toxindb
+
+;; The function`blast` takes a list of biosequence objects and blasts them against
+;; a blast database. It returns a blast search result which is a pointer to the
+;; blast result file. This can then be opened using `bs-reader` and results
+;; accessed using `biosequence-seq`
+
+user> (use 'clj-biosequence.blast)
+nil
+user> (def toxindb (init-blast-db (resource "test-files/toxins.fasta") :iupacAminoAcids))
+#'user/toxindb
+user> (def tox-bl (with-open [r (bs-reader toxins)]
+                             (blast (take 20 (biosequence-seq r))
+                                    "blastp"
+                                    toxindb
+                                    "/tmp/blast.xml")))
+#'user/tox-bl
+user> (with-open [r (bs-reader tox-bl)]
+                 (count (biosequence-seq r)))
+20
+
+;; BLAST results can be accessed using the accessors defined in the package
+;; and the functions `hit-seq` and `hsp-seq`. For example to filter all
+;; proteins in `tox-bl` that had a hit with a bit-score greater than
+;; 50 and report their accession (note the use of second to avoid hits
+;; to themselves):
+
+user> (with-open [r (bs-reader tox-bl)]
+                 (count (biosequence-seq r)))
+20
+user> (with-open [r (bs-reader tox-bl)]
+                 (doall (->> (biosequence-seq r)
+                             (filter #(>= (-> (hit-seq %) second hit-bit-scores first) 50))
+                             (map #(-> (hit-seq %) second hit-accession))))
+("B3EWT5" "Q5UFR8" "C1IC47" "Q53B61" "O76199" "C0JAT6" "P0CE79" "C0JAU1" "C0JAT6" "P0CE78"
+"C0JAT9" "C0JAT5" "C0JAT9" "C0JAT6" "P0CE81" "P0CE80" "P0CE81" "P0CE82" "P0CE81")
+
+;; Or a hash-map of the query id and  hit id of hits with a bit score greater than 50
+;; (note that calling `accession` on a BLAST iteraton returns the query accession):
+
+user> (with-open [r (bs-reader tox-bl)]
+                 (doall (->> (biosequence-seq r)
+                             (filter #(>= (-> (hit-seq %) second hit-bit-scores first) 50))
+                             (map #(vector (accession %)
+                                           (-> (hit-seq %) second hit-accession)))
+                                           (into {}))))
+{"sp|P84001|29C0_ANCSP" "B3EWT5", "sp|P0CE81|A1HB1_LOXIN" "P0CE80", "sp|C0JAT9|A1H1_LOXSP"
+"C0JAU1", "sp|P0CE82|A1HB2_LOXIN" "P0CE81", "sp|P0CE80|A1HA_LOXIN" "P0CE81",
+"sp|C0JAT8|A1H4_LOXHI" "C0JAT6", "sp|C0JAT5|A1H2_LOXHI" "C0JAT6", "sp|C0JAT6|A1H3_LOXHI"
+"C0JAT5", "sp|C0JAT4|A1H1_LOXHI" "C0JAT6", "sp|C0JAU1|A1H2_LOXSP" "C0JAT9",
+"sp|C0JAU2|A1H3_LOXSP" "C0JAT9", "sp|Q4VDB5|A1H_LOXGA" "P0CE82", "sp|C1IC47|3FN3_WALAE"
+"Q5UFR8", "sp|C1IC48|3FN4_WALAE" "C1IC47", "sp|C1IC49|3FN5_WALAE" "Q53B61",
+"sp|P84028|45C1_ANCSP" "O76199", "sp|Q56JA9|A1H_LOXSM" "P0CE81", "sp|P0CE78|A1H1_LOXRE"
+"P0CE79", "sp|P0CE79|A1H2_LOXRE" "P0CE78"}
+```
+
+
+
+
+
+
+
