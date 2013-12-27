@@ -348,7 +348,7 @@ OS=Cupiennius salei PE=1 SV=1 - 89.737335
 ;; blast parameters object with accessors defined in the package.
 
 ;; BLAST searches can be indexed like any other biosequence file. In which case
-;; the index are keyed to the query accession.
+;; the index is keyed to the query accession.
 
 user> (def blast-ind (index-biosequence-file tox-bl))
 #'user/blast-ind
