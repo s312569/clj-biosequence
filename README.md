@@ -136,7 +136,7 @@ user> (with-open [r (bs-reader (init-fasta-file "/tmp/fasta.fa" :iupacAminoAcids
 clj_biosequence.core.fastaSequence
 
 ;; sequences can be filtered to file using this function
-;; filter Cytoplasmic proteins to file in fasta format
+;; for eg. filter Cytoplasmic proteins to file in fasta format
 
 user> (with-open [r (bs-reader uniprot-f)]
                  (biosequence->file
@@ -155,5 +155,40 @@ MEQCVADCLNSDDCVMIVWSGEVQEDVMRGLQVAVSTYVKKLQFENLEKFVDSSAVDSQLXHECSVILCGWPNSISVNIL
 LGLLSNLLSCLRPGGRFFGRDLITGDWDSLKKNLTLSGYIXNPYQLSCENHLIFSASVPSNYTQGSSVKLPWANSDVEAAW
 ENVDNSSDANGNIINTNTLLXQKSDLKTPLSVCGKEAATDSVGKKKRACKNCTCGLAEIEAAEEDKSDVPISSCGNCYLGD
 XAFRCSTCPYRGLPPFKPGERILIPDDVLRADL
+```
+For strings containing fasta, Uniprot XML or Genbank XML formatted sequences the functions
+`init-fasta-string`, `init-uniprot-string` and `init-genbank-string` allow the use of
+strings with the `with-open` idiom. For Uniprot and Genbank connection initialisation
+functions provide the same capability with remotely stored sequences from the relevant
+servers (see below).
 
+## Indexing
+
+It can get tedious using `with-open` when using sequence files and random access to
+particular biosequences is also slow as it relies on filtering the lazy sequences for
+accession numbers. So `clj-biosequence.index` provides a simple mechanism for indexing
+biosequence files.
+
+Typical usage as follows:
+
+```clojure
+;; calling `index-biosequence-file` on any biosequence file returns a
+;; biosequence index. This index can be used in calls to `biosequence-seq`
+;; and `get-biosequence` (amongst others) without the `with-open` construct
+
+user> (use 'clj-biosequence.index)
+nil
+user> (def fasta-in (index-biosequence-file fa-file))
+#'user/fasta-in
+user> (count (biosequence-seq fasta-in))
+6
+user> (first (biosequence-seq fasta-in))
+#clj_biosequence.core.fastaSequence{:acc "gi|116025203|gb|EG339215.1|EG339215", :description "KAAN-aaa29f08.b1 Platypus_EST_Cell_line_1.0-4.0kb Ornithorhynchus anatinus cDNA similar to ref|NP_005715.1| tetraspan 3; tetraspanin TM4-A; tetraspan TM4SF; transmembrane 4 superfamily, member 8; tetraspanin 3 [Homo sapiens] sp|O60637|T4S8_HUMAN Transmembrane 4 superfamily, member 8 (Tetraspanin 3) (Tspan-3) (Tetraspanin TM4-A) pir|A592, mRNA sequence", :alphabet :iupacNucleicAcids, :sequence [\G \T \A \C \A \A \A \A \A \A \G \T \T \G \G \C \C \C \A \G \G \C \A \G \G \A \C \C \G \G \C \A \G \C \A \A \C \A \G \G \A \G \G \A \G \G \A \G \C \C \G \C \C \G \C \C \G \C \C \G \C \C \G \C \C \G \C \C \G \C \X \X \X \X \C \G \C \C \G \C \C \G \C \C \A \T \T \T \C \A \C \C \C ... etc
+
+;; indexed files also offer random access to the biosequences
+;; this is many times faster than using `get-biosequence` with
+;; a biosequence file opened with `bs-reader`.
+
+user> (accession (get-biosequence fasta-in "gi|114311762|gb|EE738912.1|EE738912"))
+"gi|114311762|gb|EE738912.1|EE738912"
 ```
