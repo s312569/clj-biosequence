@@ -250,10 +250,6 @@ user> (def toxindb (init-blast-db (resource "test-files/toxins.fasta") :iupacAmi
 ;; blast result file. This can then be opened using `bs-reader` and results
 ;; accessed using `biosequence-seq`
 
-user> (use 'clj-biosequence.blast)
-nil
-user> (def toxindb (init-blast-db (resource "test-files/toxins.fasta") :iupacAminoAcids))
-#'user/toxindb
 user> (def tox-bl (with-open [r (bs-reader toxins)]
                              (blast (take 20 (biosequence-seq r))
                                     "blastp"
