@@ -141,7 +141,7 @@
                                                           lookup true
                                                           goterms true}}]
   (if (#{"p" "n"} seqtype)
-    (let [i (bs/fasta->file bs (fs/temp-file "seq-") :append false
+    (let [i (bs/biosequence->file bs (fs/temp-file "seq-") :append false
                               :func (fn [x] (if (not (> (count (bs/bs-seq x)) 10000))
                                              (bs/fasta-string x))))]
       (try

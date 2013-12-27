@@ -9,17 +9,22 @@
 (declare init-fasta-store init-fasta-sequence translate)
 
 (defprotocol biosequenceIO
-  (bs-reader [this] "Returns a reader for a file containing
-  biosequences. Use with `with-open'"))
+  (bs-reader [this]
+    "Returns a reader for a file containing biosequences. Use with
+    `with-open'"))
 
 (defprotocol biosequenceReader
-  (biosequence-seq [this])
-  (parameters [this])
-  (get-biosequence [this accession]))
+  (biosequence-seq [this]
+    "Returns a lazy sequence of biosequence objects.")
+  (parameters [this]
+    "Returns parameters, if any.")
+  (get-biosequence [this accession]
+    "Returns the biosequence object with the corresponding
+    accession."))
 
 (defprotocol Biosequence
   (accession [this]
-    "Returns the accession of a biosequence.")
+    "Returns the accession of a biosequence object.")
   (accessions [this]
     "Returns a list of accessions for a biosequence object.")
   (def-line [this]
@@ -38,14 +43,22 @@
     "Returns the path of the file as string."))
 
 (defprotocol biosequenceCitation
-  (ref-type [this])
-  (title [this])
-  (journal [this])
-  (year [this])
-  (volume [this])
-  (pstart [this])
-  (pend [this])
-  (authors [this]))
+  (ref-type [this]
+    "Returns the citation type from a citation object.")
+  (title [this]
+    "Returns the title of a citation object.")
+  (journal [this]
+    "Returns the journal of a citation object.")
+  (year [this]
+    "Returns the year of a citation object.")
+  (volume [this]
+    "Returns the volume of a citation object.")
+  (pstart [this]
+    "Returns the start page of a citation object.")
+  (pend [this]
+    "Returns the end page of a citation object.")
+  (authors [this]
+    "Returns the authors from a citation object."))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions
@@ -56,16 +69,11 @@
   [bs]
   (apply str (bs-seq bs)))
 
-(defn residue-frequencies
-  "Returns a map of residues in a biosequence and their frequency."
-  [bs]
-  (frequencies (bs-seq bs)))
-
 (defn sub-bioseq
   "Returns a new fasta sequence object with the sequence corresponding
    to 'beg' (inclusive) and 'end' (exclusive) of 'bs'. If no 'end'
-   argument returns from 'start' to the end of the sequence. Indexes
-   start at zero."
+   argument returns from 'start' to the end of the sequence. Zero
+   based index."
   ([bs beg] (sub-bioseq bs beg nil))
   ([bs beg end]
      (init-fasta-sequence (accession bs)
@@ -77,17 +85,10 @@
                             (subvec (bs-seq bs) beg end)
                             (subvec (bs-seq bs) beg)))))
 
-(defn partition-bioseq
-  "Partitions a sequence into a lazy list of lists of 'n' size.
-   Default partition size is 3."
-  ([bs] (partition-bioseq bs 3))
-  ([bs n]
-     (partition-all n (bs-seq bs))))
-
 (defn reverse-comp [this]
   "Returns a new fastaSequence with the reverse complement sequence."
   (if (protein? this)
-    (throw (Throwable. "Can't reverse/complement a protein sequence."))
+    (throw (IllegalArgumentException. "Can't reverse/complement a protein sequence."))
     (init-fasta-sequence (accession this)
                          (str (def-line this) " - Reverse-comp")
                          (alphabet this)
@@ -119,7 +120,7 @@
                                              (-> (reverse-comp bs)
                                                  (sub-bioseq ( - f 4))))]
                                  (vec (map #(ala/codon->aa % table)
-                                           (partition-bioseq v 3))))))))
+                                           (partition-all 3 (bs-seq v)))))))))
 
 (defn six-frame-translation
   "Returns a lazy list of fastaSequence objects representing translations of
@@ -133,12 +134,12 @@
 ;; utilities
 ;;;;;;;;;;;;;;
 
-(defn fasta->file
+(defn biosequence->file
   "Takes a collection of biosequences and prints them to file. To
-  append to an existing file use :append true and the :func argument
-  can be used to pass a function that will be used to prepare the
-  printed output, the default is fasta-string which will print the
-  biosequences to the file in fasta format."
+  append to an existing file use `:append true` and the `:func`
+  argument can be used to pass a function that will be used to prepare
+  the printed output, the default is `fasta-string` which will print
+  the biosequences to the file in fasta format. Returns the file."
   [bs file & {:keys [append func] :or {append true func fasta-string}}]
   (with-open [w (io/writer file :append append)]
     (dorun (map #(let [n (func %)]
@@ -146,7 +147,6 @@
                      (.write w n)))
                 bs)))
   file)
-
 
 (defn if-string-int
   "If a string an integer is parsed, if not returns e. Will throw an

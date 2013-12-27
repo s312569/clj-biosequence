@@ -53,7 +53,7 @@
 (defn signalp
   ([bs outfile] (signalp bs outfile {}))
   ([bs outfile params]
-     (let [in (bs/fasta->file
+     (let [in (bs/biosequence->file
                bs (fs/temp-file "sp-in")
                :append false
                :func (fn [x]

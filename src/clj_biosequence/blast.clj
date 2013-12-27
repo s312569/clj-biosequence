@@ -47,7 +47,11 @@
     :Hsp_pattern-to
     :Hsp_density"
   [this key]
-  (zf/xml1-> (zip/xml-zip (:src this)) key zf/text))
+  (if (= key :Hsp_midline)
+    (->> (:content (:src this))
+         (filter #(= (:tag %) :Hsp_midline))
+         first :content)
+    (zf/xml1-> (zip/xml-zip (:src this)) key zf/text)))
 
 (defn frame
   "Returns the frame of query match (if there is one)."
@@ -317,7 +321,7 @@
 (defn blast
   ([bs program db outfile] (blast bs program db outfile {}))
   ([bs program db outfile params]
-     (let [i (bs/fasta->file bs (fs/temp-file "seq-") :append false)]
+     (let [i (bs/biosequence->file bs (fs/temp-file "seq-") :append false)]
        (try
          (run-blast program db
                     (fs/absolute-path i)
