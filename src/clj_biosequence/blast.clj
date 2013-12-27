@@ -88,6 +88,10 @@
   [hit]
   (get-hit-value hit :Hit_accession))
 
+(defn hit-def
+  [hit]
+  (get-hit-value hit :Hit_def))
+
 (defn hsp-seq
   "Takes a blastHit object and returns a lazy list of the blastHsp 
    objects contained in the hit."

@@ -327,7 +327,29 @@ user> (with-open [r (bs-reader tox-bl)]
 
 
 ;; As the entire chain is lazy these methods will work with as big a file as
-;; can be thrown at them (hopefully).
+;; can be thrown at them (hopefully). So one could annotate a large fasta file
+;; with something like:
+
+user> (with-open [r (bs-reader tox-bl)]
+                 (biosequence->file
+                  (->> (biosequence-seq r)
+                       (filter #(>= (-> (hit-seq %) second hit-bit-scores first) 50))
+                       (map #(let [s (get-biosequence toxin-index (accession %))
+                                   h (-> (hit-seq %) first)]
+                               (assoc s :description
+                                      (str (def-line s) " - "
+                                           "Similar to " (hit-def h) " - "
+                                           (first (hit-bit-scores h)))))))
+                  "/tmp/annotated-sequeunces.fa"))
+"/tmp/annotated-sequeunces.fa"
+user> (with-open [r (bs-reader (init-fasta-file "/tmp/annotated-sequeunces.fa"
+                                                :iupacAminoAcids))]
+                 (println (def-line (first (biosequence-seq r)))))
+U3-ctenitoxin-Asp1a (Fragment) OS=Ancylometes sp. PE=1 SV=1 - Similar to Toxin CSTX-20 \
+OS=Cupiennius salei PE=1 SV=1 - 89.737335
+
+;; Although this is getting a bit complicated for the REPL and should probably
+;; be a function of itself.
 
 ;; BLAST searches can be indexed like any other biosequence file. In which case
 ;; the index are keyed to the query accession.
