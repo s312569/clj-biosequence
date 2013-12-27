@@ -86,23 +86,38 @@ Some examples:
 
 user> (with-open [r (bs-reader fa-file)]
                  (->> (biosequence-seq r)
-                   (mapcat #(six-frame-translation %))
-                   realized?))
+                      (mapcat #(six-frame-translation %))
+                      realized?))
 false
 user> (with-open [r (bs-reader fa-file)]
                  (->> (biosequence-seq r)
-                   (mapcat #(six-frame-translation %))
-                   count))
+                      (mapcat #(six-frame-translation %))
+                      count))
 36
 
 ;; `fasta-string` can be used to convert biosequences to fasta strings
 
-user> (with-open [r (bs-reader fa-file)]
-                 (dorun (->> (biosequence-seq r)
-                          (mapcat #(six-frame-translation %))
-                          (map #(println (fasta-string %))))))
->gi|116025203|gb|EG339215.1|EG339215-1 KAAN-aaa29f08.b1 Platypus_EST_Cell_line_1.0-4.0kb Ornithorhynchus anatinus cDNA similar to ref|NP_005715.1| tetraspan 3; tetraspanin TM4-A; tetraspan TM4SF; transmembrane 4 superfamily, member 8; tetraspanin 3 [Homo sapiens] sp|O60637|T4S8_HUMAN Transmembrane 4 superfamily, member 8 (Tetraspanin 3) (Tspan-3) (Tetraspanin TM4-A) pir|A592, mRNA sequence - Translated frame: 1
-VQKSWPRQDRQQQEEEPPPPPPPXXAAAISPRAAAAAAAAAMGQCGITSSKTVLVFLNLIFWAAAGILCYVGAYVFITYDDYDHFFEDVYTLIPAVVIIAVGTLLFIIGLIGCCATIRESRCGLATFVIILLLVFVTEVVVVVLGYIYRAKVENEVDRSIEKVYRAYNETSSDAARLAIDX
+user> (use 'clj-biosequence.uniprot)
+nil
+user> (def uniprot-f (init-uniprotxml-file
+                       (resource "test-files/uniprot-s-mansoni-20121217.xml")))
+#'user/uniprot-f
+user> (with-open [r (bs-reader uniprot-f)]
+                 (->> (biosequence-seq r)
+                   first
+                   fasta-string))
+">sp|C4PYP8|DRE2_SCHMA Anamorsin homolog | Fe-S cluster assembly protein DRE2 homolog [Schistosoma mansoni]\nMEQCVADCLNSDDCVMIVWSGEVQEDVMRGLQVAVSTYVKKLQFENLEKFVDSSAVDSQLXHECSVILCGWPNSISVNILKLGLLSNLLSCLRPGGRFFGRDLITGDWDSLKKNLTLSGYIXNPYQLSCENHLIFSASVPSNYTQGSSVKLPWANSDVEAAWENVDNSSDANGNIINTNTLLXQKSDLKTPLSVCGKEAATDSVGKKKRACKNCTCGLAEIEAAEEDKSDVPISSCGNCYLGDXAFRCSTCPYRGLPPFKPGERILIPDDVLRADL\n"
 
->gi|116025203|gb ......
+user> (with-open [r (bs-reader fa-file)]
+                 (->> (biosequence-seq r)
+                   (filter #(second (re-find #"(Mus musculus)" (def-line %))))
+                   first
+                   accession))
+"gi|114311762|gb|EE738912.1|EE738912"
+user> 
+
+;; The function `biosequence->file` sends biosequences to a file and
+;; also accetps a function argument to transform the biosequence
+;; before writing.
+
 ```
