@@ -260,6 +260,19 @@ user> (with-open [r (bs-reader tox-bl)]
                  (count (biosequence-seq r)))
 20
 
+;; Addiitonal parameters can be passed to `blast` using the `:param` keyword
+;; argument. Format is a hash-map with keys strings of the command line switches
+;; with the desired value as a string. For example:
+
+user> (def tox-bl (with-open [r (bs-reader toxins)]
+                             (blast (take 20 (biosequence-seq r))
+                                    "blastp"
+                                    toxindb
+                                    "/tmp/blast.xml"
+                                    :params {"-max_target_seqs" "3"
+                                             "-evalue" "1"})))
+#'user/tox-bl
+
 ;; BLAST results can be accessed using the accessors defined in the package
 ;; and the functions `hit-seq` and `hsp-seq`. For example to filter all
 ;; proteins in `tox-bl` that had a hit with a bit-score greater than
@@ -370,6 +383,7 @@ user> (def blast-ind (index-biosequence-file tox-bl))
 #'user/blast-ind
 user> (-> (get-biosequence blast-ind "sp|Q56JA9|A1H_LOXSM") hit-seq first hit-accession)
 "P0CE82"
+
 ```
 
 ## SignalP
@@ -434,17 +448,50 @@ user> (accession (get-biosequence si "sp|P58809|CTX_CONMR"))
 user> (signalp? (get-biosequence si "sp|P58809|CTX_CONMR"))
 false
 
-;; Search parameters can be passed to `signalp` and `filter-signalp`.
-;; But if format and logging parameters are messed with undefined results
-;; may be obtained.
+;; Search parameters can be passed to `signalp` and `filter-signalp` as hash-maps
+;; using the `:param` keyword argument.
 
 user> (def sr (signalp (take 20 (biosequence-seq toxin-index)) "/tmp/signalp.txt"
-                       {"-s" "best" "-t" "gram+"}))
+                       :params {"-s" "best" "-t" "gram+"}))
 #'user/sr
 user> (with-open [r (bs-reader sr)]
                  (first (biosequence-seq r)))
 #clj_biosequence.signalp.signalpProtein{:name "sp|P58809|CTX_CONMR", :cmax 0.101,
 :cpos 2, :ymax 0.119, :ypos 2, :smax 0.139, :spos 1, :smean 0.139, :D 0.127,
 :result "N", :Dmaxcut 0.45, :network "SignalP-TM"}
-
 ```
+
+## Accession mapping
+
+`clj-biosequence` provides a facility for mapping accessions from one
+database to another. It is provided in the core package and uses the
+Uniprot mapping service so needs an active internet connection.
+
+Basic usage:
+
+```clojure
+;; `id-convert` converts accessions. Its arguments are a list of accessions
+;; to be converted, a 'from' database, a 'to' database and an email (required
+;; by Uniprot). The 'from' and 'to' arguments are strings corresponding to
+;; to the database codes used by the Uniprot mapping tool (full list at
+;; http://www.uniprot.org/faq/28#id_mapping_examples and a partial list in
+;; the doc string of `id-convert`.
+
+;; `id-convert` returns a hash-map of query accessions and search results. If
+;; an ID returned no result it is not in the result hash-map. There is a
+;; 100,000 limit on individual queries imposed by Uniprot.
+
+;; For example, to convert a list of Uniprot accessions to NCBI Genbank ids, 
+;; using the previously defined toxin protein index which has accessions in
+;; the format "sp|xxx|xxxx":
+
+user> (require '[clojure.string :as st])
+nil
+user> (id-convert (map #(second (st/split (accession %) #"\|"))
+                       (take 5 (biosequence-seq toxin-index)))
+                  "ACC" "P_GI" "jason.mulvenna@gmail.com")
+{"P58809" "20454877", "P61792" "48428590", "P86259" "229485330", "Q9BP63" "74848505",
+"A0SE59" "83657225"}
+```
+
+
