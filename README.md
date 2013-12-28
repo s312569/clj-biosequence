@@ -230,9 +230,10 @@ user> (count (biosequence-seq secreted))
 ```
 ## BLAST
 
-`clj-biosequence` supports most forms of BLAST, with the exception of PSI-BLAST. As
-with other parts of clj-biosequence the BLAST functions seek to be as lazy and composable
-as possible.
+`clj-biosequence` supports most forms of BLAST, with the exception of
+PSI-BLAST. As with other parts of clj-biosequence the BLAST functions
+seek to be as lazy and composable as possible. To work the various
+BLAST+ programs from the NCBI need to be in your path.
 
 Typical usage as follows:
 
@@ -320,6 +321,8 @@ user> (with-open [r (bs-reader tox-bl)]
 ;; can be thrown at them (hopefully). So one could annotate a large fasta file
 ;; starting with a fasta index and a blast DB by:
 
+user> (def toxin-index (index-biosequence-file toxins))
+#'user/toxin-index
 user> (with-open [r (bs-reader (blast (biosequence-seq toxin-index) "blastp" toxindb
                                       "/tmp/outfile.xml"))]
                  (biosequence->file
@@ -369,9 +372,55 @@ user> (-> (get-biosequence blast-ind "sp|Q56JA9|A1H_LOXSM") hit-seq first hit-ac
 "P0CE82"
 ```
 
+## SignalP
 
+SignalP works in a similar way as BLAST. If you have signalp in your
+path it can be applied to collections of bioseqeunces using the
+function `signalp` (which returns a signalp result object) or a
+SignalP output file in short form format can be initialised as a
+result object.
 
+Basic usage as follows:
 
+```clojure
+;; running signalp
 
+user> (use 'clj-biosequence.signalp)
+nil
+user> (def sr (signalp (take 20 (biosequence-seq toxin-index)) "/tmp/signalp.txt"))
+#'user/sr
+user> (with-open [r (bs-reader sr)]
+                 (first (biosequence-seq r)))
+#clj_biosequence.signalp.signalpProtein{:name "sp|P58809|CTX_CONMR", :cmax 0.105,
+:cpos 7, :ymax 0.147, :ypos 1, :smax 0.208, :spos 1, :smean 0.0, :D 0.068, :result "N",
+:Dmaxcut 0.45, :network "SignalP-noTM"}
+user> (with-open [r (bs-reader sr)]
+                 (accession (first (biosequence-seq r))))
+"sp|P58809|CTX_CONMR"
 
+;; `signalp?` can be used to determine if a result is positive or not
 
+user> (with-open [r (bs-reader sr)]
+                 (signalp? (first (biosequence-seq r))))
+false
+user> (with-open [r (bs-reader sr)]
+                 (-> (filter signalp? (biosequence-seq r))
+                     first))
+#clj_biosequence.signalp.signalpProtein{:name "sp|Q9BP63|O3611_CONPE", :cmax 0.51,
+:cpos 21, :ymax 0.696, :ypos 21, :smax 0.982, :spos 12, :smean 0.952, :D 0.834,
+:result "Y", :Dmaxcut 0.45, :network "SignalP-noTM"}
+
+;; a convenience function `filter-signalp` filters a collection of biosequence
+;; proteins and returns only proteins containing a signal sequence. If the
+;; keyword argument `:trim` is true the returned biosequences will have the
+;; signal sequence trimmed from the sequence
+
+user> (->> (filter-signalp (take 20 (biosequence-seq toxin-index)))
+           first
+           bioseq->string)
+"MSRLGIMVLTLLLLVFIVTSHQDAGEKQATQRDAINFRWRRSLIRRTATEECEEYCEDEEKTCCGLEDGEPVCATTCLG"
+user> (->> (filter-signalp (take 20 (biosequence-seq toxin-index)) :trim true)
+           first
+           bioseq->string)
+"DAGEKQATQRDAINFRWRRSLIRRTATEECEEYCEDEEKTCCGLEDGEPVCATTCLG"
+```
