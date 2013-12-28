@@ -491,11 +491,90 @@ user> (map accession (take 5 (biosequence-seq toxin-index)))
 
 user> (require '[clojure.string :as st])
 nil
-user> user> (-> (map #(second (st/split (accession %) #"\|"))
-                      (take 5 (biosequence-seq toxin-index)))
-                (id-convert "ACC" "P_GI" "jason.mulvenna@gmail.com"))
+user> (-> (map #(second (st/split (accession %) #"\|"))
+                (take 5 (biosequence-seq toxin-index)))
+          (id-convert "ACC" "P_GI" "jason.mulvenna@gmail.com"))
 {"P58809" "20454877", "P61792" "48428590", "P86259" "229485330", "Q9BP63" "74848505",
 "A0SE59" "83657225"}
 ```
+
+## Sequence retrieval
+
+Sequences can be retrieved from both Genabnk and Uniprot using
+`init-uniprot-connection` and `init-genbank-connection`. Both
+functions take a list of accession numbers and a return type argument.
+Uniprot also needs and email argument and Genbank a database argument.
+Both functions can be used in conjunction with the search functions,
+`genbank-search` and `uniprot-search`.
+
+Basic usage:
+
+```clojure
+;; To generate a list of accessions search for Uniprot accessions (note this
+;; generates a non-lazy list). Search syntax is exactly the same as Uniprot
+;; search syntax (described at http://www.uniprot.org/help/text-search and
+;; summarised in the doc string of `uniprot-search`).
+
+;; For example, to get accessions of all proteins in the Schistosoma mansoni
+;; reference proteome set:
+
+user> (use 'clj-biosequence.uniprot)
+nil
+user> (def sm-prot (uniprot-search "organism:6183 AND keyword:1185" "jason.mulvenna@gmail.com"))
+#'user/sm-prot
+user> (count sm-prot)
+11711
+user> (first sm-prot)
+"C4PYP8"
+
+;; A lazy sequence of biosequences can be retrieved from Uniprot using
+;; `init-uniprot-connection` and `bs-reader`. Sequences can be retrieved as
+;; fasta or full Uniprot entries.
+
+user> (def up-conn (init-uniprot-connection (take 10 sm-prot) :fasta "jason.mulvenna@gmail.com"))
+#'user/up-conn
+user> (with-open [r (bs-reader up-conn)]
+                 (first (biosequence-seq r)))
+#clj_biosequence.core.fastaSequence{:acc "sp|C4PYP8|DRE2_SCHMA", :description\
+"Anamorsin homolog OS=Schistosoma mansoni GN=Smp_207000 PE=3 SV=2", :alphabet\
+:iupacAminoAcids, :sequence [\M \E \Q \C \V \A \D \C \L \N \S \D \D \C \V \M ... etc
+
+;; Uniprot
+
+user> (def up-conn (init-uniprot-connection (take 10 sm-prot) :xml "jason.mulvenna@gmail.com"))
+#'user/up-conn
+user> (with-open [r (bs-reader up-conn)]
+                 (class (first (biosequence-seq r))))
+clj_biosequence.uniprot.uniprotProtein
+
+;; Although sequences are downloaded as a compressed stream large sequence
+;; downloads can take a long time ...
+
+;; Genbank works exactly the same way. Search syntax is the same as Genbank query
+;; format (see http://www.ncbi.nlm.nih.gov/books/NBK3837/ and a summary in the doc
+;; doc string of `genbank-search`). A database also neds to specified and may be one
+;; of :protein, :nucest, :nuccore, :nucgss or :popset.
+
+;; So to get all Schistosoma mansoni proteins from Genbank
+
+user> (use 'clj-biosequence.genbank)
+nil
+user> (def sm-prots (genbank-search "txid6183[Organism:noexp]" :protein))
+#'user/sm-prots
+user> (first sm-prots)
+"566601372"
+user> (with-open [r (bs-reader (init-genbank-connection (take 10 sm-prots) :protein :fasta))]
+                 (second (biosequence-seq r)))
+#clj_biosequence.core.fastaSequence{:acc "gi|566601352|gb|AHC70335.1|", :description
+"nicotinic acetylcholine receptor [Schistosoma mansoni]", :alphabet :iupacAminoAcids,
+:sequence [\M ... etc
+
+user> (with-open [r (bs-reader (init-genbank-connection (take 10 sm-prots) :protein :xml))]
+                 (class (second (biosequence-seq r))))
+clj_biosequence.genbank.genbankSequence
+```
+
+
+
 
 
