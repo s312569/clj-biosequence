@@ -491,9 +491,9 @@ user> (map accession (take 5 (biosequence-seq toxin-index)))
 
 user> (require '[clojure.string :as st])
 nil
-user> (id-convert (map #(second (st/split (accession %) #"\|"))
-                       (take 5 (biosequence-seq toxin-index)))
-                  "ACC" "P_GI" "jason.mulvenna@gmail.com")
+user> user> (-> (map #(second (st/split (accession %) #"\|"))
+                      (take 5 (biosequence-seq toxin-index)))
+                (id-convert "ACC" "P_GI" "jason.mulvenna@gmail.com"))
 {"P58809" "20454877", "P61792" "48428590", "P86259" "229485330", "Q9BP63" "74848505",
 "A0SE59" "83657225"}
 ```
