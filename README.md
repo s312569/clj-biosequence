@@ -485,6 +485,10 @@ Basic usage:
 ;; using the previously defined toxin protein index which has accessions in
 ;; the format "sp|xxx|xxxx":
 
+user> (map accession (take 5 (biosequence-seq toxin-index)))
+("sp|P58809|CTX_CONMR" "sp|P61792|TXU2_HETVE" "sp|P86259|CT2X_CONTE"
+"sp|Q9BP63|O3611_CONPE" "sp|A0SE59|CA13_CONMR")
+
 user> (require '[clojure.string :as st])
 nil
 user> (id-convert (map #(second (st/split (accession %) #"\|"))
