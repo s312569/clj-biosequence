@@ -423,4 +423,28 @@ user> (->> (filter-signalp (take 20 (biosequence-seq toxin-index)) :trim true)
            first
            bioseq->string)
 "DAGEKQATQRDAINFRWRRSLIRRTATEECEEYCEDEEKTCCGLEDGEPVCATTCLG"
+
+;; SignalP result objects can be indexed in the same manner as BLAST ie.
+;; the query sequence accession becomes the index keys.
+
+user> (def si (index-biosequence-file sr))
+#'user/si
+user> (accession (get-biosequence si "sp|P58809|CTX_CONMR"))
+"sp|P58809|CTX_CONMR"
+user> (signalp? (get-biosequence si "sp|P58809|CTX_CONMR"))
+false
+
+;; Search parameters can be passed to `signalp` and `filter-signalp`.
+;; But if format and logging parameters are messed with undefined results
+;; may be obtained.
+
+user> (def sr (signalp (take 20 (biosequence-seq toxin-index)) "/tmp/signalp.txt"
+                       {"-s" "best" "-t" "gram+"}))
+#'user/sr
+user> (with-open [r (bs-reader sr)]
+                 (first (biosequence-seq r)))
+#clj_biosequence.signalp.signalpProtein{:name "sp|P58809|CTX_CONMR", :cmax 0.101,
+:cpos 2, :ymax 0.119, :ypos 2, :smax 0.139, :spos 1, :smean 0.139, :D 0.127,
+:result "N", :Dmaxcut 0.45, :network "SignalP-TM"}
+
 ```
