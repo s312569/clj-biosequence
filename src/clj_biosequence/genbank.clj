@@ -287,7 +287,7 @@
   [accessions db retype]
   (and (check-db db)
        (check-rt retype)
-       (->genbankConnection (if (coll? accessions) accessions (list accessions)))))
+       (->genbankConnection accessions db retype)))
 
 ;; web
 

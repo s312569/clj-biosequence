@@ -202,6 +202,18 @@
              key
              zf/text))
 
+(defn blast-evalue
+  [param]
+  (zf/xml1-> (zip/xml-zip (:src param)) :Parameters_expect zf/text))
+
+(defn blast-matrix
+  [param]
+  (zf/xml1-> (zip/xml-zip (:src param)) :Parameters_matrix zf/text))
+
+(defn blast-filter
+  [param]
+  (zf/xml1-> (zip/xml-zip (:src param)) :Parameters_filter zf/text))
+
 (defn blast-database
   [param]
   (:database (:src param)))
@@ -260,31 +272,31 @@
 
   (bs-reader [this]
     (let [p (with-open [r (io/reader (:file this))]
-              (let [p (->> (:content (xml/parse r))
-                           (filter #(= :BlastOutput_param (:tag %)))
-                           first
-                           :content
-                           first)]
-                (list
-                 (init-blast-params (assoc p
-                                      :database
-                                      (->> (:content (:xml this))
-                                           (filter #(= :BlastOutput_db (:tag %)))
-                                           first
-                                           :content
-                                           first)
-                                      :version
-                                      (->> (:content (:xml this))
-                                           (filter #(= :BlastOutput_version (:tag %)))
-                                           first
-                                           :content
-                                           first)
-                                      :program
-                                      (->> (:content (:xml this))
-                                           (filter #(= :BlastOutput_program (:tag %)))
-                                           first
-                                           :content
-                                           first))))))
+              (let [x (xml/parse r)
+                    pa (->> (:content x)
+                            (filter #(= :BlastOutput_param (:tag %)))
+                            first
+                            :content
+                            first)]
+                (init-blast-params (assoc pa
+                                     :database
+                                     (->> (:content x)
+                                          (filter #(= :BlastOutput_db (:tag %)))
+                                          first
+                                          :content
+                                          first)
+                                     :version
+                                     (->> (:content x)
+                                          (filter #(= :BlastOutput_version (:tag %)))
+                                          first
+                                          :content
+                                          first)
+                                     :program
+                                     (->> (:content x)
+                                          (filter #(= :BlastOutput_program (:tag %)))
+                                          first
+                                          :content
+                                          first)))))
           r (io/reader (:file this))]
       (init-blast-reader r p)))
 
@@ -332,15 +344,14 @@
 ;; blasting
 
 (defn blast
-  ([bs program db outfile] (blast bs program db outfile {}))
-  ([bs program db outfile params]
-     (let [i (bs/biosequence->file bs (fs/temp-file "seq-") :append false)]
-       (try
-         (run-blast program db
-                    (fs/absolute-path i)
-                    (fs/absolute-path outfile)
-                    params)
-         (finally (fs/delete i))))))
+  [bs program db outfile & {:keys [params] :or {params {}}}]
+  (let [i (bs/biosequence->file bs (fs/temp-file "seq-") :append false)]
+    (try
+      (run-blast program db
+                 (fs/absolute-path i)
+                 (fs/absolute-path outfile)
+                 params)
+      (finally (fs/delete i)))))
 
 ;; helpers
 

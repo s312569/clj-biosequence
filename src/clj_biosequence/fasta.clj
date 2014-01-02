@@ -44,18 +44,19 @@
   biosequenceReader
   
   (biosequence-seq [this]
-    (map (fn [[d s]]
-           (let [seqs (apply str s)]
-             (cond (not (re-find #"^>" (first d)))
-                   (throw (Throwable. (str "Data corrupted at " (first d))))
-                   (> (count d) 1)
-                   (throw (Throwable. (str "No sequence for entry " (first d))))
-                   :else
-                   (init-fasta-sequence (second (re-find #"^>([^\s]+)" (first d)))
-                                        (second (re-find #">[^\s]+\s+(.+)" (first d)))
-                                        (:alphabet this)
-                                        (clean-sequence seqs (:alphabet this))))))
-         (partition 2 (partition-by #(re-find #"^>" %) (line-seq (:strm this))))))
+    (let [l (line-seq (:strm this))]
+      (map (fn [[d s]]
+             (let [seqs (apply str s)]
+               (cond (not (re-find #"^>" (first d)))
+                     (throw (Throwable. (str "Data corrupted at " (first d))))
+                     (> (count d) 1)
+                     (throw (Throwable. (str "No sequence for entry " (first d))))
+                     :else
+                     (init-fasta-sequence (second (re-find #"^>([^\s]+)" (first d)))
+                                          (second (re-find #">[^\s]+\s+(.+)" (first d)))
+                                          (:alphabet this)
+                                          (clean-sequence seqs (:alphabet this))))))
+           (partition 2 (partition-by #(re-find #"^>" %) l)))))
 
   (parameters [this])
 

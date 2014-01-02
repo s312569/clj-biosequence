@@ -180,7 +180,7 @@
 
 ;; web search
 
-(defn wget-uniprot-search
+(defn uniprot-search
   "Returns a non-lazy list of uniprot accession numbers satisfying the search term. 
    The search term uses the same syntax as the uniprot web interface. For 
    example:
@@ -194,7 +194,7 @@
      'reviewed:yes AND organism:9606'
    And so on. Returns an empty list if no matches found. Uniprot
    requires an email so an email can be supplied using the email argument."
-  ([term email] (wget-uniprot-search term email 0))
+  ([term email] (uniprot-search term email 0))
   ([term email offset]
      (let [r (remove #(= % "")
                      (-> (client/get
@@ -209,7 +209,7 @@
                          (split #"\n")))]
        (if (empty? r)
          nil
-         (lazy-cat r (wget-uniprot-search term email (+ offset 1000)))))))
+         (lazy-cat r (uniprot-search term email (+ offset 1000)))))))
 
 ;; uniprot convienence functions
 
@@ -367,7 +367,7 @@
                  (throw (Throwable. "Too many tries."))
                  :else
                  (recur
-                  (do (Thread/sleep 3000)
+                  (do (Thread/sleep 10000)
                       a)
                   (+ 1 c)))))]
       (if (some #(= (:status p) %) '(302 303))

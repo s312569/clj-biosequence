@@ -144,7 +144,7 @@
   (with-open [w (io/writer file :append append)]
     (dorun (map #(let [n (func %)]
                    (if n
-                     (.write w n)))
+                     (.write w (str n "\n"))))
                 bs)))
   file)
 

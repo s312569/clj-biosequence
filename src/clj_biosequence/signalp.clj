@@ -20,6 +20,10 @@
   (accession [this]
     (:name this)))
 
+(defn signalp?
+  [sp]
+  (= "Y" (:result sp)))
+
 ;; results
 
 (defrecord signalpReader [strm]
@@ -51,28 +55,27 @@
     (fs/absolute-path (:file this))))
 
 (defn signalp
-  ([bs outfile] (signalp bs outfile {}))
-  ([bs outfile params]
-     (let [in (bs/biosequence->file
-               bs (fs/temp-file "sp-in")
-               :append false
-               :func (fn [x]
-                       (if (bs/protein? x)
-                         (bs/fasta-string x)
-                         (throw (Throwable. "SignalP only analyses proteins.")))))]
-       (try
-         (with-open [out (io/output-stream outfile)]
-           (let [sp @(exec/sh (signal-command params in) {:out out})]
-             (if (and (= 0 (:exit sp)) (nil? (:err sp)))
-               (->signalpFile (fs/absolute-path outfile))
-               (if (:err sp)
-                 (throw (Throwable. (str "SignalP error: " (:err sp))))
-                 (throw (Throwable. (str "Exception: " (:exception sp))))))))
-         (catch Exception e
-           (fs/delete outfile)
-           (fs/delete in)
-           (println e))
-         (finally (fs/delete in))))))
+  [bs outfile & {:keys [params] :or {params {}}}]
+  (let [in (bs/biosequence->file
+            bs (fs/temp-file "sp-in")
+            :append false
+            :func (fn [x]
+                    (if (bs/protein? x)
+                      (bs/fasta-string x)
+                      (throw (Throwable. "SignalP only analyses proteins.")))))]
+    (try
+      (with-open [out (io/output-stream outfile)]
+        (let [sp @(exec/sh (signal-command params in) {:out out})]
+          (if (and (= 0 (:exit sp)) (nil? (:err sp)))
+            (->signalpFile (fs/absolute-path outfile))
+            (if (:err sp)
+              (throw (Throwable. (str "SignalP error: " (:err sp))))
+              (throw (Throwable. (str "Exception: " (:exception sp))))))))
+      (catch Exception e
+        (fs/delete outfile)
+        (fs/delete in)
+        (println e))
+      (finally (fs/delete in)))))
 
 (defn- register-outfile
   [a]
