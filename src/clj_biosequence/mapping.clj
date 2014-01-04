@@ -26,13 +26,13 @@
     (let [param {:from from :to to :format "tab" 
                  :query (apply str (interpose "," ids))}
           address "http://www.uniprot.org/mapping/"
-          r (client/post address 
-                         {:client-params
-                          {"http.useragent" (str "clj-http " email)}
-                          :follow-redirects true
-                          :force-redirects true
-                          :form-params param})]
+          r (post address 
+                  {:client-params
+                   {"http.useragent" (str "clj-http " email)}
+                   :follow-redirects true
+                   :force-redirects true
+                   :form-params param})]
       (if-not (= 200 (:status r))
         (throw (Throwable. (str "Error in mapping request: " (:body r))))
-        (into {} (map #(string/split % #"\t") (rest (string/split (:body r) #"\n"))))))
+        (into {} (map #(split % #"\t") (rest (split (:body r) #"\n"))))))
     (throw (Throwable. "No more than 100,000 mappings per query allowed."))))

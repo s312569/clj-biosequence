@@ -92,3 +92,11 @@
                                        :iupacAminoAcids))]
                (doall (take 20 (biosequence-seq r))))]
       (is (= "sp|C1IC47|3FN3_WALAE" (accession (first (filter-signalp bs))))))))
+
+(deftest genbank-test
+  (testing "Genbank"
+    (let [gsn (with-open [r (bs-reader (init-genbank-file
+                                        (io/resource "test-files/nucleotide-gb.xml")))]
+                (first (biosequence-seq r)))]
+      (is (= (created gsn) "08-JUL-2013"))
+      )))

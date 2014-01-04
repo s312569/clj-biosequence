@@ -3,7 +3,7 @@
             [clojure.data.zip.xml :as zf]
             [clojure.java.io :refer [reader]]
             [clojure.zip :refer [node xml-zip]]
-            [clojure.string :refer [split trim]]
+            [clojure.string :refer [split]]
             [clj-biosequence.core :as bs]
             [clj-biosequence.store :as st]
             [clj-http.client :as client]
@@ -70,7 +70,7 @@
 
   (bs-seq [this]
     (bs/clean-sequence
-     (trim (zf/xml1-> (xml-zip (:src this)) :sequence zf/text)) :iupacAminoAcids))
+     (zf/xml1-> (xml-zip (:src this)) :sequence zf/text) :iupacAminoAcids))
 
   (fasta-string [this]
     (let [db (condp = (:dataset (meta-data this))

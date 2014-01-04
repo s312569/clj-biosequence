@@ -80,7 +80,7 @@
   biosequenceFile
 
   (bs-path [this]
-    (fs/absolute-path (:file this))))
+    (absolute-path (:file this))))
 
 (defrecord fastaString [str alphabet]
 
@@ -97,7 +97,7 @@
   [path alphabet]
   (if-not (ala/alphabet? alphabet)
     (throw (Throwable. "Unrecognised alphabet keyword. Currently :iupacNucleicAcids :iupacAminoAcids are allowed."))
-    (if (fs/file? path)
+    (if (file? path)
       (->fastaFile path alphabet)
       (throw (Throwable. (str "File not found: " path))))))
 

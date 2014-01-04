@@ -2,7 +2,7 @@
   (:require [clojure.data.xml :as xml]
             [clojure.data.zip.xml :as zf]
             [clojure.zip :as zip]
-            [clojure.string :as string]
+            [clojure.string :refer [split]]
             [clj-http.client :as client]
             [clojure.java.io :as io]
             [fs.core :as fs]
@@ -10,7 +10,7 @@
             [clj-biosequence.core :as bs]
             [clj-biosequence.store :as st]))
 
-(declare qualifier-extract init-genbank-store feature-seq genbank-search-helper genbank-sequence-helper moltype get-genbank-stream check-db check-rt)
+(declare qualifier-extract init-genbank-store genbank-search-helper genbank-sequence-helper moltype get-genbank-stream check-db check-rt)
 
 ; interval
 
@@ -70,15 +70,12 @@
 
 (defrecord genbankFeature [src])
 
-(defn feature-seq
-  "Returns a lazy list of features from a genbankSequence."
-  [gbseq]
-  (map #(->genbankFeature %)
-       (:content (some #(if (= (:tag %) :GBSeq_feature-table)
-                          %) (:content (:src gbseq))))))
+(defprotocol featureIO
+  (feature-seq [this]
+    "Returns a lazy sequence of features from the feature table."))
 
 (defn feature-type
-  "Returns the feature key. For example: protein, Region, Site, CDS etc."
+  "Returns the feature key."
   [feature]
   (zf/xml1-> (zip/xml-zip (:src feature))
              :GBFeature_key
@@ -99,34 +96,12 @@
           quals)))
 
 (defn interval-seq
-  "Returns a non-lazy list of intervals in a feature. It also calculates a frame
-   for each interval so that individual translations of a DNA interval provide the
-   correct protein sequence. This value is accessed through the :frame keyword for
-   each interval. These values will have no meaning if the sequence is a protein."
+  "Returns a non-lazy list of intervals in a feature."
   [gb-feature]
-  (let [ints (map #(->genbankInterval (zip/node %))
-                  (zf/xml-> (zip/xml-zip (:src gb-feature))
-                            :GBFeature_intervals
-                            :GBInterval))]
-    (loop [i ints
-           f 1
-           acc ()]
-      (if (empty? i)
-        (reverse acc)
-        (let [s (start (first i))
-              e (end (first i))
-              aint (- (+ 1 (if-not (comp? (first i))
-                            (- e s)
-                            (- s e)))
-                      f)
-              frame (cond (< aint 0)
-                          (* -1 aint)
-                          (< aint 3)
-                          (- 3 aint)
-                          :else
-                          (- 3 (mod aint 3)))]
-          (recur (rest i) frame
-                 (cons (assoc (first i) :frame f) acc)))))))
+  (map #(->genbankInterval (zip/node %))
+         (zf/xml-> (zip/xml-zip (:src gb-feature))
+                   :GBFeature_intervals
+                   :GBInterval)))
 
 (defn get-feature-sequence
   "Returns a fastaSequence object containing the sequence specified in a 
@@ -158,6 +133,13 @@
 ; sequence
 
 (defrecord genbankSequence [src]
+
+  featureIO
+
+  (feature-seq [this]
+    (map #(->genbankFeature %)
+         (:content (some #(if (= (:tag %) :GBSeq_feature-table)
+                            %) (:content (:src this))))))
 
   st/mongoBSRecordIO
 
@@ -220,8 +202,9 @@
   bs/biosequenceReader
 
   (biosequence-seq [this]
-    (let [xml (xml/parse (:strm this))]
+    (let [xml (xml/parse (:strm this) :support-dtd false)]
       (map (fn [x]
+             (vec x) ;; realising all the laziness
              (->genbankSequence x))
            (filter #(= (:tag %) :GBSeq)
                    (:content xml)))))
@@ -329,50 +312,58 @@
 ;; convenience functions
 
 (defn created
+  "Returns the creation date of the sequence. Content of the GBSeq_create-date tag."
   [this]
   (zf/xml1-> (zip/xml-zip (:src this))
              :GBSeq_create-date zf/text))
 
 (defn modified
+  "Returns modification date. Content of the GBSeq_update-date tag."
   [this]
   (zf/xml1-> (zip/xml-zip (:src this))
              :GBSeq_update-date zf/text))
 
 (defn version
+  "Version number. Content of GBSeq_accession-version tag."
   [this]
   (Integer. (second (re-find #".+\.(\d+)"
                              (zf/xml1-> (zip/xml-zip (:src this))
                                         :GBSeq_accession-version zf/text)))))
 
 (defn taxid
+  "NCBI taxonomic id of the organism from which the sequence is derived."
   [this]
   (Integer. (second
-             (string/split
+             (split
               (qualifier-extract (first (filter #(= (feature-type %) "source")
                                                 (feature-seq this)))
                                  "db_xref")
               #":"))))
 
 (defn taxonomy
+  "Returns a list of the taxonomy of the organism from which the
+  sequence is derived."
   [this]
-  (seq (string/split (zf/xml1-> (zip/xml-zip (:src this))
+  (seq (split (zf/xml1-> (zip/xml-zip (:src this))
                                 :GBSeq_taxonomy zf/text)
                      #";")))
 
 (defn org-scientific-name
+  "Scientific name of the organism from which the sequence is derived."
   [this]
   (zf/xml1-> (zip/xml-zip (:src this))
              :GBSeq_organism
              zf/text))
 
 (defn moltype
+  "The type of the sequence. Content of the GBSeq_moltype tag."
   [gbseq]
   (zf/xml1-> (zip/xml-zip (:src gbseq))
              :GBSeq_moltype
              zf/text))
 
 (defn gb-locus
-  "Returns the locus of a genbankSequence."
+  "Returns the locus. Contents of GBSeq_locus tag."
   [gbseq]
   (zf/xml1-> (zip/xml-zip (:src gbseq)) :GBSeq_locus zf/text))
 
