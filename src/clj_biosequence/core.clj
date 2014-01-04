@@ -1,8 +1,8 @@
 (ns clj-biosequence.core
-  (:require [clojure.java.io :as io]
-            [fs.core :as fs]
-            [clj-http.client :as client]
-            [clojure.string :as string]
+  (:require [clojure.java.io :refer [writer]]
+            [fs.core :refer [file? absolute-path]]
+            [clj-http.client :refer [post]]
+            [clojure.string :refer [trim split]]
             [taoensso.nippy :refer [freeze thaw]]
             [clj-biosequence.alphabet :as ala]))
 
@@ -141,25 +141,12 @@
   the printed output, the default is `fasta-string` which will print
   the biosequences to the file in fasta format. Returns the file."
   [bs file & {:keys [append func] :or {append true func fasta-string}}]
-  (with-open [w (io/writer file :append append)]
+  (with-open [w (writer file :append append)]
     (dorun (map #(let [n (func %)]
                    (if n
                      (.write w (str n "\n"))))
                 bs)))
   file)
-
-(defn if-string-int
-  "If a string an integer is parsed, if not returns e. Will throw an
-   expception if no integer can be parsed if `error?' is true. Used
-   only when parsing optional fields in files where value could be nil
-   or a string representation of an integer."
-  ([e] (if-string-int e true))
-  ([e error?]
-     (try
-       (if (string? e) (Integer/parseInt e) e)
-       (catch NumberFormatException e
-         (if error?
-           (throw e))))))
 
 ;; sequence
 
@@ -173,7 +160,7 @@
         w #{\space \newline}]
     (vec (remove nil? (map #(cond (k %) \X
                                   (w %) nil
-                                  :else %) (vec s))))))
+                                  :else %) (vec (trim s)))))))
 
 ;; serialising
 
