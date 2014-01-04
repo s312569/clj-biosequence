@@ -574,6 +574,10 @@ user> (with-open [r (bs-reader (init-genbank-connection (take 10 sm-prots) :prot
 clj_biosequence.genbank.genbankSequence
 ```
 
+## Supported formats
+
+### Uniprot
+
 
 
 
