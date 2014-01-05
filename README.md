@@ -578,6 +578,108 @@ clj_biosequence.genbank.genbankSequence
 
 ### Uniprot
 
+```clojure
+
+;; initialise uniprot files using `init-uniprotxml-file` and access
+;; sequences as described above
+
+user> (def up (init-uniprotxml-file (resource "test-files/uniprot-s-mansoni-20121217.xml")))
+#'user/up
+user> (with-open [r (bs-reader up)]
+                 (count (biosequence-seq r)))
+2
+
+;; In addition to the accessors defined in the core module there are a
+;; number of convenience functions (see documentation for full
+;; details).
+
+user> (with-open [r (bs-reader up)]
+        (-> (biosequence-seq r) first sequence-info))
+{:length 272, :mass 29662.0, :checksum "11A38702F71B84D8", :modified "2010-03-23", :version 2}
+
+user> (with-open [r (bs-reader up)]
+        (-> (biosequence-seq r) first lineage))
+("Eukaryota" "Metazoa" "Platyhelminthes" "Trematoda" "Digenea"
+"Strigeidida" "Schistosomatoidea" "Schistosomatidae" "Schistosoma")
+
+user> (with-open [r (bs-reader up)]
+                 (-> (biosequence-seq r) first alternative-name))
+"Fe-S cluster assembly protein DRE2 homolog"
+
+;; citations can be extracted from the sequence in the form of
+;; uniprotCitation objects that extend the citation protocol defined
+;; in the core module (see documentation for details)
+
+user> (with-open [r (bs-reader up)]
+                 (-> (biosequence-seq r) second citations first authors))
+("Wright M.D." "Harrison R.A." "Melder A.M." "Newport G.R." "Mitchell G.F.")
+
+user> (with-open [r (bs-reader up)]
+                 (-> (biosequence-seq r) second citations first ref-type))
+"journal article"
+
+user> (with-open [r (bs-reader up)]
+                 (-> (biosequence-seq r) second citations first journal))
+"Mol. Biochem. Parasitol."
+
+;; All comments can be accessed using the `comments` function which
+;; returns the XML trees describing each comment.
+
+user> (with-open [r (bs-reader up)]
+                 (-> (biosequence-seq r) first comments first))
+#clojure.data.xml.Element{:tag :comment, :attrs {:type "function"},
+ :content (#clojure.data.xml.Element{:tag :text, :attrs {}, :content
+ ("May be required for the maturation of extramitochondrial Fe/S
+ proteins (By similarity). Has anti-apoptotic effects in the cell (By
+ similarity).")})}
+
+;; A similar function, `db-references`, returns all database references.
+
+user> (with-open [r (bs-reader up)]
+                 (-> (biosequence-seq r) first db-references first))
+#clojure.data.xml.Element{:tag :dbReference, :attrs {:type "EMBL", :id
+ "HE601631"}, :content (#clojure.data.xml.Element{:tag :property,
+ :attrs {:type "protein sequence ID", :value "CCD81528.1"}, :content
+ ()} #clojure.data.xml.Element{:tag :property, :attrs {:type "molecule
+ type", :value "Genomic_DNA"}, :content ()})}
+
+;; A convenience function, `go-terms`, uses `db-references` to extract
+;; GO terms.
+
+user> (with-open [r (bs-reader up)]
+                 (-> (biosequence-seq r) first go-terms))
+("C:cytoplasm" "P:apoptotic process")
+
+;; Features and intervals can be accessed through the protocols
+;; defined in the core module.
+
+user> (with-open [r (bs-reader up)]
+                 (-> (biosequence-seq r) second feature-seq first))
+#clj_biosequence.uniprot.uniprotFeature{:src
+ #clojure.data.xml.Element{:tag :feature, :attrs {:type "chain",
+ :description "Glutathione S-transferase class-mu 26 kDa isozyme", :id
+ "PRO_0000185811"}, :content (#clojure.data.xml.Element{:tag
+ :location, :attrs {}, :content (#clojure.data.xml.Element{:tag
+ :begin, :attrs {:position "1"}, :content ()}
+ #clojure.data.xml.Element{:tag :end, :attrs {:position "195"},
+ :content ()})})}}
+
+user> (with-open [r (bs-reader up)]
+                 (-> (biosequence-seq r) second feature-seq first feature-type))
+"chain"
+
+user> (with-open [r (bs-reader up)]
+                 (-> (biosequence-seq r) second feature-seq first interval-seq first))
+#clj_biosequence.uniprot.uniprotInterval{:src
+ #clojure.data.xml.Element{:tag :location, :attrs {}, :content
+ (#clojure.data.xml.Element{:tag :begin, :attrs {:position "1"},
+ :content ()} #clojure.data.xml.Element{:tag :end, :attrs {:position
+ "195"}, :content ()})}}
+
+user> (with-open [r (bs-reader up)]
+                 (-> (biosequence-seq r) second feature-seq first interval-seq first start))
+1
+```
 
 
 
