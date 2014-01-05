@@ -282,7 +282,7 @@
 
 (defn recommended-name
   "Returns the recommended name. If multiple returns the first."
-  [uniprot & kinds]
+  [uniprot]
   (zf/xml1-> (xml-zip (:src uniprot))
              :protein :recommendedName :fullName zf/text))
 
