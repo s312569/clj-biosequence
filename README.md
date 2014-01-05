@@ -681,6 +681,77 @@ user> (with-open [r (bs-reader up)]
 1
 ```
 
+### Genbank XML
+
+`clj-biosequence` also supports Genbank XML.
+
+```clojure
+;; initialise a genbank file in the usual way
+
+user> (use 'clj-biosequence.genbank)
+nil
+user> (def gbf (init-genbank-file (resource "test-files/nucleotide-gb.xml")))
+#'user/gbf
+
+;; Access to sequences is managed the same way as described above. As
+;; with Uniprot sequences a number of convenience accessors are
+;; defined (see the documentation for details)
+
+user> (def gbf (init-genbank-file (resource "test-files/nucleotide-gb.xml")))
+#'user/gbf
+user> (with-open [r (bs-reader gbf)]
+                 (-> (biosequence-seq r) first created))
+"08-JUL-2013"
+user> (with-open [r (bs-reader gbf)]
+                 (-> (biosequence-seq r) first taxid))
+1268274
+user> (with-open [r (bs-reader gbf)]
+                 (-> (biosequence-seq r) first gb-locus))
+"KE373594"
+
+;; The functions `feature-seq` and `interval-seq provide access to
+;; features and intervals as described above for Uniprot sequences.
+
+user> (with-open [r (bs-reader gbf)]
+                 (-> (biosequence-seq r) first feature-seq first feature-type))
+"source"
+user> (with-open [r (bs-reader gbf)]
+                 (-> (biosequence-seq r) first feature-seq first interval-seq first start))
+1
+
+;; The function `qualifier-seq` is also provided for genbank features
+;; and it returns a lazy list of qualifiers.
+
+user> (with-open [r (bs-reader gbf)]
+                 (-> (biosequence-seq r) first feature-seq first qualifier-seq first))
+#clj_biosequence.genbank.genbankQualifier{:src
+ #clojure.data.xml.Element{:tag :GBQualifier, :attrs {}, :content
+ (#clojure.data.xml.Element{:tag :GBQualifier_name, :attrs {},
+ :content ("organism")} #clojure.data.xml.Element{:tag
+ :GBQualifier_value, :attrs {}, :content ("Blumeria graminis f. sp.
+ tritici 96224")})}}
+user> (with-open [r (bs-reader gbf)]
+                 (-> (biosequence-seq r) first feature-seq first
+                     qualifier-seq first qualifier-name))
+"organism"
+user> (with-open [r (bs-reader gbf)]
+                 (-> (biosequence-seq r) first feature-seq first
+                     qualifier-seq first qualifier-value))
+"Blumeria graminis f. sp. tritici 96224"
+
+;; For Genbank files with large sequences, for example genome files,
+;; `feature-seq` can also be called on a genbank reader to provide a
+;; lazy sequence of features without loading the entire sequence into
+;; memory. Note this will only access the first sequence in a file.
+
+user> (def big-gb (init-genbank-file "/Users/jason/Dropbox/bl-ro1/hhv-4-annotation/akata/akata-sequence.xml"))
+#'user/big-gb
+user> (with-open [r (bs-reader big-gb)]
+                 (-> (feature-seq r) first feature-type))
+"source"
+```
+
+
 
 
 
