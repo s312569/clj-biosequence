@@ -46,6 +46,18 @@
                        (zf/attr :value))]
       (if (= "true" c) true false))))
 
+;; qualifier
+
+(defrecord genbankQualifier [src])
+
+(defn qualifier-name
+  [qual]
+  (zf/xml1-> (zip/xml-zip (:src qual)) :GBQualifier_name zf/text))
+
+(defn qualifier-value
+  [qual]
+  (zf/xml1-> (zip/xml-zip (:src qual)) :GBQualifier_value zf/text))
+
 ; feature
 
 (defrecord genbankFeature [src]
@@ -63,19 +75,15 @@
                    :GBFeature_intervals
                    :GBInterval))))
 
-(defn qualifier-extract
-  "Takes a genbankFeature and returns the value specified by 'element'. For 
-   instance to retrieve the organism name from a 'source' feature arguments 
-   would be the feature object and 'organism'."
-  [feature element]
-  (let [quals (:content (some #(if (= (:tag %) :GBFeature_quals)
-                                 %)
-                              (:content (:src feature))))]
-    (some #(let [z (zip/xml-zip %)]
-             (if (= (zf/xml1-> z :GBQualifier_name zf/text)
-                    element)
-               (zf/xml1-> z :GBQualifier_value zf/text)))
-          quals)))
+(defn qualifier-seq
+  [feature]
+  (->> (:content (some #(if (= (:tag %) :GBFeature_quals) %)
+                       (:content (:src feature))))
+       (map #(->genbankQualifier %))))
+
+(defn feature-operator
+  [feat]
+  (zf/xml1-> (zip/xml-zip (:src feat)) :GBFeature_operator zf/text))
 
 (defn feature-location
   "Returns the value corresponding to the 'GBFeature_location' element of a 
@@ -84,7 +92,6 @@
   (zf/xml1-> (zip/xml-zip (:src feature))
              :GBFeature_location
              zf/text))
-
 ; sequence
 
 (defrecord genbankSequence [src]
@@ -151,6 +158,15 @@
 ; IO
 
 (defrecord genbankReader [strm]
+
+  bs/Biosequence
+
+  (feature-seq [this]
+    (let [xml (xml/parse (:strm this) :support-dtd false)]
+      (->> (:content (first (filter #(= (:tag %) :GBSeq_feature-table)
+                                    (:content (first (:content xml))))))
+           (filter #(= (:tag %) :GBFeature))
+           (map #(->genbankFeature %)))))
 
   bs/biosequenceReader
 
@@ -288,8 +304,8 @@
   [this]
   (Integer. (second
              (split
-              (qualifier-extract (first (filter #(= (feature-type %) "source")
-                                                (feature-seq this)))
+              (qualifier-extract (first (filter #(= (bs/feature-type %) "source")
+                                                (bs/feature-seq this)))
                                  "db_xref")
               #":"))))
 
