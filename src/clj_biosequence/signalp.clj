@@ -84,12 +84,12 @@
 (defn filter-signalp
   [bsl & {:keys [trim params] :or {trim false params {}}}]
   (let [flist (atom ())
-        c (atom 0)
-        sps (map #(signalp % (register-outfile flist) params)
+        sps (map #(signalp % (register-outfile flist) :params params)
                  (partition-all 10000 bsl))]
     (try (let [h (->> (doall (pmap #(with-open [r (bs/bs-reader %)]
                                       (into {}
-                                            (map (fn [x] (vector (bs/accession x)
+                                            (map (fn [x]
+                                                   (vector (bs/accession x)
                                                                 (list (:result x)
                                                                       (:cpos x))))
                                                  (bs/biosequence-seq r)))) sps))
