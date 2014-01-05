@@ -179,8 +179,6 @@
        (subvec dna (- start 1) end)
        (subvec (ala/revcom dna) (- end 1) start)))))
 
-
-
 ;;;;;;;;;;;;;;
 ;; utilities
 ;;;;;;;;;;;;;;
@@ -211,7 +209,9 @@
         w #{\space \newline}]
     (vec (remove nil? (map #(cond (k %) \X
                                   (w %) nil
-                                  :else %) (vec (trim s)))))))
+                                  :else %) (if (string? s)
+                                             (vec (trim s))
+                                             (vec s)))))))
 
 ;; serialising
 
