@@ -42,7 +42,7 @@
 
 (defn init-fastq-sequence
   [description sequence quality]
-  (check-fastq (->fastqSequence description sequence quality)))
+  (->fastqSequence description sequence quality))
 
 (defn fastq->string
   [bs]
