@@ -14,72 +14,54 @@
 
 ; interval
 
-(defrecord genbankInterval [src])
+(defrecord genbankInterval [src]
 
-(defn start
-  "Start index of a genbankInterval."
-  [gb-interval]
-  (let [r (or (zf/xml1-> (zip/xml-zip (:src gb-interval))
-                         :GBInterval_from
-                         zf/text)
-              (zf/xml1-> (zip/xml-zip (:src gb-interval))
-                         :GBInterval_point
-                         zf/text))]
-    (if r
-      (Integer/parseInt r)
-      (throw (Throwable. "No start value in interval!")))))
+  bs/biosequenceInterval
 
-(defn end
-  "End index of a genbankInterval."
-  [gb-interval]
-  (let [r (or (zf/xml1-> (zip/xml-zip (:src gb-interval))
-                         :GBInterval_to
-                         zf/text)
-              (zf/xml1-> (zip/xml-zip (:src gb-interval))
-                         :GBInterval_point
-                         zf/text))]
-    (if r
-      (Integer/parseInt r)
-      (throw (Throwable. "No end value in interval!")))))
+  (start [gb-interval]
+    (let [r (or (zf/xml1-> (zip/xml-zip (:src gb-interval))
+                           :GBInterval_from
+                           zf/text)
+                (zf/xml1-> (zip/xml-zip (:src gb-interval))
+                           :GBInterval_point
+                           zf/text))]
+      (if r
+        (Integer/parseInt r)
+        (throw (Throwable. "No start value in interval!")))))
 
-(defn comp?
-  "Is a genbankInterval complementary?"
-  [gb-interval]
-  (let [c (zf/xml1-> (zip/xml-zip (:src gb-interval))
-                     :GBInterval_iscomp
-                     (zf/attr :value))]
-    (if (= "true" c) true false)))
+  (end [gb-interval]
+    (let [r (or (zf/xml1-> (zip/xml-zip (:src gb-interval))
+                           :GBInterval_to
+                           zf/text)
+                (zf/xml1-> (zip/xml-zip (:src gb-interval))
+                           :GBInterval_point
+                           zf/text))]
+      (if r
+        (Integer/parseInt r)
+        (throw (Throwable. "No end value in interval!")))))
 
-(defn get-interval-sequence
-  "Returns a fastaSequence object containing the sequence specified in the
-   genbankInterval from a genbankSequence. Designed for getting fastasequences
-   by applying  genbankInterval to the sequence entry it originates from."
-  [gb-interval gb-sequence]
-  (let [dna (bs/bs-seq gb-sequence) 
-        start (start gb-interval)
-        end (end gb-interval)]
-    (bs/init-fasta-sequence
-     (bs/accession gb-sequence)
-     (str (bs/def-line gb-sequence) " [" start "-" end "]")
-     (if (bs/protein? gb-sequence) :iupacAminoAcids :iupacNucleicAcids)
-     (if (false? (comp? gb-interval))
-       (subvec dna (- start 1) end)
-       (subvec (ala/revcom dna) (- end 1) start)))))
+  (comp? [gb-interval]
+    (let [c (zf/xml1-> (zip/xml-zip (:src gb-interval))
+                       :GBInterval_iscomp
+                       (zf/attr :value))]
+      (if (= "true" c) true false))))
 
 ; feature
 
-(defrecord genbankFeature [src])
+(defrecord genbankFeature [src]
 
-(defprotocol featureIO
-  (feature-seq [this]
-    "Returns a lazy sequence of features from the feature table."))
+  bs/biosequenceFeature
 
-(defn feature-type
-  "Returns the feature key."
-  [feature]
-  (zf/xml1-> (zip/xml-zip (:src feature))
-             :GBFeature_key
-             zf/text))
+  (feature-type [feature]
+    (zf/xml1-> (zip/xml-zip (:src feature))
+               :GBFeature_key
+               zf/text))
+
+  (interval-seq [gb-feature]
+    (map #(->genbankInterval (zip/node %))
+         (zf/xml-> (zip/xml-zip (:src gb-feature))
+                   :GBFeature_intervals
+                   :GBInterval))))
 
 (defn qualifier-extract
   "Takes a genbankFeature and returns the value specified by 'element'. For 
@@ -95,33 +77,6 @@
                (zf/xml1-> z :GBQualifier_value zf/text)))
           quals)))
 
-(defn interval-seq
-  "Returns a non-lazy list of intervals in a feature."
-  [gb-feature]
-  (map #(->genbankInterval (zip/node %))
-         (zf/xml-> (zip/xml-zip (:src gb-feature))
-                   :GBFeature_intervals
-                   :GBInterval)))
-
-(defn get-feature-sequence
-  "Returns a fastaSequence object containing the sequence specified in a 
-   genbankFeature object from a genbankSequence object. Designed for applying
-   intervals to the sequence entry they originate from."
-  [gb-feat gbseq]
-  (let [intervals (interval-seq gb-feat)]
-    (bs/init-fasta-sequence
-     (bs/accession gbseq)
-     (str (bs/def-line gbseq) " - Feature: " (feature-type gb-feat)
-          " - [" (start (first intervals)) "-" (end (last intervals)) "]")
-     (bs/alphabet gbseq)
-     (vec (mapcat #(if (comp? %)
-                     (subvec (ala/revcom (bs/bs-seq gbseq))
-                             (- (end %) 1)
-                             (start %))
-                     (subvec (bs/bs-seq gbseq)
-                             (- (start %) 1)
-                             (end %))) intervals)))))
-
 (defn feature-location
   "Returns the value corresponding to the 'GBFeature_location' element of a 
    genbank feature element."
@@ -133,13 +88,6 @@
 ; sequence
 
 (defrecord genbankSequence [src]
-
-  featureIO
-
-  (feature-seq [this]
-    (map #(->genbankFeature %)
-         (:content (some #(if (= (:tag %) :GBSeq_feature-table)
-                            %) (:content (:src this))))))
 
   st/mongoBSRecordIO
 
@@ -153,6 +101,11 @@
         s)))
 
   bs/Biosequence
+
+  (feature-seq [this]
+    (map #(->genbankFeature %)
+         (:content (some #(if (= (:tag %) :GBSeq_feature-table)
+                            %) (:content (:src this))))))
 
   (accession [this]
     (zf/xml1-> (zip/xml-zip (:src this))
