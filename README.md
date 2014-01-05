@@ -697,8 +697,6 @@ user> (def gbf (init-genbank-file (resource "test-files/nucleotide-gb.xml")))
 ;; with Uniprot sequences a number of convenience accessors are
 ;; defined (see the documentation for details)
 
-user> (def gbf (init-genbank-file (resource "test-files/nucleotide-gb.xml")))
-#'user/gbf
 user> (with-open [r (bs-reader gbf)]
                  (-> (biosequence-seq r) first created))
 "08-JUL-2013"
