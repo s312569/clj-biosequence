@@ -8,7 +8,6 @@ biological sequence data easier. Basic functions include:
 - A wrapper for signalP.
 - A wrapper for TMHMM.
 - Indexing of files for random access.
-- A simple MongoDB interface.
 - Mechanisms for lazy processing of sequences from very large files.
 - Interfaces for search and retrieval of sequences from online databases.
 - Translation functions for DNA and RNA sequences.
@@ -35,7 +34,6 @@ To use in your namespace:
             [clj-biosequence.index :as ind] ;; for indexing functionality
             [clj-biosequence.interproscan :as ips] ;; for interproscan functionality
 	        [clj-biosequence.signalp :as sp] ;; for a wrapper for signalp
-            [clj-biosequence.store :as st] ;; for a mongoDB interface
             [clj-biosequence.tmhmm :as tm] ;; for a wrapper for TMHMM))
 ```
 
