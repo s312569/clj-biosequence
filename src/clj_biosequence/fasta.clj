@@ -74,7 +74,7 @@
   biosequenceIO
 
   (bs-reader [this]
-    (init-fasta-reader (io/reader (:file this))
+    (init-fasta-reader (reader (:file this))
                        (:alphabet this)))
 
   biosequenceFile
