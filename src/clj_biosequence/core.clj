@@ -1,5 +1,5 @@
 (ns clj-biosequence.core
-  (:require [clojure.java.io :refer [writer]]
+  (:require [clojure.java.io :refer [writer reader]]
             [fs.core :refer [file? absolute-path]]
             [clj-http.client :refer [post]]
             [clojure.string :refer [trim split]]
@@ -36,7 +36,9 @@
   (protein? [this]
     "Returns true if a protein and false otherwise.")
   (alphabet [this]
-    "Returns the alphabet of a biosequence."))
+    "Returns the alphabet of a biosequence.")
+  (feature-seq [this]
+    "Returns a lazy list of features in a sequence."))
 
 (defprotocol biosequenceFile
   (bs-path [this]
@@ -59,6 +61,20 @@
     "Returns the end page of a citation object.")
   (authors [this]
     "Returns the authors from a citation object."))
+
+(defprotocol biosequenceFeature
+  (interval-seq [this]
+    "Returns a lazy list of intervals in a sequence.")
+  (feature-type [this]
+    "Returns the feature key."))
+
+(defprotocol biosequenceInterval
+  (start [this]
+    "Returns the start position of an interval as an integer.")
+  (end [this]
+    "Returns the end position of an interval as an integer.")
+  (comp? [this]
+    "Is the interval complementary to the biosequence sequence. Boolean"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions
@@ -129,6 +145,41 @@
   ([nucleotide table]
      (map #(translate nucleotide % :table table)
           '(1 2 3 -1 -2 -3))))
+
+(defn get-feature-sequence
+  "Returns a fastaSequence object containing the sequence specified in a 
+   genbankFeature object from a genbankSequence object. Designed for applying
+   intervals to the sequence entry they originate from."
+  [feature bs]
+  (let [intervals (interval-seq feature)]
+    (init-fasta-sequence
+     (accession bs)
+     (str (def-line bs) " - Feature: " (feature-type feature)
+          " - [" (start (first intervals)) "-" (end (last intervals)) "]")
+     (alphabet bs)
+     (vec (mapcat #(if (comp? %)
+                     (subvec (ala/revcom (bs-seq bs))
+                             (- (end %) 1)
+                             (start %))
+                     (subvec (bs-seq bs)
+                             (- (start %) 1)
+                             (end %))) intervals)))))
+
+(defn get-interval-sequence
+  "Returns a fasta sequence of an interval."
+  [interval bs]
+  (let [dna (bs-seq bs)
+        start (start interval)
+        end (end interval)]
+    (init-fasta-sequence
+     (accession bs)
+     (str (def-line bs) " [" start "-" end "]")
+     (if (protein? bs) :iupacAminoAcids :iupacNucleicAcids)
+     (if (false? (comp? interval))
+       (subvec dna (- start 1) end)
+       (subvec (ala/revcom dna) (- end 1) start)))))
+
+
 
 ;;;;;;;;;;;;;;
 ;; utilities
