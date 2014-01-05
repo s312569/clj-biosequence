@@ -14,3 +14,7 @@ project.clj~
 src/clj_biosequence/persistence.clj~
 .gitignore~
 src/clj_biosequence/alphabet.clj~
+resources/test-files/nuc-sequence.fasta.bin
+resources/test-files/nuc-sequence.fasta.idx
+resources/test-files/toxins.fasta.bin
+resources/test-files/toxins.fasta.idx
