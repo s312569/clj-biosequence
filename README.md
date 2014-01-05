@@ -280,9 +280,6 @@ user> (def tox-bl (with-open [r (bs-reader toxins)]
 ;; to themselves):
 
 user> (with-open [r (bs-reader tox-bl)]
-                 (count (biosequence-seq r)))
-20
-user> (with-open [r (bs-reader tox-bl)]
                  (doall (->> (biosequence-seq r)
                              (filter #(>= (-> (hit-seq %) second hit-bit-scores first) 50))
                              (map #(-> (hit-seq %) second hit-accession))))

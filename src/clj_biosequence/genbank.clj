@@ -7,10 +7,9 @@
             [clojure.java.io :as io]
             [fs.core :as fs]
             [clj-biosequence.alphabet :as ala]
-            [clj-biosequence.core :as bs]
-            [clj-biosequence.store :as st]))
+            [clj-biosequence.core :as bs]))
 
-(declare qualifier-extract init-genbank-store genbank-search-helper genbank-sequence-helper moltype get-genbank-stream check-db check-rt)
+(declare genbank-search-helper genbank-sequence-helper moltype get-genbank-stream check-db check-rt)
 
 ; interval
 
@@ -95,17 +94,6 @@
 ; sequence
 
 (defrecord genbankSequence [src]
-
-  st/mongoBSRecordIO
-
-  (mongo-bs-save [this pname cname]
-    (let [s (hash-map :acc (bs/accession this) :element "sequence"
-                      :pname pname :cname cname
-                      :type "biosequence/genbank"
-                      :src (bs/bs-freeze this))]
-      (if (:_id this)
-        (assoc s :_id (:_id this))
-        s)))
 
   bs/Biosequence
 
@@ -302,12 +290,14 @@
 (defn taxid
   "NCBI taxonomic id of the organism from which the sequence is derived."
   [this]
-  (Integer. (second
-             (split
-              (qualifier-extract (first (filter #(= (bs/feature-type %) "source")
-                                                (bs/feature-seq this)))
-                                 "db_xref")
-              #":"))))
+  (Integer/parseInt
+   (second (split (->> (filter #(= "source" (bs/feature-type %)) (bs/feature-seq this))
+                       first
+                       (qualifier-seq)
+                       (filter #(= "db_xref" (qualifier-name %)))
+                       first
+                       qualifier-value)
+                  #":"))))
 
 (defn taxonomy
   "Returns a list of the taxonomy of the organism from which the
@@ -399,6 +389,3 @@
   (:content (some #(if (= (:tag %) :GBSeq_sequence)
                      %)
                   (:content (first (:content (xml/parse rdr)))))))
-
-
-

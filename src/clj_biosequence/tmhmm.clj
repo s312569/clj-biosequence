@@ -11,8 +11,6 @@
 
 (declare make-tmhmm-result)
 
-;; signalp analysis
-
 (defrecord tmhmmProtein [accession length expaa first60 predhel topology]
 
   bios/Biosequence

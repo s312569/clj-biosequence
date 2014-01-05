@@ -21,7 +21,7 @@
     (list (bios/accession this)))
 
   (bs-seq [this]
-    (:sequence this))
+    (vec (:sequence this)))
 
   (def-line [this]
     (bios/accession this))
@@ -40,24 +40,14 @@
   (qualities [this]
     (:quality this)))
 
-(defmethod print-method clj_biosequence.core.fastaSequence
-  [this ^java.io.Writer w]
-  (bios/print-biosequence this w))
-
-(defn check-fastq
-  [fq]
-  (and (= \@ (first (bios/accession fq)))
-       (= (count (bios/bs-seq fq)) (count (qualities fq)))
-       fq))
-
 (defn init-fastq-sequence
   [description sequence quality]
   (check-fastq (->fastqSequence description sequence quality)))
 
 (defn fastq->string
   [bs]
-  (str (bios/accession bs) "\n" (bios/bioseq->string bs) "\n"
-       "+\n" (qualities bs) "\n"))
+  (str (bios/accession bs) "\n" (:sequence bs) "\n"
+       "+\n" (:quality bs) "\n"))
 
 ;; IO
 
@@ -85,17 +75,20 @@
   bios/biosequenceIO
   
   (bs-reader [this]
-    (condp = (fs/extension (:file this))
+    (println (fs/extension (bios/bs-path this)))
+    (condp = (fs/extension (bios/bs-path this))
       ".gz" (->fastqReader
-             (-> (:file this) io/file io/input-stream GzipCompressorInputStream. io/reader))
+             (-> (bios/bs-path this)
+                 io/file io/input-stream GzipCompressorInputStream. io/reader))
       ".bz2" (->fastqReader
-              (-> (:file this) io/file io/input-stream BZip2CompressorInputStream. io/reader))
-      (->fastqReader (io/reader (:file this)))))
+              (-> (bios/bs-path this)
+                  io/file io/input-stream BZip2CompressorInputStream. io/reader))
+      (->fastqReader (io/reader (bios/bs-path this)))))
   
   bios/biosequenceFile
 
   (bs-path [this]
-    (:file this)))
+    (fs/absolute-path (:file this))))
 
 (defrecord fastqString [str]
 

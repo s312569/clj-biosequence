@@ -5,7 +5,6 @@
             [clojure.data.zip.xml :as zf]
             [clojure.zip :as zip]
             [clj-biosequence.core :as bs]
-            [clj-biosequence.store :as st]
             [clojure.pprint :as pp]
             [clojure.string :refer [split]]
             [clojure.data.xml :as xml]
@@ -129,18 +128,7 @@
   bs/Biosequence
   
   (accession [this]
-    (iteration-query-id this))
-
-  st/mongoBSRecordIO
-
-  (mongo-bs-save [this pname cname]
-    (let [s (hash-map :acc (bs/accession this) :element "sequence"
-                      :pname pname :cname cname
-                      :type "biosequence/blast-iteration"
-                      :src (bs/bs-freeze this))]
-      (if (:_id this)
-        (assoc s :_id (:_id this))
-        s))))
+    (iteration-query-id this)))
 
 (defn init-blast-iteration
   [src]
@@ -172,18 +160,7 @@
 
 ;; parameters
 
-(defrecord blastParameters [src]
-
-  st/mongoBSRecordIO
-
-  (mongo-bs-save [this pname cname]
-    (let [s (hash-map :acc (bs/accession this) :element "parameter"
-                      :pname pname :cname cname
-                      :type "biosequence/blast-parameters"
-                      :src (bs/bs-freeze this))]
-      (if (:_id this)
-        (assoc s :_id (:_id this))
-        s))))
+(defrecord blastParameters [src])
 
 (defn blast-parameter-value
   "Returns the value of a blast parameter from a blastParameters. Key

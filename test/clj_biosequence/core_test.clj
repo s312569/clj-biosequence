@@ -3,10 +3,11 @@
             [fs.core :as fs])
   (:use clojure.test
         clj-biosequence.core
-        clj-biosequence.store
         clj-biosequence.uniprot
         clj-biosequence.signalp
-        clj-biosequence.genbank))
+        clj-biosequence.genbank
+        clj-biosequence.blast
+        clj-biosequence.fastq))
 
 (def fasta-nuc (with-open [f (bs-reader (init-fasta-file
                                          (io/resource "test-files/nuc-sequence.fasta")
@@ -118,3 +119,33 @@
       (is (= 1 (-> (feature-seq gsn) first interval-seq first start)))
       (is (= "organism" (-> (feature-seq gsn) first qualifier-seq first qualifier-name)))
       (is (= "Crotalus horridus" (-> (feature-seq gsn) first qualifier-seq first qualifier-value))))))
+
+(deftest blast-test
+  (testing "Blast"
+    (let [toxindb (init-blast-db (io/resource "test-files/toxins.fasta")
+                                 :iupacAminoAcids)
+          toxins (init-fasta-file (io/resource "test-files/toxins.fasta") :iupacAminoAcids)
+          tox-bl (with-open [r (bs-reader toxins)]
+                   (blast (take 20 (biosequence-seq r))
+                          "blastp"
+                          toxindb
+                          "/tmp/blast.xml"))]
+      (is (= "B3EWT5" (with-open [r (bs-reader tox-bl)]
+                        (first
+                         (->> (biosequence-seq r)
+                              (filter #(>= (-> (hit-seq %) second hit-bit-scores first) 50))
+                              (map #(-> (hit-seq %) second hit-accession)))))))
+      (fs/delete "/tmp/blast.xml"))))
+
+(deftest fastq-test
+  (testing "Fastq"
+    (let [fs (with-open [r (bs-reader (init-fastq-file
+                                       (io/resource "test-files/fastq-test.fastq")))]
+               (first (biosequence-seq r)))]
+      (is (= "@HWI-ST1213:141:C17PWACXX:6:1101:2860:1993 1:N:0:ACAGTG"
+             (accession fs)))
+      (is (= [\C \G \C] (first (partition-all 3 (bs-seq fs)))))
+      (is (= "@HWI-ST1213:141:C17PWACXX:6:1101:2860:1993 1:N:0:ACAGTG"
+             (def-line fs)))
+      (is (= "@HWI-ST1213:141:C17PWACXX:6:1101:2860:1993 1:N:0:ACAGTG\nCGCTGTACTCGATTATATGTCGATGTAACTTTTTCTGTACGTTTTAACTGGCATGTTTTTCTATATTAGATCGTGCGAGAATCACAGTACCTTAGTGGGG\n+\nCCCFFFFFHHHFHIIJJJJJIJJJIHJJIJJJIJJIIIJJJHIJIJIJJJJJJIIGCHIJJJHEIIIJJDGGIHGEFEFCDEEEDDDCDDCCDDC@CBDB\n"
+             (fastq->string fs))))))

@@ -5,7 +5,6 @@
             [clojure.zip :refer [node xml-zip]]
             [clojure.string :refer [split]]
             [clj-biosequence.core :as bs]
-            [clj-biosequence.store :as st]
             [clj-http.client :as client]
             [fs.core :refer [file? temp-file delete]]))
 
@@ -121,18 +120,7 @@
 
   (feature-seq [this]
     (map #(->uniprotFeature (node %))
-         (zf/xml-> (xml-zip (:src this)) :feature)))
-
-  st/mongoBSRecordIO
-
-  (mongo-bs-save [this pname cname]
-    (let [s (hash-map :acc (bs/accession this) :element "sequence"
-                      :pname pname :cname cname
-                      :type "biosequence/uniprot"
-                      :src (bs/bs-freeze this))]
-      (if (:_id this)
-        (assoc s :_id (:_id this))
-        s))))
+         (zf/xml-> (xml-zip (:src this)) :feature))))
 
 ;; IO
 

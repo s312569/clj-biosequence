@@ -1,13 +1,15 @@
 {clj_biosequence.core.fastaSequence clj_biosequence.core/map->fastaSequence
 
  clj_biosequence.uniprot.uniprotProtein clj_biosequence.uniprot/map->uniprotProtein
-
- clj_biosequence.bed.bedSequence clj_biosequence.bed/map->bedSequence
+ clj_biosequence.uniprot.uniprotInterval clj_biosequence.uniprot/map->uniprotInterval
+ clj_biosequence.uniprot.uniprotFeature clj_biosequence.uniprot/map->uniprotFeature
+ clj_biosequence.uniprot.uniprotCitation clj_biosequence.uniprot/map->uniprotCitation
 
  clj_biosequence.genbank.genbankInterval clj_biosequence.genbank/map->genbankInterval
  clj_biosequence.genbank.genbankFeature clj_biosequence.genbank/map->genbankFeature
  clj_biosequence.genbank.genbankSequence clj_biosequence.genbank/map->genbankSequence
-
+ clj_biosequence.genbank.genbankQualifier clj_biosequence.genbank/map->genbankQualifier
+ 
  clj_biosequence.interproscan.interproscanGo clj_biosequence.interproscan/map->interproscanGo
  clj_biosequence.interproscan.interproscanEntry clj_biosequence.interproscan/map->interproscanEntry
  clj_biosequence.interproscan.interproscanProtein clj_biosequence.interproscan/map->interproscanProtein

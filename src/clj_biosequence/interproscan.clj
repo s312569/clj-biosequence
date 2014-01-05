@@ -6,7 +6,6 @@
             [clojure.zip :as zip]
             [clojure.string :as string]
             [clj-biosequence.core :as bs]
-            [clj-biosequence.store :as st]
             [fs.core :as fs]))
 
 (declare run-ips)
@@ -72,18 +71,7 @@
                       (drop-last 2
                                  (string/split (zf/xml1-> (zip/xml-zip (:src this))
                                                           (zf/attr :id))
-                                               #"_")))))
-
-  st/mongoBSRecordIO
-
-  (mongo-bs-save [this pname cname]
-    (let [s (hash-map :acc (bs/accession this) :element "sequence"
-                      :pname pname :cname cname
-                      :type "biosequence/interproscan"
-                      :src (bs/bs-freeze this))]
-      (if (:_id this)
-        (assoc s :_id (:_id this))
-        s))))
+                                               #"_"))))))
 
 (defn init-ips-protein
   [src]
