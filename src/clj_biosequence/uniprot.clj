@@ -9,7 +9,38 @@
             [clj-http.client :as client]
             [fs.core :refer [file? temp-file delete]]))
 
-(declare prot-name meta-data nomenclature get-uniprot-stream organism)
+(declare prot-name meta-data recommended-name alternative-name get-uniprot-stream organism)
+
+;; interval
+
+(defrecord uniprotInterval [src]
+
+  bs/biosequenceInterval
+
+  (start [this]
+    (Integer/parseInt
+     (zf/xml1-> (xml-zip (:src this)) :begin (zf/attr :position))))
+
+  (end [this]
+    (Integer/parseInt
+     (zf/xml1-> (xml-zip (:src this)) :end (zf/attr :position))))
+
+  (comp? [this]
+    false))
+
+;; feature
+
+(defrecord uniprotFeature [src]
+
+  bs/biosequenceFeature
+
+  (feature-type [this]
+    (:type (:attrs (:src this))))
+
+  (interval-seq [this]
+    (map #(->uniprotInterval %)
+         (filter #(= (:tag %) :location)
+                 (:content (:src this))))))
 
 ;; citation
 
@@ -63,10 +94,9 @@
     (first (bs/accessions this)))
 
   (def-line [this]
-    (let [nom (xml-zip (nomenclature this))]
-      (str (first (nomenclature this "recommendedName")) " | "
-           (first (nomenclature this "alternativeName")) " ["
-           (first (organism this "scientific")) "]")))
+    (str (recommended-name this) " | "
+         (alternative-name this) " ["
+         (get (organism this) "scientific") "]"))
 
   (bs-seq [this]
     (bs/clean-sequence
@@ -89,6 +119,10 @@
   (alphabet [this]
     :iupacAminoAcids)
 
+  (feature-seq [this]
+    (map #(->uniprotFeature (node %))
+         (zf/xml-> (xml-zip (:src this)) :feature)))
+
   st/mongoBSRecordIO
 
   (mongo-bs-save [this pname cname]
@@ -109,6 +143,7 @@
   (bs/biosequence-seq [this]
     (let [xml (parse (:strm this))]
       (map (fn [x]
+             (vec x) ;; realizing all laziness
              (->uniprotProtein x))
            (filter #(= (:tag %) :entry)
                    (:content xml)))))
@@ -214,17 +249,15 @@
 ;; uniprot convienence functions
 
 (defn organism
-  "Returns a list of organism data corresponding to `kinds`. Kinds can
-   be any term used by uniprot in `name` tags. Typical 'kinds' are
-   \"scientific\", \"common\" and \"NCBI Taxonomy\", which returns the
-   NCBI taxonomic id. Any number of kinds can be used resulting in a
-   list of the values."
-  [uniprot & kinds]
-  (let [o (zf/xml1-> (xml-zip (:src uniprot))
-                     :organism)]
-    (map #(if (= % "NCBI Taxonomy")
-            (zf/xml1-> o :dbReference (zf/attr= :type %) (zf/attr :id))
-            (zf/xml1-> o :name (zf/attr= :type %) zf/text)) kinds)))
+  "Returns a hash-map of organism names keyed by name type, eg.
+  scientific etc."
+  [uniprot]
+  (assoc (->> (map node (zf/xml-> (xml-zip (:src uniprot)) :organism :name))
+              (map #(vector (:type (:attrs %)) (first (:content %))))
+              (into {}))
+    :taxid (Integer/parseInt
+            (zf/xml1-> (xml-zip (:src uniprot)) :organism :dbReference
+                       (zf/attr= :type "NCBI Taxonomy") (zf/attr :id)))))
 
 (defn lineage
   "Returns a list of the taxon terms of an organism"
@@ -237,21 +270,27 @@
   (zf/xml1-> (xml-zip (:src uniprot)) :name zf/text))
 
 (defn sequence-info
-  "Returns a list of sequence information. Kinds can be the following:
-  \"length\", \"mass\", \"checksum\", \"modified\", and \"version\".
-  Multiple 'kinds' returns multiple items in a list."
-  [uniprot & kinds]
-  (let [aa (zf/xml1-> (xml-zip (:src uniprot))
-                      :sequence)]
-    (map #(zf/xml1-> aa (zf/attr (keyword %))) kinds)))
+  "Returns a list of sequence information, including \"length\",
+  \"mass\", \"checksum\", \"modified\", and \"version\"."
+  [uniprot]
+  (let [a (:attrs (node (zf/xml1-> (xml-zip (:src uniprot))
+                                   :sequence)))]
+    (assoc a
+      :length (Integer/parseInt (:length a))
+      :mass (Float/parseFloat (:mass a))
+      :version (Integer/parseInt (:version a)))))
 
-(defn nomenclature
-  "Returns a list of naming information. Kinds can be the following:
-  \"recommendedName\", and \"alternativeName\"."
+(defn recommended-name
+  "Returns the recommended name. If multiple returns the first."
   [uniprot & kinds]
-  (let [n (zf/xml1-> (xml-zip (:src uniprot))
-                     :protein)]
-    (map #(zf/xml1-> n (keyword %) :fullName zf/text) kinds)))
+  (zf/xml1-> (xml-zip (:src uniprot))
+             :protein :recommendedName :fullName zf/text))
+
+(defn alternative-name
+  "Returns the alternative name. If multiple returns the first."
+  [uniprot & kinds]
+  (zf/xml1-> (xml-zip (:src uniprot))
+             :protein :alternativeName :fullName zf/text))
 
 (defn gene
   "Returns a list of maps comprised of gene names and types."
@@ -260,31 +299,21 @@
                (hash-map :gene (zf/xml1-> % :name zf/text)))
        (zf/xml-> (xml-zip (:src uniprot)) :gene)))
 
-(defn gene-location
-  "Returns a list of maps describing gene locations."
-  [uniprot]
-  (map #(merge (:attrs (node (zf/xml1-> %)))
-               (hash-map :other (zf/xml1-> % zf/text)))
-       (zf/xml-> (xml-zip (:src uniprot))
-                 :geneLocation)))
-
 (defn citations
   [uniprot]
   (->> (zf/xml-> (xml-zip (:src uniprot)) :reference)
        (map #(->uniprotCitation (node %)))))
 
-(defn comment-value
-  "Returns a list of maps containing text for a particular comment
-  value, i.e. \"function\" or \"cofactor\". A list of comments in a
-  uniprot entry can be produced using the `comments` function."
-  [uniprot comment]
-  (map #(merge (:attrs (node (zf/xml1-> % :text)))
-               (hash-map :text (zf/xml1-> % zf/text)))
-       (zf/xml-> (xml-zip (:src uniprot))
-                 :comment
-                 (zf/attr= :type comment))))
+(defn comments
+  "Returns the XML tree representations of all comments in the
+  sequence."
+  [uniprot]
+  (map node (zf/xml-> (xml-zip (:src uniprot)) :comment)))
 
 (defn subcellular-location
+  "Returns a list of hash-maps describing the sub-cellular location of
+   the sequence. Keys are :text, which describes the location,
+   and :status, which describes the evidence."
   [uniprot]
   (->> (zf/xml-> (xml-zip (:src uniprot))
                  :comment
@@ -292,13 +321,6 @@
                  :subcellularLocation :location)
        (map node)
        (map #(assoc (:attrs %) :text (first (:content %))))))
-
-(defn comments
-  "Change this to list all comment keys."
-  [uniprot]
-  (map #(zf/xml1-> % (zf/attr :type))
-       (zf/xml-> (xml-zip (:src uniprot))
-                 :comment)))
 
 (defn db-references
   "Returns all db-references as a list of xml elements."
@@ -331,12 +353,6 @@
                (hash-map :text (zf/xml1-> % zf/text)))
        (zf/xml-> (xml-zip (:src uniprot))
                  :keyword)))
-
-(defn features
-  "Features as a list of xml elements."
-  [uniprot]
-  (map node (zf/xml-> (xml-zip (:src uniprot))
-                          :feature)))
 
 (defn meta-data
   "Returns a map with uniprot meta-data. Keys - :dataset, :created, :modified
