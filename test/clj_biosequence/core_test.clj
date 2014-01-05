@@ -5,7 +5,8 @@
         clj-biosequence.core
         clj-biosequence.store
         clj-biosequence.uniprot
-        clj-biosequence.signalp))
+        clj-biosequence.signalp
+        clj-biosequence.genbank))
 
 (def fasta-nuc (with-open [f (bs-reader (init-fasta-file
                                          (io/resource "test-files/nuc-sequence.fasta")
@@ -26,9 +27,8 @@
     (is (= false (protein? fasta-nuc)))
     (is (= :iupacNucleicAcids (alphabet fasta-nuc)))
     (is (= java.lang.String (class (bioseq->string fasta-nuc))))
-    (is (= 143 (get (residue-frequencies fasta-nuc) \G)))
     (is (= [\G \T \A \C \A \A \A] (bs-seq (sub-bioseq fasta-nuc 0 7))))
-    (is (= [\G \T \A] (first (partition-bioseq fasta-nuc))))
+    (is (= [\G \T \A] (first (partition-all 3 (bs-seq fasta-nuc)))))
     (is (= [\T \A \A \T] (bs-seq (sub-bioseq (reverse-comp fasta-nuc) 0 4))))
     (is (= [\A \T \T \A] (bs-seq (sub-bioseq (reverse-seq fasta-nuc) 0 4))))
     (is (= "accession" (with-open [s (bs-reader (init-fasta-string
@@ -50,9 +50,8 @@
     (is (= true (protein? un-seq)))
     (is (= :iupacAminoAcids (alphabet un-seq)))
     (is (= java.lang.String (class (bioseq->string un-seq))))
-    (is (= 16 (get (residue-frequencies un-seq) \A)))
     (is (= [\M \E \Q \C \V \A] (bs-seq (sub-bioseq un-seq 0 6))))
-    (is (= [\M \E \Q] (first (partition-bioseq un-seq))))
+    (is (= [\M \E \Q] (first (partition-all 3 (bs-seq un-seq)))))
     (is (= "C4PYP8"
            (with-open [f (-> (io/resource "test-files/uniprot-s-mansoni-20121217.xml")
                              slurp
@@ -64,11 +63,11 @@
                              init-uniprotxml-file
                              bs-reader)]
              (parameters f))))
-    (is (= '("Schistosoma mansoni") (organism un-seq "scientific")))
+    (is (= "Schistosoma mansoni" (get (organism un-seq) "scientific")))
     (is (= "Eukaryota" (first (lineage un-seq))))
     (is (= "DRE2_SCHMA" (prot-name un-seq)))
-    (is (= '("Anamorsin homolog") (nomenclature un-seq "recommendedName")))
-    (is (= '("29662") (sequence-info un-seq "mass")))
+    (is (= "Anamorsin homolog" (recommended-name un-seq)))
+    (is (= 29662.0 (:mass (sequence-info un-seq))))
     (is (= "Smp_207000" (:gene (first (gene un-seq)))))
     (testing "Citations"
       (let [c (first (citations un-seq))]
@@ -80,10 +79,9 @@
         (is (= 352 (pstart c)))
         (is (= 358 (pend c)))
         (is (= "Berriman M." (first (authors c))))))
-    (is (= "function" (first (comments un-seq))))
-    (is (= (vec "May be required") (subvec
-                                    (vec (:text (first (comment-value un-seq "function"))))
-                                    0 15)))))
+    (is (= "function" (:type (:attrs (first (comments un-seq))))))
+    (is (= "chain" (feature-type (first (feature-seq un-seq)))))
+    (is (= 1 (-> (feature-seq un-seq) first interval-seq first start)))))
 
 (deftest signalp-test
   (testing "Signalp"
@@ -97,6 +95,26 @@
   (testing "Genbank"
     (let [gsn (with-open [r (bs-reader (init-genbank-file
                                         (io/resource "test-files/nucleotide-gb.xml")))]
-                (first (biosequence-seq r)))]
+                (second (biosequence-seq r)))]
+      (is (= "GAAZ01003035" (accession gsn)))
+      (is (= "TSA: Crotalus horridus Chorr_CTL-10 mRNA sequence") (def-line gsn))
+      (is (= false (protein? gsn)))
+      (is (= ">gb|GAAZ01003035|gb|GAAZ01003035.1||gnl|TSA:GAAZ01|Chorr_CTL-10|gi|521752463| TSA: Crotalus horridus Chorr_CTL-10 mRNA sequence\nctccattcccctcataggaggaaagcctggagttgcctctgagcagacttgctacctgtggaggccgaggaacagttctctctgcagggaaggaaagaacgccatggggcgattcatcttcgtgagcttcaacttgctggtcgtgttcctctccctaagtggaactctagctgatttggaatgtccctccggttggtcttcctatgatcggtattgctacaagcccttcaaacaagagatgacctgggccgatgcagagaggttctgctcggagcaggcgaagggcgggcatctcctctctgtcgaaaccgccctagaagcatcctttgtggacaatgtgctctatgcgaacaaagagtacctcacacgttatatctggattggactgagggttcaaaacaaaggacagccatgctccagcatcagttatgagaacctggttgacccatttgaatgttttatggtgagcagagacacaaggcttcgtgagtggtttaaagttgactgtgaacaacaacattctttcatatgcaagttcacgcgaccacgttaagatccggctgtgtgaagtctggagaagcaaggaagccccccacctctccccaccccccacctgccgcaatctctg\n") (fasta-string gsn))
+      (is (= :iupacNucleicAcids (alphabet gsn)))
       (is (= (created gsn) "08-JUL-2013"))
-      )))
+      (is (= (modified gsn) "08-JUL-2013"))
+      (is (= 1 (version gsn)))
+      (is (= 35024 (taxid gsn)))
+      (is (= "Eukaryota" (first (taxonomy gsn))))
+      (is (= "Crotalus horridus" (org-scientific-name gsn)))
+      (is (= "mRNA" (moltype gsn)))
+      (is (= "GAAZ01003035" (gb-locus gsn)))
+      (is (= "GAAZ01003035" (with-open [r (bs-reader
+                                           (init-genbank-connection '("GAAZ01003035")
+                                                                    :nucest :xml))]
+                              (accession (first (biosequence-seq r))))))
+      (is (= "source" (-> (feature-seq gsn) first feature-type)))
+      (is (= "1..628" (-> (feature-seq gsn) first feature-location)))
+      (is (= 1 (-> (feature-seq gsn) first interval-seq first start)))
+      (is (= "organism" (-> (feature-seq gsn) first qualifier-seq first qualifier-name)))
+      (is (= "Crotalus horridus" (-> (feature-seq gsn) first qualifier-seq first qualifier-value))))))
