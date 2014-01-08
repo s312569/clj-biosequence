@@ -48,11 +48,12 @@
     (->tmhmmReader (io/reader (:file this)))))
 
 (defn tmhmm
-  [bs & {:keys [outfile] :or {outfile (fs/temp-file "sp")}}]
-  (let [in (bios/biosequence->file bs (fs/temp-file "sp-in")
-                             :append false :func (fn [x] (if (bios/protein? x)
-                                                          (bios/fasta-string x)
-                                                          (throw (Throwable. "TMHMM only analyses proteins.")))))]
+  [bs & {:keys [outfile] :or {outfile (fs/temp-file "sp-in")}}]
+  (let [in (bios/biosequence->file bs outfile
+                                   :append false
+                                   :func (fn [x] (if (bios/protein? x)
+                                                  (bios/fasta-string x)
+                                                  (throw (Throwable. "TMHMM only analyses proteins.")))))]
     (with-open [out (io/output-stream outfile)]
       (let [sp @(exec/sh ["tmhmm" "-short" (fs/absolute-path in)] {:out out})]
         (if (= 0 (:exit sp))
