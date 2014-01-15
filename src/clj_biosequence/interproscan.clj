@@ -52,6 +52,20 @@
   (zf/xml1-> (zip/xml-zip (:src e))
              (zf/attr :id)))
 
+(defn ips-entry-start
+  [e]
+  (zf/xml1-> (zip/xml-zip (:src e))
+             :match
+             :location
+             (zf/attr :start)))
+
+(defn ips-entry-end
+  [e]
+  (zf/xml1-> (zip/xml-zip (:src e))
+             :match
+             :location
+             (zf/attr :end)))
+
 (defn ips-go-seq
   [e]
   (map #(->interproscanGo (zip/node %))

@@ -104,15 +104,13 @@
   "Takes a blastHit object and returns a list of floats corresponding
   to the bit scores of the HSPs composing the hit."
   [hit]
-  (let [v (map #(Float/parseFloat (get-hsp-value % :Hsp_bit-score)) (hsp-seq hit))]
-    (if (not (empty? v)) v (list 0))))
+  (map #(Float/parseFloat (get-hsp-value % :Hsp_bit-score)) (hsp-seq hit)))
 
 (defn hit-e-value
   "Takes a blastHit object and returns a list of floats corresponding
   to the e-values of the HSPs composing the hit."
   [hit]
-  (let [v (map #(Float/parseFloat (get-hsp-value % :Hsp_evalue)) (hsp-seq hit))]
-    (if (not (empty? v)) v (list 1000000))))
+  (map #(Float/parseFloat (get-hsp-value % :Hsp_evalue)) (hsp-seq hit)))
 
 (defn remove-hit-duplicates
   "Needs TESTING"
