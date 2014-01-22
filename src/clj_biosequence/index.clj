@@ -29,7 +29,7 @@
   bs/biosequenceFile
 
   (bs-path [this]
-    (:path this)))
+    (fs/absolute-path (:path this))))
 
 (defn bs-writer [this]
   (init-index-writer (RandomAccessFile. (:path this) "rw")))
@@ -96,6 +96,7 @@
     (spit (str (fs/absolute-path outfile) ".idx") (:index i))
     i))
 
+
 (defn load-biosequence-index
   [ind]
   (assoc (init-file-index (edn/read-string (slurp (str (fs/absolute-path ind) ".idx"))))
@@ -107,7 +108,7 @@
   [h]
   (->fileIndex h))
 
-(defn- read-one
+(defn read-one
   [off len file]
   (let [bb (byte-array len)]
     (with-open [r (RandomAccessFile. file "rw")]
@@ -115,7 +116,7 @@
       (.read r bb)
       (bs/bs-thaw bb))))
 
-(defn- write-and-position
+(defn write-and-position
   [obj strm]
   (let [o (nip/freeze obj)
         off (.getFilePointer strm)]
