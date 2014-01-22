@@ -115,7 +115,7 @@
       (.read r bb)
       (bs/bs-thaw bb))))
 
-(defn- write-and-position
+(defn write-and-position
   [obj strm]
   (let [o (nip/freeze obj)
         off (.getFilePointer strm)]
