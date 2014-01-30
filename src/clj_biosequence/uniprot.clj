@@ -6,7 +6,7 @@
             [clojure.string :refer [split]]
             [clj-biosequence.core :as bs]
             [clj-http.client :as client]
-            [fs.core :refer [file? temp-file delete]]))
+            [fs.core :refer [file? temp-file delete absolute-path]]))
 
 (declare prot-name meta-data recommended-name alternative-name get-uniprot-stream organism)
 
@@ -158,7 +158,7 @@
   bs/biosequenceFile
 
   (bs-path [this]
-    (fs/absolute-path (:file this))))
+    (absolute-path (:file this))))
 
 (defrecord uniprotString [str]
 
