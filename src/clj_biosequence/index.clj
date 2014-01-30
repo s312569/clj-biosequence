@@ -62,7 +62,7 @@
     (with-open [o (bs-writer ofile)]
       (let [i (with-open [i (bs/bs-reader file)]
                 (assoc (->> (bs/biosequence-seq i)
-                            (map #(write-and-position % (:strm o)))
+                            (map #(write-and-position % o))
                             (into {})
                             init-file-index)
                   :file ofile))]
@@ -76,7 +76,7 @@
       (let [i (-> (apply merge (doall (map
                                        #(with-open [r (bs/bs-reader %)]
                                           (->> (bs/biosequence-seq r)
-                                               (map (fn [x] (write-and-position x (:strm o))))
+                                               (map (fn [x] (write-and-position x o)))
                                                (into {})))
                                        files)))
                   init-file-index
@@ -89,7 +89,7 @@
   (let [ofile (init-index-file (str (fs/absolute-path outfile) ".bin"))
         i (with-open [o (bs-writer ofile)]
             (assoc (->> lst
-                        (map #(write-and-position % (:strm o)))
+                        (map #(write-and-position % o))
                         (into {})
                         init-file-index)
               :file ofile))]
@@ -117,10 +117,10 @@
       (bs/bs-thaw bb))))
 
 (defn write-and-position
-  [obj reader]
+  [obj writer]
   (let [o (nip/freeze obj)
-        off (.getFilePointer (:strm reader))]
-    (.write (:strm reader) o)
+        off (.getFilePointer (:strm writer))]
+    (.write (:strm writer) o)
     (vector (bs/accession obj) (list off (count o)))))
 
 
