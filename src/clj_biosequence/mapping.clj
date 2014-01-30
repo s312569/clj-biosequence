@@ -26,12 +26,12 @@
     (let [param {:from from :to to :format "tab" 
                  :query (apply str (interpose "," ids))}
           address "http://www.uniprot.org/mapping/"
-          r (post address 
-                  {:client-params
-                   {"http.useragent" (str "clj-http " email)}
-                   :follow-redirects true
-                   :force-redirects true
-                   :form-params param})]
+          params {:client-params
+                  {"http.useragent" (str "clj-http " email)}
+                  :follow-redirects true
+                  :force-redirects true
+                  :form-params param}
+          r (post address params)]
       (if-not (= 200 (:status r))
         (throw (Throwable. (str "Error in mapping request: " (:body r))))
         (into {} (map #(split % #"\t") (rest (split (:body r) #"\n"))))))
