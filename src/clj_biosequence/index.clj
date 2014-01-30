@@ -111,16 +111,16 @@
 (defn read-one
   [off len file]
   (let [bb (byte-array len)]
-    (with-open [r (RandomAccessFile. file "rw")]
+    (with-open [r (RandomAccessFile. file "r")]
       (.seek r off)
       (.read r bb)
       (bs/bs-thaw bb))))
 
 (defn write-and-position
-  [obj strm]
+  [obj reader]
   (let [o (nip/freeze obj)
-        off (.getFilePointer strm)]
-    (.write strm o)
+        off (.getFilePointer (:strm reader))]
+    (.write (:strm reader) o)
     (vector (bs/accession obj) (list off (count o)))))
 
 
