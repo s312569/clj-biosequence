@@ -188,7 +188,7 @@
   bs/biosequenceFile
 
   (bs-path [this]
-    (:file this)))
+    (fs/absolute-path (:file this))))
 
 (defrecord genbankString [str]
 
