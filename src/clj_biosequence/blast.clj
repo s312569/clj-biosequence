@@ -112,6 +112,12 @@
   [hit]
   (map #(Float/parseFloat (get-hsp-value % :Hsp_evalue)) (hsp-seq hit)))
 
+(defn hit-frames
+  "Takes a blastHit object and returns a list of frames from each of
+  the HSPs."
+  [hit]
+  (map #(Integer/parseInt (get-hsp-value % :Hsp_query-frame)) (hsp-seq hit)))
+
 (defn remove-hit-duplicates
   "Needs TESTING"
   [l]
