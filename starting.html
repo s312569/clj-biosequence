@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Clj-biosequence : A Clojure library designed to make the manipulation of biological sequence data easier." />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Clj-biosequence</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/s312569/clj-biosequence">View on GitHub</a>
+
+          <h1 id="project_title">Clj-biosequence</h1>
+          <h2 id="project_tagline">A Clojure library to make the
+          manipulation of biological sequence data easier.</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/s312569/clj-biosequence/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/s312569/clj-biosequence/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h3>Getting started with Clojure and clj-biosequence.</h3>
+        
+        Clojure is built on the java JVM and for a minimal install all
+        that is needed is Java 1.5 or above and the Clojure jar file.
+        
+        <h3>Minimal install.</h3>
+        <p>For a minimal
+          install, <a href="http://clojure.org/downloads">download</a>
+        the latest stable version of Clojure (1.5.1 at the time of
+          writing) and unzip.</p>
+
+        <p>Move into the folder created after unzipping the Clojure
+        zip file (using Clojure 1.5.1 this would be
+        'clojure-1.5.1') and run the following command:</p>
+
+        <code>
+$ java -cp clojure-1.5.1.jar clojure.main
+        </code>
+
+        <p>This will bring up a minimal read-eval-print loop (REPL) in
+          which Cojure code can be evaluated. For example:</p>
+        
+        <pre><code>user=> (+ 1 2 3)
+6
+user=> (javax.swing.JOptionPane/showMessageDialog nil "Hello World")</code></pre>
+
+        <p>The last command should pop up a window with "Hello World"
+          in it.</p>
+
+        <h3>Leiningen</h3>
+
+        <p>Although the minimal install is easy to get going it
+        doesn't help much with downloading and installing libraries,
+        organising classpaths and running programs you create using
+          Clojure.</p>
+
+        <p>The pretty much standard tool for managing all these tasks
+        is Leiningen. It handles basic tasks such as compilation of
+        code, testing, creation of package, installation, etc. It also
+        provides support for Maven packages, making the integration of
+          java libraries into your project simple.</p>
+
+        <p>To install Leiningen, download
+        the <a href="https://raw.github.com/technomancy/leiningen/stable/bin/lein">lein
+        script</a> (on
+        Windows <a href="https://raw.github.com/technomancy/leiningen/stable/bin/lein.bat">lein.bat</a>)
+        make it executable, place it in your path and run it. Leiningen
+        will then self-install</p>
+
+        <p>Note that there is a
+        Windows <a href="http://leiningen-win-installer.djpowell.net/">installer</a>
+        and various package managers for OS X and Linux also have
+        Leiningen available, just make sure you are using version
+          2.</p>
+
+        <h3>Your first project.</h3>
+
+        <p>To start your first project navigate somewhere in your
+          directory tree and run the following:</p>
+
+        <code>
+$ lein new bioproject
+        </code>
+
+        <p>This will create a new directory called 'bio-project' which
+        will contain directories and files representing the bare-bone
+        structure of a Clojure project. In this directory you should
+        see something similar to:</p>
+
+        <pre><code>$ ls
+total 36K
+drwxr-xr-x 2 jason jason 4.0K Mar  9 18:21 doc
+-rw-r--r-- 1 jason jason  11K Mar  9 18:21 LICENSE
+-rw-r--r-- 1 jason jason  271 Mar  9 18:21 project.clj
+-rw-r--r-- 1 jason jason  237 Mar  9 18:21 README.md
+drwxr-xr-x 2 jason jason 4.0K Mar  9 18:21 resources
+drwxr-xr-x 3 jason jason 4.0K Mar  9 18:21 src
+drwxr-xr-x 3 jason jason 4.0K Mar  9 18:21 test
+$</code></pre>
+
+        <p>Notice that we have a 'src' directory and a 'test'
+          directory (also a 'resources' but we wont cover that in this
+          tutorial). Your source files will go in the 'src' directory
+          and source for test functions in the 'test' directory. If we
+          have a look in the 'src' directory there is another
+          directory called 'bioproject' and in this one file called
+          core.clj'. This file is the core file of your project and
+          lein has set up a stub in that file as follows:</p>
+
+        <pre><code>(ns bioproject.core)
+
+(defn foo
+  "I don't do a whole lot."
+  [x]
+  (println x "Hello, World!"))</code></pre>
+
+        <p>This stub sets up a namespace, 'bioproject.core' and a
+        'Hello World' function and for many projects this file will
+        contain most, if not all, of your code for a particular
+        project. More complicated projects will have additional source
+          files and, potentially, multiple namespaces.</p>
+
+        <h3>Importing libraries.</h3>
+          
+          <p>If you are not planning on using any external libraries
+          there is no reason why you cannot start hacking away at your
+          'bioproject.core' file now. However, as this is a tutorial
+          for getting started with clj-biosequence we will import it
+            and use the functionality provided by this library.</p>
+
+          <p>Dependencies, and a heap of other things, for you project
+          are handled in the 'project.clj' file in the top directory
+          of the project. If you look at the contents of this file you
+            should see something similar to:</p>
+
+          <pre><code>(defproject bioproject "0.1.0-SNAPSHOT"
+  :description "FIXME: write description"
+  :url "http://example.com/FIXME"
+  :license {:name "Eclipse Public License"
+            :url "http://www.eclipse.org/legal/epl-v10.html"}
+  :dependencies [[org.clojure/clojure "1.5.1"]])</code></pre>
+
+          <p>Note the ':dependencies' keyword. The value of this key
+          word is a vector of vectors specifying dependencies that
+          should be incorporated into the classpath of the project. At
+          the moment it should have Clojure as the only dependency. To
+          include clj-biosequence as a dependency we just need to
+          include a vector with the name of the library. This
+          information is often found on the github page of a project,
+          as it is
+          for <a href="https://github.com/s312569/clj-biosequence">clj-biosequence</a>.
+          So we need to change the project.clj file to read as
+          follows:</p>
+
+          <pre><code>(defproject bioproject "0.1.0-SNAPSHOT"
+  :description "FIXME: write description"
+  :url "http://example.com/FIXME"
+  :license {:name "Eclipse Public License"
+            :url "http://www.eclipse.org/legal/epl-v10.html"}
+  :dependencies [[org.clojure/clojure "1.5.1"]
+                 [clj-biosequence "0.1.4-SNAPSHOT"]])</code></pre>
+
+          <p>As clj-biosequence is in
+          <a href="https://clojars.org/">Clojars</a>, an online
+          repository of Clojure jars, lein will now be able to detect
+          the dependency and download the required jar from Clojars.
+          The same method works with Maven repositories so if you want
+          to import a Java library you can also use lien.</p>
+
+          <p>To make sure that all our dependencies are met we can now
+          run 'lein deps' on the command line and lein should then go
+          and get clj-biosequence and add it to the projects
+          classpath. You should see something like the following:</p>
+
+          <pre><code>$ lein deps
+Retrieving clj-biosequence/clj-biosequence/0.1.4-SNAPSHOT/clj-biosequence-0.1.4-20140122.055709-66.pom from clojars
+Retrieving clj-biosequence/clj-biosequence/0.1.4-SNAPSHOT/clj-biosequence-0.1.4-20140122.055709-66.jar from clojars
+$</code></pre>
+
+          <h3>Playing with the library in the REPL.</h3>
+
+          <p>The read-eval-print loop (REPL) is one of way interacting
+          with Clojure 'on the fly'. As we saw in the minimal install
+          we can enter Clojure code and have the REPL evaluate that
+          code. When developing complex programs with Clojure this can
+          be a useful tool as code can be evaluated in the REPL when
+          debugging or testing functions. Instead of starting the REPL
+          the way we did with the minimal install, this time we will
+          use lein to start the REPL by typing 'lein repl'. You should
+          then be greeted with something like:</p>
+
+          <pre><code>nREPL server started on port 35849 on host 127.0.0.1
+REPL-y 0.3.0
+Clojure 1.5.1
+    Docs: (doc function-name-here)
+          (find-doc "part-of-name-here")
+  Source: (source function-name-here)
+ Javadoc: (javadoc java-object-or-class-here)
+    Exit: Control+D or (exit) or (quit)
+ Results: Stored in vars *1, *2, *3, an exception in *e
+
+user=></code></pre>
+
+          <p>The next step is to make the clj-biosequence library
+            available to us in the 'user' namespace.</p>
+
+          <code>(require '[clj-biosequence.core :as bs)</code>
+
+          <p>Now we should be able to access functions in the
+          clj-biosequence library. To test this out we will use a
+          simple fasta file which can be
+          downloaded <a href="http://s312569.github.io/clj-biosequence/test.fasta">here</a>.
+          This file is a fasta formatted file with eight sequences and
+          after downloading take note of its path. The first thing we
+          will do is initialise the downloaded fasta file using the
+          path and also telling clj-biosequence what type of sequence
+          is in the file. We will also store the fasta file object in
+          the test-file variable using 'def':</p>
+
+          <pre><code>user=> (def test-file (bs/init-fasta-file "/home/jason/Dropbox/clj-biosequence/test.fasta" :iupacAminoAcids))
+#'user/test-file
+user=></code></pre>
+
+        <p>We can now evaluate 'test-file' and see that it is indeed a
+          fasta file object.</p>
+
+        <pre><code>user=> test-file
+#clj_biosequence.core.fastaFile{:file "/home/jason/Dropbox/clj-biosequence/test.fasta", :alphabet :iupacAminoAcids}
+user=></code></pre>
+
+        <p>As this isn't a Clojure or clj-biosequence tutorial but a
+        guide to getting up and running, we will not discuss too much
+        about cj-biosequence. There is an in-depth clj-biosequence
+        tutorial on the
+        projects <a href="https://github.com/s312569/clj-biosequence">GitHub</a>
+        page which you should refer to after this guide to get an
+        understanding of the capabilities of clj-biosequence.</p>
+
+        <p>For now we will move and look at how to compile programs
+        and IDEs that can make your Clojure experience much more
+          pleasant.</p>
+
+        <h3>Our first program.</h3>
+
+        <p>Now we will write and run a short program with Clojure and
+        clj-biosequence. Open the 'core.clj' file from the
+        'src/bioproject/' directory in your favourite text editor. It
+        should look like this:</p>
+
+        <pre><code>(ns bioproject.core)
+
+(defn foo
+  "I don't do a whole lot."
+  [x]
+  (println x "Hello, World!"))</code></pre>
+
+        <p>Now edit it so it looks like the following. Noting that we
+        have added a 'require' statement that is the same as the one
+        we used above in the REPL and deleted the 'foo' function and
+        replaced it with a 'main' function.</p>
+
+        <pre><code>(ns bioproject.core
+  (:require [clj-biosequence.core :as bs]))
+
+(defn -main
+  "Prints the first sequence from a fasta file"
+  [file]
+  (with-open [r (bs/bs-reader (bs/init-fasta-file file :iupacAminoAcids))]
+    (println
+     (bs/bioseq->string (first (bs/biosequence-seq r))))))</code></pre>
+
+        <p>Next edit your 'project.clj' file and add a key word
+        argument ':main' with the 'bioproject.core' namespace as
+          follows:</p>
+
+        <pre><code>(defproject bioproject "0.1.0-SNAPSHOT"
+  :description "FIXME: write description"
+  :url "http://example.com/FIXME"
+  :license {:name "Eclipse Public License"
+            :url "http://www.eclipse.org/legal/epl-v10.html"}
+  :dependencies [[org.clojure/clojure "1.5.1"]
+                 [clj-biosequence "0.1.4-SNAPSHOT"]]
+  :main bioproject.core)</code></pre>
+
+        <p>Make sure everything is typed exactly (or copy/paste) and
+        then save the file. Now go back to the command line and type
+        'lein run [full path to test.fasta]'. Hopefully you will see
+        the amino acid sequence of the first sequence from the
+        test.fasta file printed.</p>
+
+        <pre><code>$ lein run /home/jason/Dropbox/test-files/test.fasta
+ANACTKQADCAEDECCLDNLFFKRPYCEMRYGAGKRCAAASVYKEDKDLY</code></pre>
+
+        <p>Success!</p>
+        
+        <h3>IDEs, the REPL and making your life easier.</h3>
+        
+        <p>Although you could use this workflow for all your projects
+        it is worth while learning how to use the REPL more
+        effectively during development. Clojure, as a lisp, encourages
+        coding in small functions that can be directly tested in the
+        REPL without having to mess around with running things on the
+        command line. If you are writing a library then you may not
+        even have a 'main' function to run, in which case your only
+        choice is the REPL. The lein REPL, while useful, lacks a lot
+        of bells and whistles that are available using different
+        workflows, things like auto-completion and evaluating
+        functions directly from the source file are just two examples.
+        At the very least you need an editor or IDE that helps with
+        managing parenthesises!</p>
+
+        <p>You have a choice of interactive development environments
+        (IDEs) that work with Clojure and choosing one and working out
+        how to use it would be time well spent if you plan on doing
+        much Clojure development.</p>
+
+        <p><a href="https://www.gnu.org/software/emacs/">Emacs</a> is
+        a text editor written in Lisp and has excellent integration
+        with
+        Clojure. <a href="https://github.com/clojure-emacs/cider">Cider</a>
+        is an excellent emacs mode for working with Clojure REPL,
+        especially in combination with paredit, rainbow-delimiters and
+        other useful modes, and there are extensive instructions on
+        getting it going on the link above. Word of warning, however,
+        although Emacs is an excellent IDE for Clojure it has a very
+        steep learning curve and if you are new to programming,
+        Clojure and/or Emacs it might be better to use a simpler IDE
+        to get going rather than taking on both at once. There are
+        some good resources for getting started with Emacs and
+        Clojure,
+        including <a href="http://www.braveclojure.com/using-emacs-with-clojure/">here</a>
+        and <a href="http://howardabrams.com/projects/dot-files/emacs-clojure.html">here</a>.</p>
+
+        <p>I use Emacs and so I haven't got a lot of experience with
+          other IDEs, but some that I have heard about include:</p>
+
+        <p><a href="http://www.lighttable.com/">Light Table</a> is a
+        new IDE that has good support for Clojure and other
+        programming languages. Some resources
+        are <a href="http://blog.safaribooksonline.com/2013/09/11/light-table-workflow-for-interactive-clojure-development/">here</a>
+        and <a href="http://docs.lighttable.com/tutorials/full/">here</a>.</p>
+
+        <p><a href="http://cursiveclojure.com/">Cursive</a> is an IDE
+          written in Clojure and based on IntelliJ.</p>
+
+        Finally, there is a list of Clojure IDEs and instructions for
+        setting them up on
+        the <a href="http://dev.clojure.org/display/doc/IDEs+and+Editors">Clojure
+        Documentation</a> website. So try a few and see what you like.
+        
+      </section>
+    </div>
+
+    <!-- FOOTER -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Clj-biosequence maintained by <a href="https://github.com/s312569">s312569</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
