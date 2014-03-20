@@ -32,7 +32,6 @@ To use in your namespace:
 	        [clj-biosequence.blast :as bl] ;; for BLAST functionality
             [clj-biosequence.fastq :as fq] ;; for fastq functionality
             [clj-biosequence.index :as ind] ;; for indexing functionality
-            [clj-biosequence.interproscan :as ips] ;; for interproscan functionality
 	        [clj-biosequence.signalp :as sp] ;; for a wrapper for signalp
             [clj-biosequence.tmhmm :as tm] ;; for a wrapper for TMHMM))
 ```
