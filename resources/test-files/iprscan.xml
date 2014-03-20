@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<protein-matches xmlns="http://www.ebi.ac.uk/interpro/resources/schemas/interproscan5">
+    <protein>
+        <sequence md5="493932c1f43289805b4c4e651ceb9249">GRGLLPFVLLALGIXAPWAVEGAENALKGGACPPRKIVQCLRYEKPKCTSDWQCPDKKKCCRDTCAIKCLNPVAITNPVKVKPGKCPVVYGQCMMLNPPNHCKTDSQCLGDLKCCKSMCGKVCLTPVKA</sequence>
+        <xref id="P22298"/>
+        <matches>
+            <hmmer3-match evalue="6.9E-17" score="61.0">
+                <signature ac="PF00095" desc="WAP-type (Whey Acidic Protein) 'four-disulfide core'" name="WAP">
+                    <entry ac="IPR008197" desc="Whey acidic protein-type  4-disulphide core" name="WAP-type_4-diS_core" type="DOMAIN">
+                        <go-xref category="MOLECULAR_FUNCTION" db="GO" id="GO:0030414" name="peptidase inhibitor activity"/>
+                        <go-xref category="CELLULAR_COMPONENT" db="GO" id="GO:0005576" name="extracellular region"/>
+                    </entry>
+                    <models>
+                        <model ac="PF00095" desc="WAP-type (Whey Acidic Protein) 'four-disulfide core'" name="WAP"/>
+                    </models>
+                    <signature-library-release library="PFAM" version="27.0"/>
+                </signature>
+                <locations>
+                    <hmmer3-location env-end="126" env-start="82" score="34.8" evalue="1.1E-8" hmm-start="1" hmm-end="43" hmm-length="0" start="82" end="126"/>
+                    <hmmer3-location env-end="72" env-start="28" score="32.5" evalue="5.3E-8" hmm-start="1" hmm-end="43" hmm-length="0" start="28" end="72"/>
+                </locations>
+            </hmmer3-match>
+        </matches>
+    </protein>
+    <protein>
+        <sequence md5="bb3bde1de955af5b7f49a84ba2c4d4ae">MKYKRIVFKVGTSSLTNEDGSLSRSKVKDITQQLAMLHEAGHELILVSSGAIAAGFGALGFKKRPTKIADKQASAAVGQGLLLEEYTTNLLLRQIVSAQILLTQDDFVDKRRYKNAHQALSVLLNRGAIPIINENDSVVIDELKVGDNDTLSAQVAAMVQADLLVFLTDVDGLYTGNPNSDPRAKRLERIETINREIIDMAGGAGSSNGTGGMLTKIKAATIATESGVPVYICSSLKSDSMIEAAEETEDGSYFVAQEKGLRTQKQWLAFYAQSQGSIWVDKGAAEALSQYGKSLLLSGIVEAEGVFSYGDIVTVFDKESGKSLGKGRVQFGASALEDMLRSQKAKGVLIYRDDWISITPEIQLLFTEF</sequence>
+        <xref id="Q97R95"/>
+        <matches>
+            <hmmer3-match evalue="2.6E-16" score="58.9">
+                <signature ac="PF01472" desc="PUA domain" name="PUA">
+                    <entry ac="IPR002478" desc="Pseudouridine synthase/archaeosine transglycosylase" name="PUA" type="DOMAIN">
+                        <go-xref category="MOLECULAR_FUNCTION" db="GO" id="GO:0003723" name="RNA binding"/>
+                    </entry>
+                    <models>
+                        <model ac="PF01472" desc="PUA domain" name="PUA"/>
+                    </models>
+                    <signature-library-release library="PFAM" version="27.0"/>
+                </signature>
+                <locations>
+                    <hmmer3-location env-end="349" env-start="276" score="57.6" evalue="6.7E-16" hmm-start="1" hmm-end="64" hmm-length="0" start="276" end="341"/>
+                </locations>
+            </hmmer3-match>
+            <hmmer3-match evalue="3.3E-46" score="157.6">
+                <signature ac="PF00696" desc="Amino acid kinase family" name="AA_kinase">
+                    <entry ac="IPR001048" desc="Aspartate/glutamate/uridylate kinase" name="Asp/Glu/Uridylate_kinase" type="DOMAIN">
+                        <pathway-xref db="Reactome" id="REACT_13" name="Metabolism of amino acids and derivatives"/>
+                    </entry>
+                    <models>
+                        <model ac="PF00696" desc="Amino acid kinase family" name="AA_kinase"/>
+                    </models>
+                    <signature-library-release library="PFAM" version="27.0"/>
+                </signature>
+                <locations>
+                    <hmmer3-location env-end="234" env-start="4" score="157.2" evalue="4.4E-46" hmm-start="1" hmm-end="242" hmm-length="0" start="4" end="234"/>
+                </locations>
+            </hmmer3-match>
+        </matches>
+    </protein>
+    <protein>
+        <sequence md5="f927b0d241297dcc9a1c5990b58bf3c4">MAAEEGVVIACHNKDEFDAQMTKAKEAGKVVIIDFTASWCGPCRFIAPVFAEYAKKFPGAVFLKVDVDELKEVAEKYNVEAMPTFLFIKDGAEADKVVGARKDDLQNTIVKHVGATAASASA</sequence>
+        <xref id="A2YIW7"/>
+        <matches>
+            <hmmer3-match evalue="1.6E-31" score="107.9">
+                <signature ac="PF00085" desc="Thioredoxin" name="Thioredoxin">
+                    <entry ac="IPR013766" desc="Thioredoxin domain" name="Thioredoxin_domain" type="DOMAIN">
+                        <go-xref category="BIOLOGICAL_PROCESS" db="GO" id="GO:0045454" name="cell redox homeostasis"/>
+                    </entry>
+                    <models>
+                        <model ac="PF00085" desc="Thioredoxin" name="Thioredoxin"/>
+                    </models>
+                    <signature-library-release library="PFAM" version="27.0"/>
+                </signature>
+                <locations>
+                    <hmmer3-location env-end="112" env-start="8" score="107.6" evalue="1.9E-31" hmm-start="2" hmm-end="104" hmm-length="0" start="9" end="112"/>
+                </locations>
+            </hmmer3-match>
+        </matches>
+    </protein>
+    <protein>
+        <sequence md5="1ec1bd6f541157aff88e5d190d48b1d8">MGHFTEEDKATITSLWGKVNVEDAGGETLGRLLVVYPWTQRFFDSFGNLSSASAIMGNPKVKAHGKKVLTSLGDAIKHLDDLKGTFAQLSELHCDKLHVDPENFKLLGNVLVTVLAIHFGKEFTPEVQASWQKMVTAVASALSSRYH</sequence>
+        <xref id="P69891"/>
+        <matches>
+            <hmmer3-match evalue="8.1E-32" score="109.7">
+                <signature ac="PF00042" desc="Globin" name="Globin">
+                    <entry ac="IPR000971" desc="Globin" name="Globin" type="FAMILY">
+                        <go-xref category="MOLECULAR_FUNCTION" db="GO" id="GO:0020037" name="heme binding"/>
+                        <go-xref category="MOLECULAR_FUNCTION" db="GO" id="GO:0005506" name="iron ion binding"/>
+                    </entry>
+                    <models>
+                        <model ac="PF00042" desc="Globin" name="Globin"/>
+                    </models>
+                    <signature-library-release library="PFAM" version="27.0"/>
+                </signature>
+                <locations>
+                    <hmmer3-location env-end="112" env-start="8" score="107.8" evalue="3.1E-31" hmm-start="1" hmm-end="110" hmm-length="0" start="8" end="112"/>
+                </locations>
+            </hmmer3-match>
+        </matches>
+    </protein>
+    <protein>
+        <sequence md5="24c4fdf97e87ef2826eec9d303ac9580">MTCGSGFGGRAFSCISACGPRPGRCCITAAPYRGISCYRGLTGGFGSHSVCGGFRAGSCGRSFGYRSGGVCGPSPPCITTVSVNESLLTPLNLEIDPNAQCVKQEEKEQIKSLNSRFAAFIDKVRFLEQQNKLLETKLQFYQNRECCQSNLEPLFEGYIETLRREAECVEADSGRLASELNHVQEVLEGYKKKYEEEVSLRATAENEFVALKKDVDCAYLRKSDLEANVEALIQEIDFLRRLYEEEILILQSHISDTSVVVKLDNSRDLNMDCIIAEIKAQYDDIVTRSRAEAESWYRSKCEEMKATVIRHGETLRRTKEEINELNRMIQRLTAEVENAKCQNSKLEAAVAQSEQQGEAALSDARCKLAELEGALQKAKQDMACLIREYQEVMNSKLGLDIEIATYRRLLEGEEQRLCEGIGAVNVCVSSSRGGVVCGDLCVSGSRPVTGSVCSAPCNGNVAVSTGLCAPCGQLNTTCGGGSCGVGSCGISSLGVGSCGSSCRKC</sequence>
+        <xref id="Q14533"/>
+        <matches>
+            <hmmer3-match evalue="1.8E-94" score="316.5">
+                <signature ac="PF00038" desc="Intermediate filament protein" name="Filament">
+                    <entry ac="IPR001664" desc="Intermediate filament protein" name="IF" type="FAMILY">
+                        <go-xref category="CELLULAR_COMPONENT" db="GO" id="GO:0005882" name="intermediate filament"/>
+                        <go-xref category="MOLECULAR_FUNCTION" db="GO" id="GO:0005198" name="structural molecule activity"/>
+                    </entry>
+                    <models>
+                        <model ac="PF00038" desc="Intermediate filament protein" name="Filament"/>
+                    </models>
+                    <signature-library-release library="PFAM" version="27.0"/>
+                </signature>
+                <locations>
+                    <hmmer3-location env-end="416" env-start="105" score="316.3" evalue="2.2E-94" hmm-start="1" hmm-end="312" hmm-length="0" start="105" end="416"/>
+                </locations>
+            </hmmer3-match>
+        </matches>
+    </protein>
+    <protein>
+        <sequence md5="1fb3569701c50e369fa112ac96b5e459">MEVKGKKKLTGKGTKMSQEKSKFHKNNDSGSSKTFPKKVVKEGGPKITSKNFEKTATKPGKKGVKQFKNKQQGDRIPKNKFQQANKFNQKRKFQPDSKSDESAAKKPKWDEFKKKKKELKQSRQLSDKTNYDIVIRAKQIWEILRRKDCDKEKRVKLMSDLQKLIQGKIKTIAFAHDSTRVIQCYIQFGNEEQRKQAFEELRGDLVELSKAKYSRNIVKKFLMYGSKAQIAEIIRSFKGHVRKLLRHAEASAIVEYAYNDKAILEQRNMLTEELYGNTFQLYKSADHPTLDKVLEVQPEKLELIMDEMKQILTPMAQKEAVIKHSLVHKVFLDFFTYAPPKLRSEMIEAIREAVVYLAHTHDGARVAMYCLWHGTPKDRKVIVKTMKTYIEKVANGQYSHLVLLAAFDCIDDTKLVKQIIISEIINSLPNIVNDKYGRKVLLYLLSPRDPAHTVREIIEVLQKGDGNAHSKKDTEIRRRELLESISPALLSYLQGHAQEVVLDKSACVLVADILGTATGDVQPAMDAVASLAAAELHPGGKDGELHIAEHPAGHLVLKWLIEQDKKMKERGREGCFAKTLIERVGVKNLKSWASVNRGAIILSSLLQSSDQEVANKVKAGLKSLIPALEKSKNTSKGIEMLLEKLTA</sequence>
+        <xref id="A2VDN9"/>
+        <matches>
+            <hmmer3-match evalue="3.9E-69" score="231.0">
+                <signature ac="PF08144" desc="CPL (NUC119) domain" name="CPL">
+                    <entry ac="IPR012959" desc="CPL" name="CPL" type="DOMAIN">
+                        <go-xref category="MOLECULAR_FUNCTION" db="GO" id="GO:0003723" name="RNA binding"/>
+                    </entry>
+                    <models>
+                        <model ac="PF08144" desc="CPL (NUC119) domain" name="CPL"/>
+                    </models>
+                    <signature-library-release library="PFAM" version="27.0"/>
+                </signature>
+                <locations>
+                    <hmmer3-location env-end="579" env-start="432" score="228.8" evalue="1.9E-68" hmm-start="1" hmm-end="148" hmm-length="0" start="432" end="579"/>
+                </locations>
+            </hmmer3-match>
+        </matches>
+    </protein>
+</protein-matches>
