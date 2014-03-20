@@ -151,6 +151,24 @@
   (map #(->blastHit (zip/node %))
        (zf/xml-> (zip/xml-zip (:src this)) :Iteration_hits :Hit)))
 
+(defn significant-hit-seq
+  "Returns a list of blastHit objects from a blastIteration object
+  that have a bit score equal to or greater than that specified (or
+  default of 50)."
+  ([iteration] (significant-hit-seq iteration 50))
+  ([iteration bits]
+     (remove nil? (map #(if (some (fn [x] (>= x bits)) (hit-bit-scores %))
+                          %)
+                       (hit-seq iteration)))))
+
+(defn significant-biosequence-seq
+  "A version of biosequence-seq that only returns iterations with a
+  hit greater than or equal to the specified bit score (or a default
+  of 50)."
+  ([reader] (significant-biosequence-seq reader 50))
+  ([reader bits]
+     (filter #(seq (significant-hit-seq % bits)) (bs/biosequence-seq reader))))
+
 (defn top-hit
   "Returns the highest scoring blastHit object from a blastIteration object."
   [this]
@@ -336,7 +354,7 @@
 
 ;; helpers
 
-(defn- get-sequence-from-blast-db [db id]
+(defn get-sequence-from-blast-db [db id]
   (let [s @(exec/sh (list "blastdbcmd" "-entry" id "-db" (:path db)))]
     (if (= 0 (:exit s))
       (:out s)
