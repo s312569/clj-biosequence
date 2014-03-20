@@ -21,9 +21,7 @@
     (:description this))
   
   (protein? [this]
-    (if (= :iupacAminoAcids (:alphabet this))
-      true
-      false))
+    (ala/alphabet-is-protein (:alphabet this)))
   
   (fasta-string [this]
     (str ">" (accession this) " " (def-line this) "\n" (bioseq->string this) "\n"))
