@@ -10,9 +10,146 @@
 
 (declare run-ips)
 
+;; ips protocol
+
+(defprotocol ipsSignature
+  (library [this] "Returns a hashmap with the keys :library and :version")
+  (entry [this] "Returns the IPR entry from a signature."))
+
+(defprotocol ipsMatch
+  (score [this])
+  (evalue [this])
+  (signature [this]))
+
+(defprotocol ipsEntry
+  (entry-type [this])
+  (entry-name [this])
+  (go-terms [this])
+  (pathways [this]))
+
+(defprotocol ipsGoterm
+  (category [this])
+  (go-name [this])
+  (bp? [this])
+  (cc? [this])
+  (mp? [this]))
+
+(defprotocol ipsPathway
+  (pathway-database [this])
+  (pathway-name [this]))
+
+;; pathway
+
+(defrecord interproscanPathway [src]
+
+  ipsPathway
+
+  (pathway-database [this]
+    (:db (:attrs (:src this))))
+
+  (pathway-name [this]
+    (:name (:attrs (:src this))))
+
+  bs/Biosequence
+
+  (accession [this]
+    (:id (:attrs (:src this)))))
+
+;; go terms
+
+(defrecord interproscanGoTerm [src]
+
+  ipsGoterm
+
+  (category [this]
+    (:category (:attrs (:src this))))
+
+  (go-name [this]
+    (:name (:attrs (:src this))))
+
+  (cc? [this]
+    (= "CELLULAR_COMPONENT" (category this)))
+
+  (bp? [this]
+    (= "BIOLOGICAL_PROCESS" (category this)))
+
+  (mp? [this]
+    (= "MOLECULAR_FUNCTION" (category this)))
+
+  bs/Biosequence
+
+  (accession [this]
+    (:id (:attrs (:src this)))))
+
+;; entry
+
+(defrecord interproscanEntry [src]
+
+  ipsEntry
+
+  (entry-type [this]
+    (:type (:attrs (:src this))))
+
+  (entry-name [this]
+    (:name (:attrs (:src this))))
+
+  (go-terms [this]
+    (doall (map #(->interproscanGoTerm (zip/node %))
+                (zf/xml-> (zip/xml-zip (:src this))
+                          :go-xref))))
+
+  (pathways [this]
+    (doall (map #(->interproscanPathway (zip/node %))
+                (zf/xml-> (zip/xml-zip (:src this))
+                          :pathway-xref))))
+
+  bs/Biosequence
+
+  (accession [this]
+    (:ac (:attrs (:src this))))
+
+  (def-line [this]
+    (:desc (:attrs (:src this)))))
+
+;; signature
+
+(defrecord interproscanSignature [src]
+
+  ipsSignature
+
+  (library [this]
+    (let [l (zf/xml1-> (zip/xml-zip (:src this))
+                       :signature-library-release)]
+      {:library (zf/attr l :library) :version (zf/attr l :version)}))
+
+  (entry [this]
+    (let [r (zf/xml1-> (zip/xml-zip (:src this)) :entry)]
+      (if (not (nil? r))
+        (->interproscanEntry (zip/node r)))))
+
+  bs/Biosequence
+
+  (accession [this]
+    (:ac (:attrs (:src this))))
+
+  (def-line [this]
+    (:desc (:attrs (:src this)))))
+
 ;; matches
 
-(defrecord interproscan [src])
+(defrecord interproscanHmmThree [src]
+
+  ipsMatch
+
+  (score [this]
+    (Float/parseFloat (:score (:attrs (:src this)))))
+
+  (evalue [this]
+    (Float/parseFloat (:evalue (:attrs (:src this)))))
+
+  (signature [this]
+    (->interproscanSignature
+     (zip/node (zf/xml1-> (zip/xml-zip (:src this)) :signature)))))
 
 ;; ips protein
 
@@ -21,23 +158,27 @@
   bs/Biosequence
 
   (accession [this]
-    (zf/xml1-> (zip/xml-zip (:src this))
-               :xref (zf/attr :id))))
+    (zf/xml-> (zip/xml-zip (:src this))
+              :xref (zf/attr :id))))
 
-(defn match-seq [protein]
-  (map #()))
+(defn hmmer-3-seq
+  ""
+  [protein]
+  (map #(->interproscanHmmThree (zip/node %))
+       (zf/xml-> (zip/xml-zip (:src protein))
+                 :matches
+                 :hmmer3-match)))
 
-;; ips searchx
+;; ips search
 
-(defrecord interproscanReader [strms]
+(defrecord interproscanReader [strm]
 
   bs/biosequenceReader
 
   (biosequence-seq [this]
-    (mapcat #(->> (:content (xml/parse %))
-                  (filter (fn [x] (= :protein (:tag x))))
-                  (map (fn [x] (->interproscanProtein x))))
-            (:strms this)))
+    (->> (:content (xml/parse (:strm this)))
+         (filter (fn [x] (= :protein (:tag x))))
+         (map (fn [x] (->interproscanProtein x)))))
 
   (parameters [this]
     ())
@@ -45,59 +186,63 @@
   java.io.Closeable
 
   (close [this]
-    (doseq [r (:strms this)]
-      (.close ^java.io.BufferedReader r))))
+    (.close ^java.io.BufferedReader (:strm this))))
 
-(defrecord interproscanResult [files]
+(defrecord interproscanResult [file]
 
   bs/biosequenceIO
 
   (bs-reader [this]
-    (->interproscanReader (map io/reader (:files this)))))
+    (->interproscanReader (io/reader (:file this)))))
 
 ;; ips run
 
 (defn ips
   "Runs interproscan on a list of biosequences."
-  [bsl & {:keys [outfile appl lookup goterms precalc pathways]
-          :or {outfile (fs/temp-file "ips")
-               appl '("pfam")
-               lookup true
-               goterms true
-               precalc false
-               pathways false}}]
+  [bsl outfile & {:keys [appl lookup goterms precalc pathways]
+                  :or {appl '("tigrfam")
+                       lookup true
+                       goterms true
+                       precalc false
+                       pathways false}}]
   (->interproscanResult
-   (doall (map #(let [i (bs/biosequence->file % (fs/temp-file "seq-") :append false)]
-                  (try
-                    (run-ips (fs/absolute-path i) (fs/absolute-path outfile)
-                             seqtype appl precalc pathways lookup goterms)
-                    (finally (fs/delete i))))
-               (partition-all 10000 bsl)))))
-
-;; pfam tigrfam - hmmer3-match
-;; prodom
-;; 
+   (let [i (bs/biosequence->file bsl (fs/temp-file "ips-") :append false)]
+     (try
+       (run-ips :infile (fs/absolute-path i)
+                :outfile outfile
+                :appl appl
+                :precalc precalc
+                :pathways pathways
+                :lookup lookup
+                :goterms goterms)
+       (finally (fs/delete i))))))
 
 ;; utilities
 
 (defn ips-command
-  [i o s a p path l g]
+  [& {:keys [infile outfile appl precalc pathways lookup goterms]}]
   (vec
    (remove nil? (-> (list
-                     "interproscan.sh" "-i" i "-o" o "-seqtype" s "-f" "XML"
-                     "-appl" (apply str (interpose "," a))
-                     (if (not p) "-dp")
-                     (if (not path) "-pa")
-                     (if (or l g) "-iprlookup")
-                     (if g "-goterms"))))))
+                     "interproscan.sh" "-i" infile "-o" outfile "-seqtype" "p" "-f" "XML"
+                     "-appl" (apply str (interpose "," appl))
+                     (if (not precalc) "-dp")
+                     (if (not pathways) "-pa")
+                     (if (or lookup goterms) "-iprlookup")
+                     (if goterms "-goterms"))))))
 
 (defn- run-ips
-  [i o s a p path l g]
+  [& {:keys [infile outfile appl precalc pathways lookup goterms]}]
   (try
-    (let [ips @(exec/sh (ips-command i o s a p path l g))]
+    (let [ips @(exec/sh (ips-command :infile infile
+                                     :outfile outfile
+                                     :appl appl
+                                     :precalc precalc
+                                     :lookup lookup
+                                     :goterms goterms
+                                     :pathways pathways))]
       (if (= 0 (:exit ips))
-        o
+        outfile
         (throw (Throwable. (str "Interproscan error: " (:err ips))))))
     (catch Exception e
       (throw e)
-      (fs/delete o))))
+      (fs/delete outfile))))
