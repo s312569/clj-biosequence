@@ -10,10 +10,6 @@
  clj_biosequence.genbank.genbankSequence clj_biosequence.genbank/map->genbankSequence
  clj_biosequence.genbank.genbankQualifier clj_biosequence.genbank/map->genbankQualifier
  
- clj_biosequence.interproscan.interproscanGo clj_biosequence.interproscan/map->interproscanGo
- clj_biosequence.interproscan.interproscanEntry clj_biosequence.interproscan/map->interproscanEntry
- clj_biosequence.interproscan.interproscanProtein clj_biosequence.interproscan/map->interproscanProtein
-
  clj_biosequence.signalp.signalpProtein clj_biosequence.signalp/map->signalpProtein
 
  clj_biosequence.tmhmm.tmhmmProtein clj_biosequence.tmhmm/map->tmhmmProtein

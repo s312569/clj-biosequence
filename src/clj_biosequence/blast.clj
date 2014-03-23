@@ -155,19 +155,23 @@
   "Returns a list of blastHit objects from a blastIteration object
   that have a bit score equal to or greater than that specified (or
   default of 50)."
-  ([iteration] (significant-hit-seq iteration 50))
-  ([iteration bits]
-     (remove nil? (map #(if (some (fn [x] (>= x bits)) (hit-bit-scores %))
-                          %)
-                       (hit-seq iteration)))))
+  [iteration score measure]
+  (if (not (#{:bits :evalue} measure))
+    (throw (Throwable. "Only :bits or :evalue allowable arguments for :measure keyword.")))
+  (filter #(if (= measure :bits)
+             (some (partial <= score) (hit-bit-scores %))
+             (some (partial >= score) (hit-e-value %)))
+          (hit-seq iteration)))
 
 (defn significant-biosequence-seq
   "A version of biosequence-seq that only returns iterations with a
   hit greater than or equal to the specified bit score (or a default
   of 50)."
-  ([reader] (significant-biosequence-seq reader 50))
-  ([reader bits]
-     (filter #(seq (significant-hit-seq % bits)) (bs/biosequence-seq reader))))
+  [reader score measure]
+  (if (not (#{:bits :evalue} measure))
+    (throw (Throwable. "Only :bits or :evalue allowable arguments for :measure keyword.")))
+  (filter #(seq (significant-hit-seq % score measure))
+          (bs/biosequence-seq reader)))
 
 (defn top-hit
   "Returns the highest scoring blastHit object from a blastIteration object."
