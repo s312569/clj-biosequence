@@ -33,7 +33,7 @@ To use in your namespace:
             [clj-biosequence.fastq :as fq] ;; for fastq functionality
             [clj-biosequence.index :as ind] ;; for indexing functionality
 	        [clj-biosequence.signalp :as sp] ;; for a wrapper for signalp
-            [clj-biosequence.tmhmm :as tm] ;; for a wrapper for TMHMM))
+            [clj-biosequence.tmhmm :as tm])) ;; for a wrapper for TMHMM
 ```
 
 The project page is [here](http://s312569.github.io/clj-biosequence/)
