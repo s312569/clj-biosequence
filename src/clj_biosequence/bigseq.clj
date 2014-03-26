@@ -123,12 +123,6 @@
         l
         (recur s)))))
 
-(defn- get-lazy-seq [strm]
-  (let [l (.read strm)
-        c (char l)]
-    (if (and (not (= -1 l)) (not (= \> c)))
-      (cons c (lazy-seq (get-lazy-seq strm))))))
-
 (defn- lazy-helper [strm a file]
   (let [l (read-til-defline strm)]
     (if l
