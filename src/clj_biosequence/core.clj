@@ -16,6 +16,9 @@
 (defprotocol biosequenceReader
   (biosequence-seq [this]
     "Returns a lazy sequence of biosequence objects.")
+  (biosequence-seq-lazy [this]
+    "Returns a lazy sequence of biosequence objects with a lazy stream
+    of sequences.")
   (parameters [this]
     "Returns parameters, if any.")
   (get-biosequence [this accession]
@@ -205,13 +208,9 @@
    characters with \\X. If `a' is not a defined alphabet throws an
    exception."
   [s a]
-  (let [k (complement (ala/alphabet-chars a))
-        w #{\space \newline}]
-    (vec (remove nil? (map #(cond (k %) \X
-                                  (w %) nil
-                                  :else %) (if (string? s)
-                                             (vec (trim s))
-                                             (vec s)))))))
+  (let [k (ala/get-alphabet a)]
+    (map #(cond (k %) % #{\space \newline} "" :else \X) s)))
+
 ;; utilities
 
 (defn protein-charge
