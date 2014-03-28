@@ -1,10 +1,11 @@
 (ns clj-biosequence.bigseq
   (:require [clojure.string :refer [split]]
-            [clojure.java.io :as io]
+            [clojure.java.io :refer [reader]]
             [fs.core :as fs]
             [clj-biosequence.alphabet :as ala]
-            [clj-biosequence.core :as bs])
-  (:import [java.io RandomAccessFile]))
+            [clj-biosequence.core :as bs]
+            [iota :as iot]
+            [clojure.core.reducers :as r]))
 
 (declare read-til-defline lazy-helper get-lazy-seq)
 
@@ -37,7 +38,7 @@
 
 ;; biosequence
 
-(defrecord bigSequence [line alphabet file]
+(defrecord bigSequence [accession description s e alphabet vec]
 
   bs/Biosequence
 
@@ -46,6 +47,11 @@
 
   (accessions [this]
     (list (bs/accession this)))
+
+  (bs-seq [this]
+    (pmap #(second (split (first (iot/subvec (:vec this) % (+ 1 %)))
+                         #"\t"))
+         (range (+ 1 (:s this)) (:e this))))
 
   (def-line [this]
     (:description this))
@@ -56,22 +62,36 @@
   (fasta-string [this])
 
   (alphabet [this]
-    (:alphabet this))
+    (:alphabet this)))
 
-  bigseqAccess
+(defn bs-reducer
+  [file func]
+  (->> (iot/seq (:file file))
+       (r/filter #(not (= \> (first %))))
+       (r/map #(bs/clean-sequence % :iupacAminoAcids))
+       (r/map func)
+       (r/fold h2)))
 
-  (sequence-reader [this]
-    (let [s (io/reader (:file this))]
-      (->bigseqSeqReader s (:alphabet this) (:line this)))))
+(defn h2
+  ([] {})
+  ([a b] (merge-with + a b)))
 
 ;; IO
 
-(defrecord bigseqReader [strm alphabet file]
+(defrecord bigseqReader [vec index alphabet file]
 
   bs/biosequenceReader
 
   (biosequence-seq [this]
-    (lazy-helper (:strm this) (:alphabet this) (bs/bs-path this)))
+    (let [l (iot/numbered-vec (:file this))]
+      (->> (filter #(re-find #">" %) l)
+           (partition-all 2 1)
+           (map #(->bigSequence (second (re-find #"^>([^\s]+)" (first %)))
+                                (second (re-find #">[^\s]+\s+(.+)" (first %)))
+                                (Integer/parseInt (first (split (first %) #"\t")))
+                                (Integer/parseInt (first (split (second %) #"\t")))
+                                (:alphabet this)
+                                l)))))
 
   (parameters [this])
 
@@ -83,20 +103,14 @@
   java.io.Closeable
 
   (close [this]
-    (.close (:strm this))))
-
-(defn init-bigseq-reader
-  [strm alphabet file]
-  (->bigseqReader strm alphabet file))
+    (.close (:vec this))))
 
 (defrecord bigseqFile [file alphabet]
 
   bs/biosequenceIO
 
   (bs-reader [this]
-    (init-bigseq-reader (io/reader (:file this))
-                        (:alphabet this)
-                        (:file this)))
+    (->bigseqReader (reader (:file this)) nil (:alphabet this) (:file this)))
 
   bs/biosequenceFile
 
