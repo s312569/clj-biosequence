@@ -34,7 +34,7 @@
     "Returns a list of accessions for a biosequence object.")
   (def-line [this]
     "Returns the description of a biosequence object.")
-  (bs-seq [this] [this vec]
+  (bs-seq [this]
     "Returns the sequence of a biosequence as a vector.")
   (fasta-string [this]
     "Returns the biosequence as a string in fasta format.")
