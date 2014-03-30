@@ -4,7 +4,9 @@
             [clj-http.client :refer [post]]
             [clojure.string :refer [trim split]]
             [taoensso.nippy :refer [freeze thaw]]
-            [clj-biosequence.alphabet :as ala]))
+            [clj-biosequence.alphabet :as ala]
+            [iota :as iot]
+            [clojure.core.reducers :as r]))
 
 (declare init-fasta-store init-fasta-sequence translate)
 
@@ -208,8 +210,15 @@
    characters with \\X. If `a' is not a defined alphabet throws an
    exception."
   [s a]
-  (let [k (ala/get-alphabet a)]
-    (map #(cond (k %) % #{\space \newline} "" :else \X) s)))
+  (let [k (ala/get-alphabet a)
+        w #{\space \newline}]
+    (loop [l s a []]
+      (if-not (seq l)
+        a
+        (let [c (first l)]
+          (if (not (w c))
+            (recur (rest l) (conj a (if (k c) c \X)))
+            (recur (rest l) a)))))))
 
 ;; utilities
 

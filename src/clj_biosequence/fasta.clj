@@ -16,7 +16,7 @@
   
   (bs-seq [this]
     (:sequence this))
-  
+
   (def-line [this]
     (:description this))
   
@@ -44,7 +44,7 @@
   (biosequence-seq [this]
     (let [l (line-seq (:strm this))]
       (map (fn [[d s]]
-             (let [seqs (apply str s)]
+             (let [seqs (apply str (map trim s))]
                (cond (not (re-find #"^>" (first d)))
                      (throw (Throwable. (str "Data corrupted at " (first d))))
                      (> (count d) 1)
@@ -67,6 +67,16 @@
   [strm alphabet]
   (->fastaReader strm alphabet))
 
+;; fasta files
+
+(defprotocol fastaReduce
+  (fasta-reduce [this func fold]
+    "Applies a function to sequence data streamed line-by-line and
+    reduces the results using the supplied `fold` function. Uses the
+    core reducers library so the fold function needs to have an
+    'identity' value that is returned when the function is called with
+    no arguments."))
+
 (defrecord fastaFile [file alphabet]
 
   biosequenceIO
@@ -78,15 +88,17 @@
   biosequenceFile
 
   (bs-path [this]
-    (absolute-path (:file this))))
+    (absolute-path (:file this)))
 
-(defrecord fastaString [str alphabet]
+  fastaReduce
 
-  biosequenceIO
-
-  (bs-reader [this]
-    (init-fasta-reader (java.io.BufferedReader. (java.io.StringReader. (:str this)))
-                       (:alphabet this))))
+  (fasta-reduce
+    [this func fold]
+    (->> (iot/seq (:file this))
+         (r/filter #(not (= \> (first %))))
+         (r/map #(clean-sequence % (:alphabet this)))
+         (r/map func)
+         (r/fold fold))))
 
 (defn init-fasta-file
   "Initialises fasta protein file. Accession numbers and description are 
@@ -98,6 +110,16 @@
     (if (file? path)
       (->fastaFile path alphabet)
       (throw (Throwable. (str "File not found: " path))))))
+
+;; strings
+
+(defrecord fastaString [str alphabet]
+
+  biosequenceIO
+
+  (bs-reader [this]
+    (init-fasta-reader (java.io.BufferedReader. (java.io.StringReader. (:str this)))
+                       (:alphabet this))))
 
 (defn init-fasta-string
   "Initialises a fasta string. Accession numbers and description are
