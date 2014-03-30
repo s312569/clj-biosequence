@@ -5,7 +5,7 @@
             [clojure.string :refer [trim split]]
             [taoensso.nippy :refer [freeze thaw]]
             [clj-biosequence.alphabet :as ala]
-            [iota :as io]
+            [iota :as iot]
             [clojure.core.reducers :as r]))
 
 (declare init-fasta-store init-fasta-sequence translate)
@@ -34,7 +34,7 @@
     "Returns a list of accessions for a biosequence object.")
   (def-line [this]
     "Returns the description of a biosequence object.")
-  (bs-seq [this]
+  (bs-seq [this] [this vec]
     "Returns the sequence of a biosequence as a vector.")
   (fasta-string [this]
     "Returns the biosequence as a string in fasta format.")
@@ -212,7 +212,13 @@
   [s a]
   (let [k (ala/get-alphabet a)
         w #{\space \newline}]
-    (map #(cond (k %) %  w "" :else \X) (vec s))))
+    (loop [l s a []]
+      (if-not (seq l)
+        a
+        (let [c (first l)]
+          (if (not (w c))
+            (recur (rest l) (conj a (if (k c) c \X)))
+            (recur (rest l) a)))))))
 
 ;; utilities
 
