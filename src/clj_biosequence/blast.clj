@@ -145,6 +145,12 @@
       (split #"\s")
       (first)))
 
+(defn iteration-query-length
+  "Takes a blastIteration object and returns the query length."
+  [iteration]
+  (Integer/parseInt
+   (zf/xml1-> (zip/xml-zip (:src iteration)) :Iteration_query-len zf/text)))
+
 (defn hit-seq
   "Returns a (lazy) list of blastHit objects from a blastIteration object."
   [this]
