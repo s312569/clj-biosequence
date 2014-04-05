@@ -327,6 +327,36 @@
             (zf/attr= :type "term")
             (zf/attr :value)))
 
+(defn bp-go-terms
+  "Returns a list of process GO terms.Only returns the term itself and
+   not any other information, for more information see
+   `db-references`."
+  [uprot]
+  (->> (go-terms uprot)
+       (filter #(= \P (first %)))
+       (map (fn [[a b & rest]]
+              (apply str rest)))))
+
+(defn mf-go-terms
+  "Returns a list of process GO terms.Only returns the term itself and
+   not any other information, for more information see
+   `db-references`."
+  [uprot]
+  (->> (go-terms uprot)
+       (filter #(= \M (first %)))
+       (map (fn [[a b & rest]]
+              (apply str rest)))))
+
+(defn cc-go-terms
+  "Returns a list of process GO terms.Only returns the term itself and
+   not any other information, for more information see
+   `db-references`."
+  [uprot]
+  (->> (go-terms uprot)
+       (filter #(= \C (first %)))
+       (map (fn [[a b & rest]]
+              (apply str rest)))))
+
 (defn existence
   "Protein existence evidence as a list of strings."
   [uniprot]
