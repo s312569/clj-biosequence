@@ -88,7 +88,7 @@
 (defn bioseq->string
   "Returns the sequence of a biosequence as a string."
   [bs]
-  (apply str (bs-seq bs)))
+  (apply str (interpose "\n" (map #(apply str %) (partition-all 80 (bs-seq bs))))))
 
 (defn sub-bioseq
   "Returns a new fasta sequence object with the sequence corresponding
