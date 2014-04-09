@@ -5,10 +5,15 @@
             [clojure.string :refer [trim split]]
             [taoensso.nippy :refer [freeze thaw]]
             [clj-biosequence.alphabet :as ala]
+            [clojure.edn :as edn]
+            [clojure.data.xml :as xml]
+            [miner.tagged :as tag]
+            [taoensso.nippy :as nip]
             [iota :as iot]
-            [clojure.core.reducers :as r]))
+            [clojure.core.reducers :as r])
+  (:import [java.io RandomAccessFile]))
 
-(declare init-fasta-store init-fasta-sequence translate)
+(declare init-fasta-store init-fasta-sequence translate init-indexed-fasta)
 
 (defprotocol biosequenceIO
   (bs-reader [this]
@@ -47,7 +52,8 @@
 
 (defprotocol biosequenceFile
   (bs-path [this]
-    "Returns the path of the file as string."))
+    "Returns the path of the file as string.")
+  (index-file [this]))
 
 (defprotocol biosequenceCitation
   (ref-type [this]
@@ -255,13 +261,72 @@
 
 ;; serialising
 
-(defn bs-freeze
+(defn- bs-freeze
   [this]
   (freeze this))
 
-(defn bs-thaw
+(defn- bs-thaw
   [this]
   (thaw this))
+
+(defrecord indexWriter [strm]
+
+  java.io.Closeable
+  
+  (close [this]
+    (.close ^java.io.RandomAccessFile (:strm this))))
+
+(defn init-index-writer
+  [file]
+  (->indexWriter (RandomAccessFile. (str (bs-path file) ".bin") "rw")))
+
+(defn print-tagged
+  [o w]
+  (tag/pr-tagged-record-on o w))
+
+(defprotocol indexFileIO
+  (bs-writer [this]))
+
+(defn write-and-position
+  [obj writer acc]
+  (let [o (nip/freeze obj)
+        off (.getFilePointer (:strm writer))]
+    (.write (:strm writer) o)
+    (vector acc (list off (count o)))))
+
+(defn index-entries
+  [file ifile]
+  (with-open [o (bs-writer ifile)]
+    (let [i (assoc ifile :index
+                   (with-open [r (bs-reader file)]
+                     (->> (biosequence-seq r)
+                          (map #(write-and-position % o (accession %)))
+                          (into {}))))]
+      (spit (str (bs-path ifile) ".idx") (pr-str i))
+      i)))
+
+(defn read-one
+  [off len file]
+  (let [bb (byte-array len)]
+    (with-open [r (RandomAccessFile. file "r")]
+      (.seek r off)
+      (.read r bb)
+      (bs-thaw bb))))
+
+(defn- my-record-tag-reader
+  [tag val]
+  (when-let [factory (and (map? val)
+                          (tag/tag->factory tag))]
+    (factory val)))
+
+(def my-tagged-default-reader 
+  (tag/some-tag-reader-fn my-record-tag-reader))
+
+(defn load-indexed-file
+  [path]
+  (edn/read-string {:default my-tagged-default-reader
+                    :readers {'clojure.data.xml.Element clojure.data.xml/map->Element}}
+                   (slurp (str path ".idx"))))
 
 ;; helper files
 

@@ -56,8 +56,6 @@
                                           (clean-sequence seqs (:alphabet this))))))
            (partition 2 (partition-by #(re-find #"^>" %) l)))))
 
-  (parameters [this])
-
   java.io.Closeable
 
   (close [this]
@@ -89,6 +87,10 @@
 
   (bs-path [this]
     (absolute-path (:file this)))
+
+  (index-file [this]
+    (let [ifile (init-indexed-fasta this)]
+      (index-entries this ifile)))
 
   fastaReduce
 
@@ -129,3 +131,36 @@
   (if-not (ala/alphabet? alphabet)
     (throw (Throwable. "Unrecognised alphabet keyword. Currently :iupacNucleicAcids :iupacAminoAcids are allowed."))
     (->fastaString str alphabet)))
+
+;; indexed files
+
+(defrecord indexedFastaFile [index path alphabet]
+
+  biosequenceFile
+
+  (bs-path [this]
+    (absolute-path (:path this)))
+
+  indexFileIO
+
+  (bs-writer [this]
+    (init-index-writer this))
+
+  biosequenceReader
+
+  (biosequence-seq [this]
+    (map (fn [[o l]]
+           (map->fastaSequence (read-one o l (str (bs-path this) ".bin"))))
+         (vals (:index this))))
+
+  (get-biosequence [this accession]
+    (let [[o l] (get (:index this) accession)]
+      (if o
+        (map->fastaSequence (read-one o l (str (bs-path this) ".bin")))))))
+
+(defn init-indexed-fasta [fastafile]
+  (->indexedFastaFile {} (bs-path fastafile) (:alphabet fastafile)))
+
+(defmethod print-method clj_biosequence.core.indexedFastaFile
+  [this w]
+  (print-tagged this w))

@@ -8,7 +8,7 @@
             [clj-http.client :as client]
             [fs.core :refer [file? temp-file delete absolute-path]]))
 
-(declare prot-name meta-data recommended-name alternative-name get-uniprot-stream organism)
+(declare prot-name meta-data recommended-name alternative-name get-uniprot-stream organism init-indexed-uniprot)
 
 ;; interval
 
@@ -158,7 +158,11 @@
   bs/biosequenceFile
 
   (bs-path [this]
-    (absolute-path (:file this))))
+    (absolute-path (:file this)))
+
+  (index-file [this]
+    (let [ifile (init-indexed-uniprot this)]
+      (bs/index-entries this ifile))))
 
 (defrecord uniprotString [str]
 
@@ -432,3 +436,36 @@
            :follow-redirects false}
           f))
         (finally (delete f))))))
+
+;; indexing
+
+(defrecord indexedUniprotFile [index path]
+
+  bs/biosequenceFile
+
+  (bs-path [this]
+    (absolute-path (:path this)))
+
+  bs/indexFileIO
+
+  (bs-writer [this]
+    (bs/init-index-writer this))
+
+  bs/biosequenceReader
+
+  (biosequence-seq [this]
+    (map (fn [[o l]]
+           (map->uniprotProtein (bs/read-one o l (str (bs/bs-path this) ".bin"))))
+         (vals (:index this))))
+
+  (get-biosequence [this accession]
+    (let [[o l] (get (:index this) accession)]
+      (if o
+        (map->uniprotProtein (bs/read-one o l (str (bs/bs-path this) ".bin")))))))
+
+(defn init-indexed-uniprot [uniprotfile]
+  (->indexedUniprotFile {} (bs/bs-path uniprotfile)))
+
+(defmethod print-method clj_biosequence.uniprot.indexedUniprotFile
+  [this w]
+  (bs/print-tagged this w))

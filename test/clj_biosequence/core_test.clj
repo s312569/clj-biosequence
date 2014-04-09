@@ -35,12 +35,25 @@
     (is (= "accession" (with-open [s (bs-reader (init-fasta-string
                                                  ">accession\n desc\n sequence"
                                                  :iupacNucleicAcids))]
-                         (accession (first (biosequence-seq s))))))
-    (is (= nil
-           (with-open [f (bs-reader (init-fasta-file
-                                     (io/resource "test-files/nuc-sequence.fasta")
-                                     :iupacNucleicAcids))]
-             (parameters f))))))
+                         (accession (first (biosequence-seq s)))))))
+  (testing "Fasta indexing"
+    (try
+      (let [i (index-file (init-fasta-file (io/resource "test-files/nuc-sequence.fasta")
+                                           :iupacNucleicAcids))]
+        (is (= "gi|116025203|gb|EG339215.1|EG339215"
+               (accession (first (biosequence-seq i)))))
+        (is (= "gi|114314166|gb|EE741316.1|EE741316"
+               (accession (get-biosequence i "gi|114314166|gb|EE741316.1|EE741316")))))
+      (let [i (load-indexed-file (io/resource "test-files/nuc-sequence.fasta"))]
+        (is (= "gi|116025203|gb|EG339215.1|EG339215"
+               (accession (first (biosequence-seq i)))))
+        (is (= "gi|114314166|gb|EE741316.1|EE741316"
+               (accession (get-biosequence i "gi|114314166|gb|EE741316.1|EE741316")))))
+      (finally
+        (fs/delete (str (fs/absolute-path (io/resource "test-files/nuc-sequence.fasta"))
+                        ".idx"))
+        (fs/delete (str (fs/absolute-path (io/resource "test-files/nuc-sequence.fasta"))
+                        ".bin"))))))
 
 (deftest uniprot
   (testing "Uniprot"
@@ -82,7 +95,27 @@
         (is (= "Berriman M." (first (authors c))))))
     (is (= "function" (:type (:attrs (first (comments un-seq))))))
     (is (= "chain" (feature-type (first (feature-seq un-seq)))))
-    (is (= 1 (-> (feature-seq un-seq) first interval-seq first start)))))
+    (is (= 1 (-> (feature-seq un-seq) first interval-seq first start))))
+  (testing "Uniprot indexing"
+    (try
+      (let [i (index-file (init-uniprotxml-file
+                           (io/resource "test-files/uniprot-s-mansoni-20121217.xml")))]
+        (is (= "C4PYP8"
+               (accession (first (biosequence-seq i)))))
+        (is (= "P35661"
+               (accession (get-biosequence i "P35661")))))
+      (let [i (load-indexed-file (io/resource "test-files/uniprot-s-mansoni-20121217.xml"))]
+        (is (= "C4PYP8"
+               (accession (first (biosequence-seq i)))))
+        (is (= "P35661"
+               (accession (get-biosequence i "P35661")))))
+      (finally
+        (fs/delete (str (fs/absolute-path
+                         (io/resource "test-files/uniprot-s-mansoni-20121217.xml"))
+                        ".idx"))
+        (fs/delete (str (fs/absolute-path
+                         (io/resource "test-files/uniprot-s-mansoni-20121217.xml"))
+                        ".bin"))))))
 
 (deftest signalp-test
   (testing "Signalp"
@@ -118,7 +151,27 @@
       (is (= "1..628" (-> (feature-seq gsn) first feature-location)))
       (is (= 1 (-> (feature-seq gsn) first interval-seq first start)))
       (is (= "organism" (-> (feature-seq gsn) first qualifier-seq first qualifier-name)))
-      (is (= "Crotalus horridus" (-> (feature-seq gsn) first qualifier-seq first qualifier-value))))))
+      (is (= "Crotalus horridus" (-> (feature-seq gsn) first qualifier-seq first qualifier-value)))))
+  (testing "Genbank indexing"
+    (try
+      (let [i (index-file (init-genbank-file
+                           (io/resource "test-files/nucleotide-gb.xml")))]
+        (is (= "KE373594"
+               (accession (first (biosequence-seq i)))))
+        (is (= "GAAZ01003035"
+               (accession (get-biosequence i "GAAZ01003035")))))
+      (let [i (load-indexed-file (io/resource "test-files/nucleotide-gb.xml"))]
+        (is (= "KE373594"
+               (accession (first (biosequence-seq i)))))
+        (is (= "GAAZ01003035"
+               (accession (get-biosequence i "GAAZ01003035")))))
+      (finally
+        (fs/delete (str (fs/absolute-path
+                         (io/resource "test-files/nucleotide-gb.xml"))
+                        ".idx"))
+        (fs/delete (str (fs/absolute-path
+                         (io/resource "test-files/nucleotide-gb.xml"))
+                        ".bin"))))))
 
 (deftest blast-test
   (testing "Blast"
@@ -135,7 +188,22 @@
                          (->> (biosequence-seq r)
                               (filter #(>= (-> (hit-seq %) second hit-bit-scores first) 50))
                               (map #(-> (hit-seq %) second hit-accession)))))))
-      (fs/delete "/tmp/blast.xml"))))
+      (testing "Blast indexing"
+        (try
+          (let [i (index-file tox-bl)]
+            (is (= "sp|P84001|29C0_ANCSP" (accession (first (biosequence-seq i)))))
+            (is (= "sp|P0CE81|A1HB1_LOXIN"
+                   (accession (get-biosequence i "sp|P0CE81|A1HB1_LOXIN"))))
+            (is (= 10 (blast-evalue (parameters i)))))
+          (let [i (load-indexed-file (bs-path tox-bl))]
+            (is (= "sp|P84001|29C0_ANCSP" (accession (first (biosequence-seq i)))))
+            (is (= "sp|P0CE81|A1HB1_LOXIN"
+                   (accession (get-biosequence i "sp|P0CE81|A1HB1_LOXIN"))))
+            (is (= 10 (blast-evalue (parameters i)))))
+          (finally
+            (fs/delete "/tmp/blast.xml")
+            (fs/delete "/tmp/blast.xml.idx")
+            (fs/delete "/tmp/blast.xml.bin")))))))
 
 (deftest fastq-test
   (testing "Fastq"
@@ -148,4 +216,25 @@
       (is (= "@HWI-ST1213:141:C17PWACXX:6:1101:2860:1993 1:N:0:ACAGTG"
              (def-line fs)))
       (is (= "@HWI-ST1213:141:C17PWACXX:6:1101:2860:1993 1:N:0:ACAGTG\nCGCTGTACTCGATTATATGTCGATGTAACTTTTTCTGTACGTTTTAACTGGCATGTTTTTCTATATTAGATCGTGCGAGAATCACAGTACCTTAGTGGGG\n+\nCCCFFFFFHHHFHIIJJJJJIJJJIHJJIJJJIJJIIIJJJHIJIJIJJJJJJIIGCHIJJJHEIIIJJDGGIHGEFEFCDEEEDDDCDDCCDDC@CBDB\n"
-             (fastq->string fs))))))
+             (fastq->string fs)))))
+  (testing "Fastq indexing"
+    (try
+      (let [i (index-file (init-fastq-file
+                           (io/resource "test-files/fastq-test.fastq")))]
+        (println (accession (second (biosequence-seq i))))
+        (is (= "@HWI-ST1213:141:C17PWACXX:6:1101:6408:1991 1:N:0:ACAGTG"
+               (accession (first (biosequence-seq i)))))
+        (is (= "@HWI-ST1213:141:C17PWACXX:6:1101:5381:1994 1:N:0:ACAGTG"
+               (accession (get-biosequence i "@HWI-ST1213:141:C17PWACXX:6:1101:5381:1994 1:N:0:ACAGTG")))))
+      (let [i (load-indexed-file (io/resource "test-files/fastq-test.fastq"))]
+        (is (= "@HWI-ST1213:141:C17PWACXX:6:1101:6408:1991 1:N:0:ACAGTG"
+               (accession (first (biosequence-seq i)))))
+        (is (= "@HWI-ST1213:141:C17PWACXX:6:1101:5381:1994 1:N:0:ACAGTG"
+               (accession (get-biosequence i "@HWI-ST1213:141:C17PWACXX:6:1101:5381:1994 1:N:0:ACAGTG")))))
+      (finally
+        (fs/delete (str (fs/absolute-path
+                         (io/resource "test-files/fastq-test.fastq"))
+                        ".idx"))
+        (fs/delete (str (fs/absolute-path
+                         (io/resource "test-files/fastq-test.fastq"))
+                        ".bin"))))))
