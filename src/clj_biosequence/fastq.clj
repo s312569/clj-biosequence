@@ -92,8 +92,10 @@
     (fs/absolute-path (:file this)))
   
   (index-file [this]
-    (let [ifile (init-indexed-fastq this)]
-      (bs/index-entries this ifile))))
+    (init-indexed-fastq (bs/bs-path this)))
+
+  (index-file [this ofile]
+    (init-indexed-fastq (fs/absolute-path ofile))))
 
 (defrecord fastqString [str]
 
@@ -138,8 +140,9 @@
       (if o
         (map->fastqSequence (bs/read-one o l (str (bs/bs-path this) ".bin")))))))
 
-(defn init-indexed-fastq [fastqfile]
-  (->indexedFastqFile {} (bs/bs-path fastqfile)))
+(defn init-indexed-fastq
+  [file]
+  (->indexedFastqFile {} file))
 
 (defmethod print-method clj_biosequence.fastq.indexedFastqFile
   [this w]

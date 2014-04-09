@@ -89,8 +89,10 @@
     (absolute-path (:file this)))
 
   (index-file [this]
-    (let [ifile (init-indexed-fasta this)]
-      (index-entries this ifile)))
+    (init-indexed-fasta (bs-path this) (:alphabet this)))
+
+  (index-file [this ofile]
+    (init-indexed-fasta ofile (:alphabet this)))
 
   fastaReduce
 
@@ -158,8 +160,8 @@
       (if o
         (map->fastaSequence (read-one o l (str (bs-path this) ".bin")))))))
 
-(defn init-indexed-fasta [fastafile]
-  (->indexedFastaFile {} (bs-path fastafile) (:alphabet fastafile)))
+(defn init-indexed-fasta [file alphabet]
+  (->indexedFastaFile {} file alphabet))
 
 (defmethod print-method clj_biosequence.core.indexedFastaFile
   [this w]

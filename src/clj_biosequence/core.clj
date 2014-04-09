@@ -296,20 +296,29 @@
     (vector acc (list off (count o)))))
 
 (defn index-biosequence-file
-  [file ifile]
-  (with-open [o (bs-writer ifile)]
-    (let [i (assoc ifile :index
-                   (with-open [r (bs-reader file)]
-                     (doall (->> (biosequence-seq r)
-                                 (map #(write-and-position % o (accession %)))
-                                 (into {})))))]
-      (spit (str (bs-path ifile) ".idx") (pr-str i))
-      i)))
+  [file]
+  (let [ifile (index-file file)]
+    (with-open [o (bs-writer ifile)]
+      (let [i (assoc ifile :index
+                (with-open [r (bs-reader file)]
+                  (->> (biosequence-seq r)
+                       (map #(write-and-position % o (accession %)))
+                       (into {}))))]
+        (spit (str (bs-path ifile) ".idx") (pr-str i))
+        i))))
 
 (defn merge-files
-  [files]
-  (with-open [o (bs-writer (first (files)))]
-    ))
+  [files outfile]
+  (let [ifile (index-file (first files) outfile)]
+    (with-open [o (bs-writer ifile)]
+      (let [i (assoc ifile :index
+                     (merge (mapcat (fn [x] (with-open [r (bs-reader x)]
+                                             (->> (biosequence-seq r)
+                                                  (map #(write-and-position % o (accession %)))
+                                                  (into {}))))
+                                    files)))]
+           (spit (str (bs-path ifile) ".idx") (pr-str i))
+           i))))
 
 (defn read-one
   [off len file]

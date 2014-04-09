@@ -191,8 +191,10 @@
     (fs/absolute-path (:file this)))
 
   (index-file [this]
-    (let [ifile (init-indexed-genbank this)]
-      (bs/index-entries this ifile))))
+    (init-indexed-genbank (bs/bs-path this)))
+
+  (index-file [this ofile]
+    (init-indexed-genbank ofile)))
 
 (defrecord genbankString [str]
 
@@ -420,8 +422,8 @@
       (if o
         (map->genbankSequence (bs/read-one o l (str (bs/bs-path this) ".bin")))))))
 
-(defn init-indexed-genbank [genbankfile]
-  (->indexedGenbankFile {} (bs/bs-path genbankfile)))
+(defn init-indexed-genbank [file]
+  (->indexedGenbankFile {} file))
 
 (defmethod print-method clj_biosequence.genbank.indexedGenbankFile
   [this w]
