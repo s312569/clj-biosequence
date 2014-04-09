@@ -161,8 +161,10 @@
     (absolute-path (:file this)))
 
   (index-file [this]
-    (let [ifile (init-indexed-uniprot this)]
-      (bs/index-entries this ifile))))
+    (init-indexed-uniprot (bs/bs-path this)))
+
+  (index-file [this ofile]
+    (init-indexed-uniprot ofile)))
 
 (defrecord uniprotString [str]
 
@@ -463,8 +465,8 @@
       (if o
         (map->uniprotProtein (bs/read-one o l (str (bs/bs-path this) ".bin")))))))
 
-(defn init-indexed-uniprot [uniprotfile]
-  (->indexedUniprotFile {} (bs/bs-path uniprotfile)))
+(defn init-indexed-uniprot [file]
+  (->indexedUniprotFile {} file))
 
 (defmethod print-method clj_biosequence.uniprot.indexedUniprotFile
   [this w]

@@ -38,8 +38,9 @@
                          (accession (first (biosequence-seq s)))))))
   (testing "Fasta indexing"
     (try
-      (let [i (index-file (init-fasta-file (io/resource "test-files/nuc-sequence.fasta")
-                                           :iupacNucleicAcids))]
+      (let [i (index-biosequence-file
+               (init-fasta-file (io/resource "test-files/nuc-sequence.fasta")
+                                :iupacNucleicAcids))]
         (is (= "gi|116025203|gb|EG339215.1|EG339215"
                (accession (first (biosequence-seq i)))))
         (is (= "gi|114314166|gb|EE741316.1|EE741316"
@@ -98,8 +99,9 @@
     (is (= 1 (-> (feature-seq un-seq) first interval-seq first start))))
   (testing "Uniprot indexing"
     (try
-      (let [i (index-file (init-uniprotxml-file
-                           (io/resource "test-files/uniprot-s-mansoni-20121217.xml")))]
+      (let [i (index-biosequence-file
+               (init-uniprotxml-file
+                (io/resource "test-files/uniprot-s-mansoni-20121217.xml")))]
         (is (= "C4PYP8"
                (accession (first (biosequence-seq i)))))
         (is (= "P35661"
@@ -154,8 +156,9 @@
       (is (= "Crotalus horridus" (-> (feature-seq gsn) first qualifier-seq first qualifier-value)))))
   (testing "Genbank indexing"
     (try
-      (let [i (index-file (init-genbank-file
-                           (io/resource "test-files/nucleotide-gb.xml")))]
+      (let [i (index-biosequence-file
+               (init-genbank-file
+                (io/resource "test-files/nucleotide-gb.xml")))]
         (is (= "KE373594"
                (accession (first (biosequence-seq i)))))
         (is (= "GAAZ01003035"
@@ -190,7 +193,7 @@
                               (map #(-> (hit-seq %) second hit-accession)))))))
       (testing "Blast indexing"
         (try
-          (let [i (index-file tox-bl)]
+          (let [i (index-biosequence-file tox-bl)]
             (is (= "sp|P84001|29C0_ANCSP" (accession (first (biosequence-seq i)))))
             (is (= "sp|P0CE81|A1HB1_LOXIN"
                    (accession (get-biosequence i "sp|P0CE81|A1HB1_LOXIN"))))
@@ -219,9 +222,9 @@
              (fastq->string fs)))))
   (testing "Fastq indexing"
     (try
-      (let [i (index-file (init-fastq-file
-                           (io/resource "test-files/fastq-test.fastq")))]
-        (println (accession (second (biosequence-seq i))))
+      (let [i (index-biosequence-file
+               (init-fastq-file
+                (io/resource "test-files/fastq-test.fastq")))]
         (is (= "@HWI-ST1213:141:C17PWACXX:6:1101:6408:1991 1:N:0:ACAGTG"
                (accession (first (biosequence-seq i)))))
         (is (= "@HWI-ST1213:141:C17PWACXX:6:1101:5381:1994 1:N:0:ACAGTG"

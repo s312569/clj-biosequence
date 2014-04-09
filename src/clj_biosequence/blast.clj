@@ -315,16 +315,14 @@
     (fs/absolute-path (:file this)))
 
   (index-file [this]
-    (let [ifile (init-indexed-blast this)]
-      (with-open [o (bs/bs-writer ifile)]
-        (let [i (with-open [r (bs/bs-reader this)]
-                  (assoc ifile
-                    :parameters (bs/parameters r)
-                    :index (->> (bs/biosequence-seq r)
-                                (map #(bs/write-and-position % o (bs/accession %)))
-                                (into {}))))]
-          (spit (str (bs/bs-path ifile) ".idx") (pr-str i))
-          i)))))
+    (let [ifile (init-indexed-blast (bs/bs-path this))]
+      (with-open [r (bs/bs-reader this)]
+        (assoc ifile :parameters (bs/parameters r)))))
+
+  (index-file [this ofile]
+    (let [ifile (init-indexed-blast ofile)]
+      (with-open [r (bs/bs-reader this)]
+        (assoc ifile :parameters (bs/parameters r))))))
 
 (defn init-blast-search
   [file]
@@ -441,8 +439,8 @@
   (parameters [this]
     (:parameters this)))
 
-(defn init-indexed-blast [blastfile]
-  (->indexedBlastFile {} (bs/bs-path blastfile) nil))
+(defn init-indexed-blast [file]
+  (->indexedBlastFile {} file nil))
 
 (defmethod print-method clj_biosequence.blast.indexedBlastFile
   [this w]
