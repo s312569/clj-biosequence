@@ -19,4 +19,6 @@
  clj_biosequence.blast.blastIteration clj_biosequence.blast/map->blastIteration
  clj_biosequence.blast.blastParameters clj_biosequence.blast/map->blastParameters
 
+ clj_biosequence.interproscan.interproscanProtein clj_biosequence.interproscan/map->interproscanProtein
+
  clj_biosequence.index.fileIndex clj_biosequence.index/map->fileIndex}

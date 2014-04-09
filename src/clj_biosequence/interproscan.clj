@@ -30,6 +30,7 @@
 (defprotocol ipsGoterm
   (category [this])
   (go-name [this])
+  (go-string [this])
   (bp? [this])
   (cc? [this])
   (mp? [this]))
@@ -66,6 +67,15 @@
 
   (go-name [this]
     (:name (:attrs (:src this))))
+
+  (go-string [this]
+    (let [c (category this)
+          nc (condp = c
+               "CELLULAR_COMPONENT" "Cellular Component"
+               "BIOLOGICAL_PROCESS" "Biological Process"
+               "MOLECULAR_FUNCTION" "Molecular Function"
+               (str "Unexpected value: " c))]
+      (str (bs/accession this) "," nc "," (go-name this))))
 
   (cc? [this]
     (= "CELLULAR_COMPONENT" (category this)))
@@ -125,7 +135,8 @@
   (entry [this]
     (let [r (zf/xml1-> (zip/xml-zip (:src this)) :entry)]
       (if (not (nil? r))
-        (->interproscanEntry (zip/node r)))))
+        (->interproscanEntry (zip/node r))
+        (->interproscanEntry ()))))
 
   bs/Biosequence
 
@@ -158,8 +169,8 @@
   bs/Biosequence
 
   (accession [this]
-    (zf/xml-> (zip/xml-zip (:src this))
-              :xref (zf/attr :id))))
+    (vec (zf/xml-> (zip/xml-zip (:src this))
+                     :xref (zf/attr :id)))))
 
 (defn hmmer-3-seq
   ""
@@ -194,6 +205,9 @@
 
   (bs-reader [this]
     (->interproscanReader (io/reader (:file this)))))
+
+(defn init-ips-result [file]
+  (->interproscanResult (fs/absolute-path file)))
 
 ;; ips run
 

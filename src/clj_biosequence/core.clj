@@ -90,6 +90,7 @@
   [bs]
   (apply str (interpose "\n" (map #(apply str %) (partition-all 80 (bs-seq bs))))))
 
+
 (defn sub-bioseq
   "Returns a new fasta sequence object with the sequence corresponding
    to 'beg' (inclusive) and 'end' (exclusive) of 'bs'. If no 'end'
