@@ -179,6 +179,13 @@
                  :matches
                  :hmmer3-match)))
 
+(defn get-gos
+  [ips]
+  (->> (hmmer-3-seq ips)
+       (map signature)
+       (map entry)
+       (mapcat ips-go-terms)))
+
 ;; ips search
 
 (defrecord interproscanReader [strm]
