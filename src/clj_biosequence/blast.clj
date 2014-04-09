@@ -320,7 +320,7 @@
         (assoc ifile :parameters (bs/parameters r)))))
 
   (index-file [this ofile]
-    (let [ifile (init-indexed-blast ofile)]
+    (let [ifile (init-indexed-blast (fs/absolute-path ofile))]
       (with-open [r (bs/bs-reader this)]
         (assoc ifile :parameters (bs/parameters r))))))
 

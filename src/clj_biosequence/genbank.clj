@@ -194,7 +194,7 @@
     (init-indexed-genbank (bs/bs-path this)))
 
   (index-file [this ofile]
-    (init-indexed-genbank ofile)))
+    (init-indexed-genbank (fs/absolute-path ofile))))
 
 (defrecord genbankString [str]
 

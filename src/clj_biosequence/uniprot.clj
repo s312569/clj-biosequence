@@ -164,7 +164,7 @@
     (init-indexed-uniprot (bs/bs-path this)))
 
   (index-file [this ofile]
-    (init-indexed-uniprot ofile)))
+    (init-indexed-uniprot (absolute-path ofile))))
 
 (defrecord uniprotString [str]
 

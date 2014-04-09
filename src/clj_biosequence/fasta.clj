@@ -92,7 +92,7 @@
     (init-indexed-fasta (bs-path this) (:alphabet this)))
 
   (index-file [this ofile]
-    (init-indexed-fasta ofile (:alphabet this)))
+    (init-indexed-fasta (absolute-path ofile) (:alphabet this)))
 
   fastaReduce
 
