@@ -53,7 +53,7 @@
 (defprotocol biosequenceFile
   (bs-path [this]
     "Returns the path of the file as string.")
-  (index-file [this]))
+  (index-file [this] [this ofile]))
 
 (defprotocol biosequenceCitation
   (ref-type [this]
@@ -295,16 +295,21 @@
     (.write (:strm writer) o)
     (vector acc (list off (count o)))))
 
-(defn index-entries
+(defn index-biosequence-file
   [file ifile]
   (with-open [o (bs-writer ifile)]
     (let [i (assoc ifile :index
                    (with-open [r (bs-reader file)]
-                     (->> (biosequence-seq r)
-                          (map #(write-and-position % o (accession %)))
-                          (into {}))))]
+                     (doall (->> (biosequence-seq r)
+                                 (map #(write-and-position % o (accession %)))
+                                 (into {})))))]
       (spit (str (bs-path ifile) ".idx") (pr-str i))
       i)))
+
+(defn merge-files
+  [files]
+  (with-open [o (bs-writer (first (files)))]
+    ))
 
 (defn read-one
   [off len file]

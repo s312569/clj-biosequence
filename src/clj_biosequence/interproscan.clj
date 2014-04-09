@@ -8,7 +8,7 @@
             [clj-biosequence.core :as bs]
             [fs.core :as fs]))
 
-(declare run-ips)
+(declare run-ips init-indexed-ips)
 
 ;; ips protocol
 
@@ -24,7 +24,7 @@
 (defprotocol ipsEntry
   (entry-type [this])
   (entry-name [this])
-  (go-terms [this])
+  (ips-go-terms [this])
   (pathways [this]))
 
 (defprotocol ipsGoterm
@@ -103,7 +103,7 @@
   (entry-name [this]
     (:name (:attrs (:src this))))
 
-  (go-terms [this]
+  (ips-go-terms [this]
     (doall (map #(->interproscanGoTerm (zip/node %))
                 (zf/xml-> (zip/xml-zip (:src this))
                           :go-xref))))
@@ -164,13 +164,12 @@
 
 ;; ips protein
 
-(defrecord interproscanProtein [src]
+(defrecord interproscanProtein [accession src]
 
   bs/Biosequence
 
   (accession [this]
-    (vec (zf/xml-> (zip/xml-zip (:src this))
-                     :xref (zf/attr :id)))))
+    (:accession this)))
 
 (defn hmmer-3-seq
   ""
@@ -187,12 +186,13 @@
   bs/biosequenceReader
 
   (biosequence-seq [this]
-    (->> (:content (xml/parse (:strm this)))
-         (filter (fn [x] (= :protein (:tag x))))
-         (map (fn [x] (->interproscanProtein x)))))
-
-  (parameters [this]
-    ())
+    (let [el (->> (:content (xml/parse (:strm this)))
+                  (filter (fn [x] (= :protein (:tag x)))))]
+      (mapcat #(->> (zf/xml-> (zip/xml-zip %)
+                              :xref (zf/attr :id))
+                    (map (fn [x]
+                           (->interproscanProtein x %))))
+              el)))
 
   java.io.Closeable
 
@@ -204,7 +204,18 @@
   bs/biosequenceIO
 
   (bs-reader [this]
-    (->interproscanReader (io/reader (:file this)))))
+    (->interproscanReader (io/reader (:file this))))
+
+  bs/biosequenceFile
+
+  (bs-path [this]
+    (fs/absolute-path (:file this)))
+
+  (index-file [this]
+    (init-indexed-ips this))
+
+  (index-file [this ofile]
+    (->indexedInterproscanFile {} (fs/absolute-path ofile))))
 
 (defn init-ips-result [file]
   (->interproscanResult (fs/absolute-path file)))
@@ -261,3 +272,36 @@
     (catch Exception e
       (throw e)
       (fs/delete outfile))))
+
+;; indexing
+
+(defrecord indexedInterproscanFile [index path]
+
+  bs/biosequenceFile
+
+  (bs-path [this]
+    (fs/absolute-path (:path this)))
+
+  bs/indexFileIO
+
+  (bs-writer [this]
+    (bs/init-index-writer this))
+
+  bs/biosequenceReader
+
+  (biosequence-seq [this]
+    (map (fn [[o l]]
+           (map->interproscanProtein (bs/read-one o l (str (bs/bs-path this) ".bin"))))
+         (vals (:index this))))
+
+  (get-biosequence [this accession]
+    (let [[o l] (get (:index this) accession)]
+      (if o
+        (map->interproscanProtein (bs/read-one o l (str (bs/bs-path this) ".bin")))))))
+
+(defn init-indexed-ips [ipsfile]
+  (->indexedInterproscanFile {} (bs/bs-path ipsfile)))
+
+(defmethod print-method clj_biosequence.interproscan.indexedInterproscanFile
+  [this w]
+  (bs/print-tagged this w))
