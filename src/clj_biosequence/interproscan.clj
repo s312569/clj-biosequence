@@ -212,10 +212,10 @@
     (fs/absolute-path (:file this)))
 
   (index-file [this]
-    (init-indexed-ips this))
+    (init-indexed-ips (bs/bs-path this)))
 
   (index-file [this ofile]
-    (->indexedInterproscanFile {} (fs/absolute-path ofile))))
+    (init-indexed-ips (fs/absolute-path ofile))))
 
 (defn init-ips-result [file]
   (->interproscanResult (fs/absolute-path file)))
@@ -299,8 +299,8 @@
       (if o
         (map->interproscanProtein (bs/read-one o l (str (bs/bs-path this) ".bin")))))))
 
-(defn init-indexed-ips [ipsfile]
-  (->indexedInterproscanFile {} (bs/bs-path ipsfile)))
+(defn init-indexed-ips [file]
+  (->indexedInterproscanFile {} file))
 
 (defmethod print-method clj_biosequence.interproscan.indexedInterproscanFile
   [this w]
