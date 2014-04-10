@@ -109,8 +109,8 @@
                                (if end end "End") "]")
                           (alphabet bs)
                           (if end
-                            (subvec (bs-seq bs) beg end)
-                            (subvec (bs-seq bs) beg)))))
+                            (apply str (subvec (bs-seq bs) beg end))
+                            (apply str (subvec (bs-seq bs) beg))))))
 
 (defn reverse-comp [this]
   "Returns a new fastaSequence with the reverse complement sequence."
@@ -119,14 +119,14 @@
     (init-fasta-sequence (accession this)
                          (str (def-line this) " - Reverse-comp")
                          (alphabet this)
-                         (ala/revcom (bs-seq this)))))
+                         (apply str (ala/revcom (bs-seq this))))))
 
 (defn reverse-seq [this]
   "Returns a new fastaSequence with the reverse sequence."
   (init-fasta-sequence (accession this)
                        (str (def-line this) " - Reversed")
                        (alphabet this) 
-                       (vec (reverse (bs-seq this)))))
+                       (apply str (reverse (bs-seq this)))))
 
 (defn translate
   "Returns a fastaSequence sequence with a sequence translated in the
@@ -146,8 +146,8 @@
                                              (#{4 5 6} f)
                                              (-> (reverse-comp bs)
                                                  (sub-bioseq ( - f 4))))]
-                                 (vec (map #(ala/codon->aa % table)
-                                           (partition-all 3 (bs-seq v)))))))))
+                                 (apply str (map #(ala/codon->aa % table)
+                                                 (partition-all 3 (bs-seq v)))))))))
 
 (defn six-frame-translation
   "Returns a lazy list of fastaSequence objects representing translations of
@@ -169,12 +169,12 @@
           " - [" (start (first intervals)) "-" (end (last intervals)) "]")
      (alphabet bs)
      (vec (mapcat #(if (comp? %)
-                     (subvec (ala/revcom (bs-seq bs))
-                             (- (end %) 1)
-                             (start %))
-                     (subvec (bs-seq bs)
-                             (- (start %) 1)
-                             (end %))) intervals)))))
+                     (apply str (subvec (ala/revcom (bs-seq bs))
+                                        (- (end %) 1)
+                                        (start %)))
+                     (apply str (subvec (bs-seq bs)
+                                        (- (start %) 1)
+                                        (end %)))) intervals)))))
 
 (defn get-interval-sequence
   "Returns a fasta sequence of an interval."
@@ -187,8 +187,8 @@
      (str (def-line bs) " [" start "-" end "]")
      (if (protein? bs) :iupacAminoAcids :iupacNucleicAcids)
      (if (false? (comp? interval))
-       (subvec dna (- start 1) end)
-       (subvec (ala/revcom dna) (- end 1) start)))))
+       (apply str (subvec dna (- start 1) end))
+       (apply str (subvec (ala/revcom dna) (- end 1) start))))))
 
 ;;;;;;;;;;;;;;
 ;; utilities
@@ -217,8 +217,9 @@
    exception."
   [s a]
   (let [k (ala/get-alphabet a)
-        w #{\space \newline}]
-    (loop [l (upper-case s) a []]
+        w #{\space \newline}
+        t (upper-case s)]
+    (loop [l t a []]
       (if-not (seq l)
         a
         (let [c (first l)]

@@ -53,7 +53,7 @@
                      (init-fasta-sequence (second (re-find #"^>([^\s]+)" (first d)))
                                           (second (re-find #">[^\s]+\s+(.+)" (first d)))
                                           (:alphabet this)
-                                          (clean-sequence seqs (:alphabet this))))))
+                                          seqs))))
            (partition 2 (partition-by #(re-find #"^>" %) l)))))
 
   java.io.Closeable

@@ -17,24 +17,7 @@
    \H {:longname "A, T, U, or C (not G)" :complement \D}
    \V {:longname "A, C, or G (not T, not U)" :complement \B}
    \N {:longname "Any base (A, C, G, T, or U)" :complement \N}
-   \X {:longname "Any base (A, C, G, T, or U)" :complement \X}
-   \a {:longname "Adenine" :complement \T}
-   \c {:longname "Cytosine" :complement \G}
-   \g {:longname "Guanine" :complement \C}
-   \t {:longname "Thymine" :complement \A}
-   \u {:longname "Uracil" :complement \A}
-   \r {:longname "Purine (A or G)" :complement \Y}
-   \y {:longname "Pyrimidine (C, T, or U)" :complement \R}
-   \m {:longname "C or A" :complement \K}
-   \k {:longname "T, U, or G" :complement \M}
-   \w {:longname "T, U, or A" :complement \W}
-   \s {:longname "C or G" :complement \S}
-   \b {:longname "C, T, U, or G (not A)" :complement \V}
-   \d {:longname "A, T, U, or G (not C)" :complement \H}
-   \h {:longname "A, T, U, or C (not G)" :complement \D}
-   \v {:longname "A, C, or G (not T, not U)" :complement \B}
-   \n {:longname "Any base (A, C, G, T, or U)" :complement \N}
-   \x {:longname "Any base (A, C, G, T, or U)" :complement \X}})
+   \X {:longname "Any base (A, C, G, T, or U)" :complement \X}})
 
 (def iupacAminoAcids
   {\A {:three "Ala" :longname "Alanine" :monoisotopic 71.03711 :average 71.0788}
