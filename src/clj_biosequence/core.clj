@@ -2,7 +2,7 @@
   (:require [clojure.java.io :refer [writer reader]]
             [fs.core :refer [file? absolute-path]]
             [clj-http.client :refer [post]]
-            [clojure.string :refer [trim split]]
+            [clojure.string :refer [trim split upper-case]]
             [taoensso.nippy :refer [freeze thaw]]
             [clj-biosequence.alphabet :as ala]
             [clojure.edn :as edn]
@@ -218,7 +218,7 @@
   [s a]
   (let [k (ala/get-alphabet a)
         w #{\space \newline}]
-    (loop [l s a []]
+    (loop [l (upper-case s) a []]
       (if-not (seq l)
         a
         (let [c (first l)]
