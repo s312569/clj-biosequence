@@ -114,6 +114,35 @@
   [str]
   (->fastqString str))
 
+;; functions
+
+(defn shuffle-fq
+  "Takes forward and reverse reads from paired end sequencing data and
+  interleaves them in a single file."
+  [forward reverse out]
+  {:pre [(fs/exists? (bs/bs-path forward))
+         (fs/exists? (bs/bs-path reverse))]}
+  (with-open [f (bs/bs-reader forward)
+              r (bs/bs-reader reverse)
+              o (io/writer out)]
+    (dorun (map (fn [x y]
+                  (.write o (fastq->string x))
+                  (.write o (fastq->string y)))
+                (bs/biosequence-seq f) (bs/biosequence-seq r)))))
+
+(defn unshuffle-fq
+  "Takes a fastq file with interleaved paired-end sequences and
+  separates forward and reverse reads into separate files."
+  [forward-out reverse-out in]
+  {:pre [(fs/exists? (bs/bs-path in))]}
+  (with-open [f (io/writer forward-out)
+              r (io/writer reverse-out)
+              i (bs/bs-reader in)]
+    (dorun (map (fn [[x y]]
+                  (.write f (fastq->string x))
+                  (.write r (fastq->string y)))
+                (partition-all 2 (bs/biosequence-seq i))))))
+
 ;; indexing
 
 (defrecord indexedFastqFile [index path]

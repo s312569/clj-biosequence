@@ -112,8 +112,9 @@
                             (apply str (subvec (bs-seq bs) beg end))
                             (apply str (subvec (bs-seq bs) beg))))))
 
-(defn reverse-comp [this]
+(defn reverse-comp
   "Returns a new fastaSequence with the reverse complement sequence."
+  [this]
   (if (protein? this)
     (throw (IllegalArgumentException. "Can't reverse/complement a protein sequence."))
     (init-fasta-sequence (accession this)
@@ -121,8 +122,9 @@
                          (alphabet this)
                          (apply str (ala/revcom (bs-seq this))))))
 
-(defn reverse-seq [this]
+(defn reverse-seq
   "Returns a new fastaSequence with the reverse sequence."
+  [this]
   (init-fasta-sequence (accession this)
                        (str (def-line this) " - Reversed")
                        (alphabet this) 
