@@ -9,7 +9,7 @@
             [clj-biosequence.alphabet :as ala]
             [clj-biosequence.core :as bs]))
 
-(declare genbank-search-helper genbank-sequence-helper moltype get-genbank-stream check-db check-rt)
+(declare genbank-search-helper genbank-sequence-helper moltype get-genbank-stream check-db check-rt init-indexed-genbank)
 
 ; interval
 
@@ -188,7 +188,13 @@
   bs/biosequenceFile
 
   (bs-path [this]
-    (fs/absolute-path (:file this))))
+    (fs/absolute-path (:file this)))
+
+  (index-file [this]
+    (init-indexed-genbank (bs/bs-path this)))
+
+  (index-file [this ofile]
+    (init-indexed-genbank ofile)))
 
 (defrecord genbankString [str]
 
@@ -389,3 +395,36 @@
   (:content (some #(if (= (:tag %) :GBSeq_sequence)
                      %)
                   (:content (first (:content (xml/parse rdr)))))))
+
+;; indexing
+
+(defrecord indexedGenbankFile [index path]
+
+  bs/biosequenceFile
+
+  (bs-path [this]
+    (fs/absolute-path (:path this)))
+
+  bs/indexFileIO
+
+  (bs-writer [this]
+    (bs/init-index-writer this))
+
+  bs/biosequenceReader
+
+  (biosequence-seq [this]
+    (map (fn [[o l]]
+           (map->genbankSequence (bs/read-one o l (str (bs/bs-path this) ".bin"))))
+         (vals (:index this))))
+
+  (get-biosequence [this accession]
+    (let [[o l] (get (:index this) accession)]
+      (if o
+        (map->genbankSequence (bs/read-one o l (str (bs/bs-path this) ".bin")))))))
+
+(defn init-indexed-genbank [file]
+  (->indexedGenbankFile {} file))
+
+(defmethod print-method clj_biosequence.genbank.indexedGenbankFile
+  [this w]
+  (bs/print-tagged this w))

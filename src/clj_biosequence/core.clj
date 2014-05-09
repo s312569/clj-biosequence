@@ -4,9 +4,16 @@
             [clj-http.client :refer [post]]
             [clojure.string :refer [trim split]]
             [taoensso.nippy :refer [freeze thaw]]
-            [clj-biosequence.alphabet :as ala]))
+            [clj-biosequence.alphabet :as ala]
+            [clojure.edn :as edn]
+            [clojure.data.xml :as xml]
+            [miner.tagged :as tag]
+            [taoensso.nippy :as nip]
+            [iota :as iot]
+            [clojure.core.reducers :as r])
+  (:import [java.io RandomAccessFile]))
 
-(declare init-fasta-store init-fasta-sequence translate)
+(declare init-fasta-store init-fasta-sequence translate init-indexed-fasta)
 
 (defprotocol biosequenceIO
   (bs-reader [this]
@@ -16,6 +23,9 @@
 (defprotocol biosequenceReader
   (biosequence-seq [this]
     "Returns a lazy sequence of biosequence objects.")
+  (biosequence-seq-lazy [this]
+    "Returns a lazy sequence of biosequence objects with a lazy stream
+    of sequences.")
   (parameters [this]
     "Returns parameters, if any.")
   (get-biosequence [this accession]
@@ -42,7 +52,8 @@
 
 (defprotocol biosequenceFile
   (bs-path [this]
-    "Returns the path of the file as string."))
+    "Returns the path of the file as string.")
+  (index-file [this] [this ofile]))
 
 (defprotocol biosequenceCitation
   (ref-type [this]
@@ -83,7 +94,8 @@
 (defn bioseq->string
   "Returns the sequence of a biosequence as a string."
   [bs]
-  (apply str (bs-seq bs)))
+  (apply str (interpose "\n" (map #(apply str %) (partition-all 80 (bs-seq bs))))))
+
 
 (defn sub-bioseq
   "Returns a new fasta sequence object with the sequence corresponding
@@ -205,13 +217,16 @@
    characters with \\X. If `a' is not a defined alphabet throws an
    exception."
   [s a]
-  (let [k (complement (ala/alphabet-chars a))
+  (let [k (ala/get-alphabet a)
         w #{\space \newline}]
-    (vec (remove nil? (map #(cond (k %) \X
-                                  (w %) nil
-                                  :else %) (if (string? s)
-                                             (vec (trim s))
-                                             (vec s)))))))
+    (loop [l s a []]
+      (if-not (seq l)
+        a
+        (let [c (first l)]
+          (if (not (w c))
+            (recur (rest l) (conj a (if (k c) c \X)))
+            (recur (rest l) a)))))))
+
 ;; utilities
 
 (defn protein-charge
@@ -247,13 +262,86 @@
 
 ;; serialising
 
-(defn bs-freeze
+(defn- bs-freeze
   [this]
   (freeze this))
 
-(defn bs-thaw
+(defn- bs-thaw
   [this]
   (thaw this))
+
+(defrecord indexWriter [strm]
+
+  java.io.Closeable
+  
+  (close [this]
+    (.close ^java.io.RandomAccessFile (:strm this))))
+
+(defn init-index-writer
+  [file]
+  (->indexWriter (RandomAccessFile. (str (bs-path file) ".bin") "rw")))
+
+(defn print-tagged
+  [o w]
+  (tag/pr-tagged-record-on o w))
+
+(defprotocol indexFileIO
+  (bs-writer [this]))
+
+(defn write-and-position
+  [obj writer acc]
+  (let [o (nip/freeze obj)
+        off (.getFilePointer (:strm writer))]
+    (.write (:strm writer) o)
+    (vector acc (list off (count o)))))
+
+(defn index-biosequence-file
+  [file]
+  (let [ifile (index-file file)]
+    (with-open [o (bs-writer ifile)]
+      (let [i (assoc ifile :index
+                (with-open [r (bs-reader file)]
+                  (->> (biosequence-seq r)
+                       (map #(write-and-position % o (accession %)))
+                       (into {}))))]
+        (spit (str (bs-path ifile) ".idx") (pr-str i))
+        i))))
+
+(defn merge-files
+  [files outfile]
+  (let [ifile (index-file (first files) outfile)]
+    (with-open [o (bs-writer ifile)]
+      (let [i (assoc ifile :index
+                     (merge (mapcat (fn [x] (with-open [r (bs-reader x)]
+                                             (->> (biosequence-seq r)
+                                                  (map #(write-and-position % o (accession %)))
+                                                  (into {}))))
+                                    files)))]
+           (spit (str (bs-path ifile) ".idx") (pr-str i))
+           i))))
+
+(defn read-one
+  [off len file]
+  (let [bb (byte-array len)]
+    (with-open [r (RandomAccessFile. file "r")]
+      (.seek r off)
+      (.read r bb)
+      (bs-thaw bb))))
+
+(defn- my-record-tag-reader
+  [tag val]
+  (when-let [factory (and (map? val)
+                          (tag/tag->factory tag))]
+    (factory val)))
+
+(def my-tagged-default-reader 
+  (tag/some-tag-reader-fn my-record-tag-reader))
+
+(defn load-indexed-file
+  [path]
+  (edn/read-string {:default my-tagged-default-reader
+                    :readers {'clojure.data.xml.Element clojure.data.xml/map->Element}}
+                   (slurp (str path ".idx"))))
 
 ;; helper files
 

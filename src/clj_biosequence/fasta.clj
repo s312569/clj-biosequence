@@ -16,7 +16,7 @@
   
   (bs-seq [this]
     (:sequence this))
-  
+
   (def-line [this]
     (:description this))
   
@@ -44,7 +44,7 @@
   (biosequence-seq [this]
     (let [l (line-seq (:strm this))]
       (map (fn [[d s]]
-             (let [seqs (apply str s)]
+             (let [seqs (apply str (map trim s))]
                (cond (not (re-find #"^>" (first d)))
                      (throw (Throwable. (str "Data corrupted at " (first d))))
                      (> (count d) 1)
@@ -56,8 +56,6 @@
                                           (clean-sequence seqs (:alphabet this))))))
            (partition 2 (partition-by #(re-find #"^>" %) l)))))
 
-  (parameters [this])
-
   java.io.Closeable
 
   (close [this]
@@ -66,6 +64,16 @@
 (defn init-fasta-reader
   [strm alphabet]
   (->fastaReader strm alphabet))
+
+;; fasta files
+
+(defprotocol fastaReduce
+  (fasta-reduce [this func fold]
+    "Applies a function to sequence data streamed line-by-line and
+    reduces the results using the supplied `fold` function. Uses the
+    core reducers library so the fold function needs to have an
+    'identity' value that is returned when the function is called with
+    no arguments."))
 
 (defrecord fastaFile [file alphabet]
 
@@ -78,15 +86,23 @@
   biosequenceFile
 
   (bs-path [this]
-    (absolute-path (:file this))))
+    (absolute-path (:file this)))
 
-(defrecord fastaString [str alphabet]
+  (index-file [this]
+    (init-indexed-fasta (bs-path this) (:alphabet this)))
 
-  biosequenceIO
+  (index-file [this ofile]
+    (init-indexed-fasta ofile (:alphabet this)))
 
-  (bs-reader [this]
-    (init-fasta-reader (java.io.BufferedReader. (java.io.StringReader. (:str this)))
-                       (:alphabet this))))
+  fastaReduce
+
+  (fasta-reduce
+    [this func fold]
+    (->> (iot/seq (:file this))
+         (r/filter #(not (= \> (first %))))
+         (r/map #(clean-sequence % (:alphabet this)))
+         (r/map func)
+         (r/fold fold))))
 
 (defn init-fasta-file
   "Initialises fasta protein file. Accession numbers and description are 
@@ -99,6 +115,16 @@
       (->fastaFile path alphabet)
       (throw (Throwable. (str "File not found: " path))))))
 
+;; strings
+
+(defrecord fastaString [str alphabet]
+
+  biosequenceIO
+
+  (bs-reader [this]
+    (init-fasta-reader (java.io.BufferedReader. (java.io.StringReader. (:str this)))
+                       (:alphabet this))))
+
 (defn init-fasta-string
   "Initialises a fasta string. Accession numbers and description are
    processed by splitting the string on the first space, the accession
@@ -107,3 +133,36 @@
   (if-not (ala/alphabet? alphabet)
     (throw (Throwable. "Unrecognised alphabet keyword. Currently :iupacNucleicAcids :iupacAminoAcids are allowed."))
     (->fastaString str alphabet)))
+
+;; indexed files
+
+(defrecord indexedFastaFile [index path alphabet]
+
+  biosequenceFile
+
+  (bs-path [this]
+    (absolute-path (:path this)))
+
+  indexFileIO
+
+  (bs-writer [this]
+    (init-index-writer this))
+
+  biosequenceReader
+
+  (biosequence-seq [this]
+    (map (fn [[o l]]
+           (map->fastaSequence (read-one o l (str (bs-path this) ".bin"))))
+         (vals (:index this))))
+
+  (get-biosequence [this accession]
+    (let [[o l] (get (:index this) accession)]
+      (if o
+        (map->fastaSequence (read-one o l (str (bs-path this) ".bin")))))))
+
+(defn init-indexed-fasta [file alphabet]
+  (->indexedFastaFile {} file alphabet))
+
+(defmethod print-method clj_biosequence.core.indexedFastaFile
+  [this w]
+  (print-tagged this w))

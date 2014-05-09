@@ -13,7 +13,7 @@
 
 (import '(java.io BufferedReader StringReader))
 
-(declare blastp-defaults run-blast get-sequence-from-blast-db blast-default-params split-hsp-align iteration-query-id init-blast-collection get-hit-value)
+(declare blastp-defaults run-blast get-sequence-from-blast-db blast-default-params split-hsp-align iteration-query-id init-blast-collection get-hit-value init-indexed-blast)
 
 ;; blast hsp
 
@@ -145,6 +145,12 @@
       (split #"\s")
       (first)))
 
+(defn iteration-query-length
+  "Takes a blastIteration object and returns the query length."
+  [iteration]
+  (Integer/parseInt
+   (zf/xml1-> (zip/xml-zip (:src iteration)) :Iteration_query-len zf/text)))
+
 (defn hit-seq
   "Returns a (lazy) list of blastHit objects from a blastIteration object."
   [this]
@@ -207,7 +213,7 @@
 
 (defn blast-evalue
   [param]
-  (zf/xml1-> (zip/xml-zip (:src param)) :Parameters_expect zf/text))
+  (Integer/parseInt (zf/xml1-> (zip/xml-zip (:src param)) :Parameters_expect zf/text)))
 
 (defn blast-matrix
   [param]
@@ -306,7 +312,17 @@
   bs/biosequenceFile
 
   (bs-path [this]
-    (fs/absolute-path (:file this))))
+    (fs/absolute-path (:file this)))
+
+  (index-file [this]
+    (let [ifile (init-indexed-blast (bs/bs-path this))]
+      (with-open [r (bs/bs-reader this)]
+        (assoc ifile :parameters (bs/parameters r)))))
+
+  (index-file [this ofile]
+    (let [ifile (init-indexed-blast ofile)]
+      (with-open [r (bs/bs-reader this)]
+        (assoc ifile :parameters (bs/parameters r))))))
 
 (defn init-blast-search
   [file]
@@ -393,3 +409,43 @@
         (if (:err bl)
           (throw (Throwable. (str "Blast error: " (:err bl))))
           (throw (Throwable. (str "Exception: " (:exception bl)))))))))
+
+;; indexing
+
+(defrecord indexedBlastFile [index path parameters]
+
+  bs/biosequenceFile
+
+  (bs-path [this]
+    (fs/absolute-path (:path this)))
+
+  bs/indexFileIO
+
+  (bs-writer [this]
+    (bs/init-index-writer this))
+
+  bs/biosequenceReader
+
+  (biosequence-seq [this]
+    (map (fn [[o l]]
+           (map->blastIteration (bs/read-one o l (str (bs/bs-path this) ".bin"))))
+         (vals (:index this))))
+
+  (get-biosequence [this accession]
+    (let [[o l] (get (:index this) accession)]
+      (if o
+        (map->blastIteration (bs/read-one o l (str (bs/bs-path this) ".bin"))))))
+
+  (parameters [this]
+    (:parameters this)))
+
+(defn init-indexed-blast [file]
+  (->indexedBlastFile {} file nil))
+
+(defmethod print-method clj_biosequence.blast.indexedBlastFile
+  [this w]
+  (bs/print-tagged this w))
+
+(defmethod print-method clj_biosequence.blast.blastParameters
+  [this w]
+  (bs/print-tagged this w))

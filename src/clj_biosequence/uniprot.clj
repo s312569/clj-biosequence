@@ -8,7 +8,7 @@
             [clj-http.client :as client]
             [fs.core :refer [file? temp-file delete absolute-path]]))
 
-(declare prot-name meta-data recommended-name alternative-name get-uniprot-stream organism)
+(declare prot-name meta-data recommended-name alternative-name get-uniprot-stream organism init-indexed-uniprot)
 
 ;; interval
 
@@ -158,7 +158,13 @@
   bs/biosequenceFile
 
   (bs-path [this]
-    (absolute-path (:file this))))
+    (absolute-path (:file this)))
+
+  (index-file [this]
+    (init-indexed-uniprot (bs/bs-path this)))
+
+  (index-file [this ofile]
+    (init-indexed-uniprot ofile)))
 
 (defrecord uniprotString [str]
 
@@ -327,6 +333,36 @@
             (zf/attr= :type "term")
             (zf/attr :value)))
 
+(defn bp-go-terms
+  "Returns a list of process GO terms.Only returns the term itself and
+   not any other information, for more information see
+   `db-references`."
+  [uprot]
+  (->> (go-terms uprot)
+       (filter #(= \P (first %)))
+       (map (fn [[a b & rest]]
+              (apply str rest)))))
+
+(defn mf-go-terms
+  "Returns a list of process GO terms.Only returns the term itself and
+   not any other information, for more information see
+   `db-references`."
+  [uprot]
+  (->> (go-terms uprot)
+       (filter #(= \M (first %)))
+       (map (fn [[a b & rest]]
+              (apply str rest)))))
+
+(defn cc-go-terms
+  "Returns a list of process GO terms.Only returns the term itself and
+   not any other information, for more information see
+   `db-references`."
+  [uprot]
+  (->> (go-terms uprot)
+       (filter #(= \C (first %)))
+       (map (fn [[a b & rest]]
+              (apply str rest)))))
+
 (defn existence
   "Protein existence evidence as a list of strings."
   [uniprot]
@@ -402,3 +438,36 @@
            :follow-redirects false}
           f))
         (finally (delete f))))))
+
+;; indexing
+
+(defrecord indexedUniprotFile [index path]
+
+  bs/biosequenceFile
+
+  (bs-path [this]
+    (absolute-path (:path this)))
+
+  bs/indexFileIO
+
+  (bs-writer [this]
+    (bs/init-index-writer this))
+
+  bs/biosequenceReader
+
+  (biosequence-seq [this]
+    (map (fn [[o l]]
+           (map->uniprotProtein (bs/read-one o l (str (bs/bs-path this) ".bin"))))
+         (vals (:index this))))
+
+  (get-biosequence [this accession]
+    (let [[o l] (get (:index this) accession)]
+      (if o
+        (map->uniprotProtein (bs/read-one o l (str (bs/bs-path this) ".bin")))))))
+
+(defn init-indexed-uniprot [file]
+  (->indexedUniprotFile {} file))
+
+(defmethod print-method clj_biosequence.uniprot.indexedUniprotFile
+  [this w]
+  (bs/print-tagged this w))

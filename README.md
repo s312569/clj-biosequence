@@ -36,6 +36,13 @@ To use in your namespace:
             [clj-biosequence.tmhmm :as tm])) ;; for a wrapper for TMHMM
 ```
 
+The project page is [here](http://s312569.github.io/clj-biosequence/)
+and there is also a guide to getting started with Clojure
+[here](http://s312569.github.io/clj-biosequence/starting.html).
+
+API docs are available
+[here](http://s312569.github.io/clj-biosequence/api/index.html).
+
 ## Basic usage
 
 `clj-biosequence` provides a reader and sequence mechanism for the
