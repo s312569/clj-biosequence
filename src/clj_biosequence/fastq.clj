@@ -117,49 +117,61 @@
 ;; functions
 
 (defn shuffle-fq
+  ;; ugly but fastest on very large files
   "Takes forward and reverse reads from paired end sequencing data and
   interleaves them in a single file."
-  [^String forward ^String reverse ^String out]
+  [^fastqFile forward ^fastqFile reverse ^String out]
+  {:pre [(fs/exists? (bs/bs-path forward)) (fs/exists? (bs/bs-path reverse))]}
   (with-open [^java.io.BufferedReader f (io/reader (bs/bs-path forward))
               ^java.io.BufferedReader r (io/reader (bs/bs-path reverse))
               ^java.io.BufferedWriter o (io/writer out)]
     (loop [fl (.readLine f)]
       (when fl
-        (.write o ^String fl)
-        (.write o ^String (.readLine f))
-        (.write o ^String (.readLine f))
-        (.write o ^String (.readLine f))
-        (.write o ^String (.readLine r))
-        (.write o ^String (.readLine r))
-        (.write o ^String (.readLine r))
-        (.write o ^String (.readLine r))
+        (.write o fl)
+        (.write o "\n")
+        (.write o (.readLine f))
+        (.write o "\n")
+        (.write o (.readLine f))
+        (.write o "\n")
+        (.write o (.readLine f))
+        (.write o "\n")
+        (.write o (.readLine r))
+        (.write o "\n")
+        (.write o (.readLine r))
+        (.write o "\n")
+        (.write o (.readLine r))
+        (.write o "\n")
+        (.write o (.readLine r))
+        (.write o "\n")
         (recur (.readLine f))))))
 
-;; (defn shuffle-fq
-;;   "Takes forward and reverse reads from paired end sequencing data and
-;;   interleaves them in a single file."
-;;   [forward reverse out]
-;;   (with-open [^java.io.BufferedReader f (io/reader (bs/bs-path forward))
-;;               ^java.io.BufferedReader r (io/reader (bs/bs-path reverse))
-;;               ^java.io.BufferedWriter o (io/writer out)]
-;;     (binding [*out* o]
-;;       (dorun (map (fn [x y]
-;;                     (map prn x)
-;;                     (map prn y))
-;;                   (partition-all 4 (line-seq f)) (partition-all 4 (line-seq r)))))))
-
-;; (defn unshuffle-fq
-;;   "Takes a fastq file with interleaved paired-end sequences and
-;;   separates forward and reverse reads into separate files."
-;;   [forward-out reverse-out in]
-;;   {:pre [(fs/exists? (bs/bs-path in))]}
-;;   (with-open [f (io/writer forward-out)
-;;               r (io/writer reverse-out)
-;;               i (bs/bs-reader in)]
-;;     (dorun (map (fn [[x y]]
-;;                   (.write f (fastq->string x))
-;;                   (.write r (fastq->string y)))
-;;                 (partition-all 2 (bs/biosequence-seq i))))))
+(defn unshuffle-fq
+  "Takes a fastq file with interleaved paired-end sequences and
+  separates forward and reverse reads into separate files."
+  [^String forward-out ^String reverse-out ^fastqFile in]
+  {:pre [(fs/exists? (bs/bs-path in))]}
+  (with-open [^java.io.BufferedWriter f (io/writer forward-out)
+              ^java.io.BufferedWriter r (io/writer reverse-out)
+              ^java.io.BufferedReader i (io/reader (bs/bs-path in))]
+    (loop [fl (.readLine i)]
+      (when fl
+        (.write f fl)
+        (.write f "\n")
+        (.write f (.readLine i))
+        (.write f "\n")
+        (.write f (.readLine i))
+        (.write f "\n")
+        (.write f (.readLine i))
+        (.write f "\n")
+        (.write r (.readLine i))
+        (.write r "\n")
+        (.write r (.readLine i))
+        (.write r "\n")
+        (.write r (.readLine i))
+        (.write r "\n")
+        (.write r (.readLine i))
+        (.write r "\n")
+        (recur (.readLine i))))))
 
 ;; indexing
 
