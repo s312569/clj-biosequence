@@ -232,7 +232,7 @@
 (defn ips
   "Runs interproscan on a list of biosequences."
   [bsl outfile & {:keys [appl lookup goterms precalc pathways]
-                  :or {appl '("tigrfam")
+                  :or {appl '("tigrfam" "PfamA")
                        lookup true
                        goterms true
                        precalc false

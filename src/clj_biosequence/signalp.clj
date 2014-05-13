@@ -34,6 +34,10 @@
     (map #(make-signal-result %)
          (drop 2 (line-seq strm))))
 
+  (get-biosequence [this accession]
+    (first (filter #(= accession (bs/accession %))
+                   (bs/biosequence-seq this))))
+
   (parameters [this]
     ())
 
@@ -53,6 +57,10 @@
 
   (bs-path [this]
     (fs/absolute-path (:file this))))
+
+(defn init-signalp-result
+  [file]
+  (->signalpFile file))
 
 (defn signalp
   [bs outfile & {:keys [params] :or {params {}}}]
