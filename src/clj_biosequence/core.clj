@@ -159,6 +159,21 @@
      (map #(translate nucleotide % :table table)
           '(1 2 3 -1 -2 -3))))
 
+(defn n50
+  "Takes anything that can have `biosequence-seq' called on it and
+  returns the N50 of the sequences therein."
+  [reader]
+  (let [sa (sort > (pmap #(count (bs-seq %)) (biosequence-seq reader)))
+        t (/ (reduce + sa) 2)
+        n50 (atom 0)]
+    (loop [l sa]
+      (if (seq l)
+        (do (swap! n50 + (first l))
+            (if (>= @n50 t)
+              (first l)
+              (recur (rest l))))
+        (throw (Throwable. "N50 calculation failed!"))))))
+
 (defn get-feature-sequence
   "Returns a fastaSequence object containing the sequence specified in a 
    genbankFeature object from a genbankSequence object. Designed for applying
