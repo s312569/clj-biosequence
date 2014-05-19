@@ -312,11 +312,12 @@
   (let [ifile (index-file (first files) outfile)]
     (with-open [o (bs-writer ifile)]
       (let [i (assoc ifile :index
-                     (merge (mapcat (fn [x] (with-open [r (bs-reader x)]
-                                             (->> (biosequence-seq r)
-                                                  (map #(write-and-position % o (accession %)))
-                                                  (into {}))))
-                                    files)))]
+                     (apply merge (map
+                                   (fn [x] (with-open [r (bs-reader x)]
+                                            (->> (biosequence-seq r)
+                                                 (map #(write-and-position % o (accession %)))
+                                                 (into {}))))
+                                   files)))]
            (spit (str (bs-path ifile) ".idx") (pr-str i))
            i))))
 
