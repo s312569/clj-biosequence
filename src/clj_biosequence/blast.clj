@@ -49,7 +49,7 @@
   (if (= key :Hsp_midline)
     (->> (:content (:src this))
          (filter #(= (:tag %) :Hsp_midline))
-         first :content)
+         first :content first)
     (zf/xml1-> (zip/xml-zip (:src this)) key zf/text)))
 
 (defn frame
@@ -59,9 +59,10 @@
 
 (defn print-alignment [hsp]
   (let [ss (fn [x] (map (partial apply str) (partition-all 52 x)))
-        l (apply interleave (map ss (list (get-hsp-value hsp :Hsp_qseq)
-                                          (get-hsp-value hsp :Hsp_midline)
-                                          (get-hsp-value hsp :Hsp_hseq))))]
+        l (apply interleave
+                 (map ss (list (get-hsp-value hsp :Hsp_qseq)
+                               (get-hsp-value hsp :Hsp_midline)
+                               (get-hsp-value hsp :Hsp_hseq))))]
     (doseq [s (partition 3 l)]
       (doseq [f s]
         (println f))
