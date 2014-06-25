@@ -69,16 +69,30 @@
                zf/text))
 
   (interval-seq [gb-feature]
-    (map #(->genbankInterval (zip/node %))
-         (zf/xml-> (zip/xml-zip (:src gb-feature))
-                   :GBFeature_intervals
-                   :GBInterval))))
+    (let [m (atom 1)
+          r {1 3 2 2 0 1}
+          f {3 2 2 1 1 0}]
+      (map #(let [i (->genbankInterval (zip/node %))
+                  fi (assoc i :frame (if (bs/comp? i) (* @m -1) @m))
+                  l (if (bs/comp? fi)
+                      (- (+ (- (bs/start fi) (bs/end fi)) 1) (get f @m))
+                      (- (+ (- (bs/end fi) (bs/start fi)) 1) (get f @m)))]
+              (reset! m (get r (mod l 3)))
+              fi)
+           (zf/xml-> (zip/xml-zip (:src gb-feature))
+                     :GBFeature_intervals
+                     :GBInterval)))))
 
 (defn qualifier-seq
   [feature]
   (->> (:content (some #(if (= (:tag %) :GBFeature_quals) %)
                        (:content (:src feature))))
        (map #(->genbankQualifier %))))
+
+(defn get-qualifier-value
+  [feature qname]
+  (qualifier-value
+   (first (filter #(= (qualifier-name %) qname) (qualifier-seq feature)))))
 
 (defn feature-operator
   [feat]
@@ -91,6 +105,7 @@
   (zf/xml1-> (zip/xml-zip (:src feature))
              :GBFeature_location
              zf/text))
+
 ; sequence
 
 (defrecord genbankSequence [src]
@@ -143,18 +158,59 @@
           :else
           (throw (Throwable. (str "Unknown moltype: " (moltype this)))))))
 
+(defn get-interval-dna
+  [gbseq gbinterval]
+  (cond (and (> (bs/start gbinterval) (bs/end gbinterval))
+             (not (bs/comp? gbinterval)))
+        (let [o (bs/sub-bioseq gbseq (- (bs/start gbinterval) 1))
+              t (bs/sub-bioseq gbseq 0 (bs/end gbinterval))]
+          (assoc o :sequence (vec (concat (bs/bs-seq o) (bs/bs-seq t)))
+                 :description (str (second (re-find #"^(.+)\s[^\[]+\]$"))
+                                   " [" (bs/start gbinterval) " - " (bs/end gbinterval) "]")))
+        (and (bs/comp? gbinterval)
+             (> (bs/end gbinterval) (bs/start gbinterval)))
+        (let [o (bs/sub-bioseq gbseq (- (bs/end gbinterval) 1))
+              t (bs/sub-bioseq gbseq 0 (bs/start gbinterval))]
+          (assoc o :sequence (vec (concat (bs/bs-seq o) (bs/bs-seq t)))
+                 :description (str (second (re-find #"^(.+)\s[^\[]+\]$"))
+                                   " [" (bs/end gbinterval) " - " (bs/start gbinterval) "]")))
+        :else
+        (let [s (if (bs/comp? gbinterval)
+                  (- (bs/end gbinterval) 1)
+                  (- (bs/start gbinterval) 1))
+              e (if (bs/comp? gbinterval)
+                  (bs/start gbinterval)
+                  (bs/end gbinterval))]
+          (bs/sub-bioseq gbseq s e))))
+
+(defn get-interval-protein
+  [gbseq gbinterval]
+  (let [s (get-interval-dna gbseq gbinterval)]
+    (bs/translate s (:frame gbinterval))))
+
+;; coding sequences
+
+(defn cds-filter [gb-sequence]
+  (filter #(= "CDS" (bs/feature-type %)) (bs/feature-seq gb-sequence)))
+
+(defn cds-protein-id
+  [cds]
+  (qualifier-value (first (filter #(= (qualifier-name %) "protein_id")
+                                  (qualifier-seq cds)))))
+
+(defn cds-gene
+  [cds]
+  (qualifier-value (first (filter #(= (qualifier-name %) "gene")
+                                  (qualifier-seq cds)))))
+
+(defn cds-protein-seq
+  [cds]
+  (qualifier-value (first (filter #(= (qualifier-name %) "translation")
+                                  (qualifier-seq cds)))))
+
 ; IO
 
 (defrecord genbankReader [strm]
-
-  bs/Biosequence
-
-  (feature-seq [this]
-    (let [xml (xml/parse (:strm this) :support-dtd false)]
-      (->> (:content (first (filter #(= (:tag %) :GBSeq_feature-table)
-                                    (:content (first (:content xml))))))
-           (filter #(= (:tag %) :GBFeature))
-           (map #(->genbankFeature %)))))
 
   bs/biosequenceReader
 
