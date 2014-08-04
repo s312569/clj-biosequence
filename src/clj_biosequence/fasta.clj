@@ -136,33 +136,39 @@
 
 ;; indexed files
 
+(defrecord indexedFastaReader [index alphabet strm]
+
+  biosequenceReader
+
+  (biosequence-seq [this]
+    (indexed-seq this map->fastaSequence))
+
+  (get-biosequence [this accession]
+    (get-object this accession map->fastaSequence))
+
+  java.io.Closeable
+
+  (close [this]
+    (close-index-reader this)))
+
 (defrecord indexedFastaFile [index path alphabet]
+
+  biosequenceIO
+
+  (bs-reader [this]
+    (->indexedFastaReader (:index this) (:alphabet this) (open-index-reader (:path this))))
 
   biosequenceFile
 
   (bs-path [this]
     (absolute-path (:path this)))
 
-  indexFileIO
-
-  (bs-writer [this]
-    (init-index-writer this))
-
-  biosequenceReader
-
-  (biosequence-seq [this]
-    (map (fn [[o l]]
-           (map->fastaSequence (read-one o l (str (bs-path this) ".bin"))))
-         (vals (:index this))))
-
-  (get-biosequence [this accession]
-    (let [[o l] (get (:index this) accession)]
-      (if o
-        (map->fastaSequence (read-one o l (str (bs-path this) ".bin")))))))
+  (empty-instance [this path]
+    (init-indexed-fasta path (:alphabet this))))
 
 (defn init-indexed-fasta [file alphabet]
   (->indexedFastaFile {} file alphabet))
 
 (defmethod print-method clj_biosequence.core.indexedFastaFile
   [this w]
-  (print-tagged this w))
+  (print-tagged-index this w))

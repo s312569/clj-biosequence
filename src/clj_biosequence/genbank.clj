@@ -454,33 +454,39 @@
 
 ;; indexing
 
+(defrecord indexedGenbankReader [index strm]
+
+  bs/biosequenceReader
+
+  (biosequence-seq [this]
+    (bs/indexed-seq this map->genbankSequence))
+
+  (get-biosequence [this accession]
+    (bs/get-object this accession map->genbankSequence))
+
+  java.io.Closeable
+
+  (close [this]
+    (bs/close-index-reader this)))
+
 (defrecord indexedGenbankFile [index path]
+
+  bs/biosequenceIO
+
+  (bs-reader [this]
+    (->indexedGenbankReader (:index this) (bs/open-index-reader (:path this))))
 
   bs/biosequenceFile
 
   (bs-path [this]
     (fs/absolute-path (:path this)))
 
-  bs/indexFileIO
-
-  (bs-writer [this]
-    (bs/init-index-writer this))
-
-  bs/biosequenceReader
-
-  (biosequence-seq [this]
-    (map (fn [[o l]]
-           (map->genbankSequence (bs/read-one o l (str (bs/bs-path this) ".bin"))))
-         (vals (:index this))))
-
-  (get-biosequence [this accession]
-    (let [[o l] (get (:index this) accession)]
-      (if o
-        (map->genbankSequence (bs/read-one o l (str (bs/bs-path this) ".bin")))))))
+  (empty-instance [this path]
+    (init-indexed-genbank path)))
 
 (defn init-indexed-genbank [file]
   (->indexedGenbankFile {} file))
 
 (defmethod print-method clj_biosequence.genbank.indexedGenbankFile
   [this w]
-  (bs/print-tagged this w))
+  (bs/print-tagged-index this w))

@@ -175,29 +175,35 @@
 
 ;; indexing
 
+(defrecord indexedFastqReader [index strm]
+
+  bs/biosequenceReader
+
+  (biosequence-seq [this]
+    (bs/indexed-seq this map->fastqSequence))
+
+  (get-biosequence [this accession]
+    (bs/get-object this accession map->fastqSequence))
+
+  java.io.Closeable
+
+  (close [this]
+    (bs/close-index-reader this)))
+
 (defrecord indexedFastqFile [index path]
+
+  bs/biosequenceIO
+
+  (bs-reader [this]
+    (->indexedFastqReader (:index this) (:alphabet this) (bs/open-index-reader (:path this))))
 
   bs/biosequenceFile
 
   (bs-path [this]
     (fs/absolute-path (:path this)))
 
-  bs/indexFileIO
-
-  (bs-writer [this]
-    (bs/init-index-writer this))
-
-  bs/biosequenceReader
-
-  (biosequence-seq [this]
-    (map (fn [[o l]]
-           (map->fastqSequence  (bs/read-one o l (str (bs/bs-path this) ".bin"))))
-         (vals (:index this))))
-
-  (get-biosequence [this accession]
-    (let [[o l] (get (:index this) accession)]
-      (if o
-        (map->fastqSequence (bs/read-one o l (str (bs/bs-path this) ".bin")))))))
+  (empty-instance [this path]
+    (init-indexed-fastq path)))
 
 (defn init-indexed-fastq
   [file]
@@ -205,5 +211,5 @@
 
 (defmethod print-method clj_biosequence.fastq.indexedFastqFile
   [this w]
-  (bs/print-tagged this w))
+  (bs/print-tagged-index this w))
 

@@ -441,33 +441,39 @@
 
 ;; indexing
 
+(defrecord indexedUniprotReader [index strm]
+
+  bs/biosequenceReader
+
+  (biosequence-seq [this]
+    (bs/indexed-seq this map->uniprotProtein))
+
+  (get-biosequence [this accession]
+    (bs/get-object this accession map->uniprotProtein))
+
+  java.io.Closeable
+
+  (close [this]
+    (bs/close-index-reader this)))
+
 (defrecord indexedUniprotFile [index path]
 
+  bs/biosequenceIO
+
+  (bs-reader [this]
+    (->indexedUniprotReader (:index this) (:alphabet this) (bs/open-index-reader (:path this))))
+  
   bs/biosequenceFile
 
   (bs-path [this]
     (absolute-path (:path this)))
 
-  bs/indexFileIO
-
-  (bs-writer [this]
-    (bs/init-index-writer this))
-
-  bs/biosequenceReader
-
-  (biosequence-seq [this]
-    (map (fn [[o l]]
-           (map->uniprotProtein (bs/read-one o l (str (bs/bs-path this) ".bin"))))
-         (vals (:index this))))
-
-  (get-biosequence [this accession]
-    (let [[o l] (get (:index this) accession)]
-      (if o
-        (map->uniprotProtein (bs/read-one o l (str (bs/bs-path this) ".bin")))))))
+  (empty-instance [this path]
+    (init-indexed-uniprot path)))
 
 (defn init-indexed-uniprot [file]
   (->indexedUniprotFile {} file))
 
 (defmethod print-method clj_biosequence.uniprot.indexedUniprotFile
   [this w]
-  (bs/print-tagged this w))
+  (bs/print-tagged-index this w))

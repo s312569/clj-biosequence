@@ -413,40 +413,43 @@
 
 ;; indexing
 
+(defrecord indexedBlastReader [index strm parameters]
+
+  bs/biosequenceReader
+
+  (biosequence-seq [this]
+    (bs/indexed-seq this map->blastIteration))
+
+  (get-biosequence [this accession]
+    (bs/get-object this accession map->blastIteration))
+
+  java.io.Closeable
+
+  (close [this]
+    (bs/close-index-reader this)))
+
 (defrecord indexedBlastFile [index path parameters]
+
+  bs/biosequenceIO
+
+  (bs-reader [this]
+    (->indexedBlastReader (:index this) (bs/open-index-reader (:path this)) (:parameters this)))
 
   bs/biosequenceFile
 
   (bs-path [this]
     (fs/absolute-path (:path this)))
 
-  bs/indexFileIO
-
-  (bs-writer [this]
-    (bs/init-index-writer this))
-
-  bs/biosequenceReader
-
-  (biosequence-seq [this]
-    (map (fn [[o l]]
-           (map->blastIteration (bs/read-one o l (str (bs/bs-path this) ".bin"))))
-         (vals (:index this))))
-
-  (get-biosequence [this accession]
-    (let [[o l] (get (:index this) accession)]
-      (if o
-        (map->blastIteration (bs/read-one o l (str (bs/bs-path this) ".bin"))))))
-
-  (parameters [this]
-    (:parameters this)))
+  (empty-instance [this path]
+    (init-indexed-blast path)))
 
 (defn init-indexed-blast [file]
   (->indexedBlastFile {} file nil))
 
 (defmethod print-method clj_biosequence.blast.indexedBlastFile
   [this w]
-  (bs/print-tagged this w))
+  (bs/print-tagged-index this w))
 
 (defmethod print-method clj_biosequence.blast.blastParameters
   [this w]
-  (bs/print-tagged this w))
+  (bs/print-tagged-index this w))
