@@ -317,7 +317,7 @@ meters, if any.")
   [reader key func]
   (let [i (get (:index reader) key)]
     (if-not (nil? i)
-      (first (ind/object-seq (:strm reader) (list i) map->fastaSequence)))))
+      (first (ind/object-seq (:strm reader) (list i) func)))))
 
 (defn indexed-seq
   [index func]
