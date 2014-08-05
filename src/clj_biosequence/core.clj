@@ -287,7 +287,7 @@ meters, if any.")
               (assoc index :index
                      (with-open [r (bs-reader file)]
                        (ind/index-objects w (biosequence-seq r) accession))))]
-      (ind/save-index (bs-path file) (pr-str i))
+      (ind/save-index (bs-path file) i)
       i)
     (catch Exception e
       (ind/delete-index (bs-path file))
@@ -295,7 +295,7 @@ meters, if any.")
 
 (defn load-biosequence-index
   [path]
-  (:assoc (ind/load-indexed-file path) :path path))
+  (assoc (ind/load-indexed-file path) :path path))
 
 (defn merge-biosequence-indexes
   [indexes outfile]
@@ -307,7 +307,7 @@ meters, if any.")
                             (map (fn [x] (with-open [r (bs-reader x)]
                                           (ind/index-objects w (biosequence-seq r) accession)))
                                  indexes))))]
-      (ind/save-index (bs-path o) (pr-str i))
+      (ind/save-index (bs-path o) i)
       i)
     (catch Exception e
       (ind/delete-index outfile)
