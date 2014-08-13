@@ -67,8 +67,8 @@
     (.close ^java.io.BufferedReader (:strm this))))
 
 (defn init-fasta-reader
-  [strm alphabet]
-  (->fastaReader strm alphabet))
+  [strm alphabet path]
+  (->fastaReader strm alphabet path))
 
 ;; fasta files
 
