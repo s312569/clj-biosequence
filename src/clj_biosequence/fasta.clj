@@ -142,7 +142,7 @@
 
 ;; indexed files
 
-(defrecord indexedFastaReader [index alphabet strm]
+(defrecord indexedFastaReader [index alphabet strm path]
 
   biosequenceReader
 
@@ -151,6 +151,11 @@
 
   (get-biosequence [this accession]
     (get-object this accession map->fastaSequence))
+
+  biosequenceFile
+
+  (bs-path [this]
+    (absolute-path (:path this)))
 
   java.io.Closeable
 
@@ -164,7 +169,8 @@
   (bs-reader [this]
     (->indexedFastaReader (:index this)
                           (:alphabet this)
-                          (open-index-reader (:path this))))
+                          (open-index-reader (:path this))
+                          (bs-path this)))
 
   biosequenceFile
 
