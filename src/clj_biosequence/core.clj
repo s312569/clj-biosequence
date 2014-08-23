@@ -55,24 +55,6 @@ meters, if any.")
   (index-file [this] [this ofile])
   (empty-instance [this path]))
 
-(defprotocol biosequenceCitation
-  (ref-type [this]
-    "Returns the citation type from a citation object.")
-  (title [this]
-    "Returns the title of a citation object.")
-  (journal [this]
-    "Returns the journal of a citation object.")
-  (year [this]
-    "Returns the year of a citation object.")
-  (volume [this]
-    "Returns the volume of a citation object.")
-  (pstart [this]
-    "Returns the start page of a citation object.")
-  (pend [this]
-    "Returns the end page of a citation object.")
-  (authors [this]
-    "Returns the authors from a citation object."))
-
 (defprotocol biosequenceFeature
   (interval-seq [this]
     "Returns a lazy list of intervals in a sequence.")
