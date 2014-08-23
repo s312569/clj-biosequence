@@ -7,7 +7,8 @@
             [clojure.java.io :as io]
             [fs.core :as fs]
             [clj-biosequence.alphabet :as ala]
-            [clj-biosequence.core :as bs]))
+            [clj-biosequence.core :as bs]
+            [clj-biosequence.citation :as ci]))
 
 (declare genbank-search-helper genbank-sequence-helper moltype get-genbank-stream check-db check-rt init-indexed-genbank)
 
@@ -137,11 +138,10 @@
     (= (bs/alphabet this) :iupacAminoAcids))
 
   (bs-seq [this]
-    (bs/clean-sequence
-     (zf/xml1-> (zip/xml-zip (:src this))
-                :GBSeq_sequence
-                zf/text)
-     (bs/alphabet this)))
+    (if-let [s (zf/xml1-> (zip/xml-zip (:src this))
+                          :GBSeq_sequence
+                          zf/text)]
+      (bs/clean-sequence s (bs/alphabet this))))
 
   (fasta-string [this]
     (str ">gb|" (bs/accession this) "|"
@@ -190,7 +190,9 @@
 
 ;; coding sequences
 
-(defn cds-filter [gb-sequence]
+(defn cds-filter
+  [gb-sequence]
+  "Filters CDS objects from a Genbank sequence."
   (filter #(= "CDS" (bs/feature-type %)) (bs/feature-seq gb-sequence)))
 
 (defn cds-protein-id
@@ -329,6 +331,27 @@
          (throw (Throwable. (str "'" db "' " "not allowed. Only :protein, :nucleotide, :nucest, :nuccore, :nucgss and :popset are acceptable database arguments. See the documentation for 'genbank-search' for an explanation of the different databases."))))))
 
 ;; convenience functions
+
+(defn references
+  "Returns a list of biosequence reference objects."
+  [gbseq]
+  (map #(ci/map->biosequenceJournalCite
+         {:title (zf/xml1-> % :GBReference_title zf/text)
+          :citation (zf/xml1-> % :GBReference_journal zf/text)
+          :pubmed (zf/xml1-> % :GBReference_pubmed zf/text)
+          :crossrefs (map (fn [x]
+                            (assoc {}
+                              (zf/xml1-> x :GBXref :GBXref_dbname
+                                         zf/text)
+                              (zf/xml1-> x :GBXref :GBXref_id
+                                         zf/text)))
+                          (zf/xml-> % :GBReference_xref))
+          :authors (zf/xml-> % :GBReference_authors
+                             :GBAuthor zf/text)
+          :notes (zf/xml-> % :GBReference_remark zf/text)})
+       (zf/xml-> (zip/xml-zip (:src gbseq))
+                 :GBSeq_references
+                 :GBReference)))
 
 (defn created
   "Returns the creation date of the sequence. Content of the GBSeq_create-date tag."
