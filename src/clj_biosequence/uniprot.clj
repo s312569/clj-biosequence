@@ -349,7 +349,7 @@
    `db-references`."
   [uprot]
   (->> (go-terms uprot)
-       (filter #(= \M (first %)))
+       (filter #(= \F (first %)))
        (map (fn [[a b & rest]]
               (apply str rest)))))
 
@@ -461,7 +461,7 @@
   bs/biosequenceIO
 
   (bs-reader [this]
-    (->indexedUniprotReader (:index this) (:alphabet this) (bs/open-index-reader (:path this))))
+    (->indexedUniprotReader (:index this) (bs/open-index-reader (:path this))))
   
   bs/biosequenceFile
 

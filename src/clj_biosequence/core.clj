@@ -43,8 +43,7 @@
     "Returns a lazy sequence of biosequence objects with a lazy stream
     of sequences.")
   (parameters [this]
-    "Returns para
-meters, if any.")
+    "Returns parameters, if any.")
   (get-biosequence [this accession]
     "Returns the biosequence object with the corresponding
     accession."))
@@ -332,6 +331,18 @@ meters, if any.")
       i)
     (catch Exception e
       (ind/delete-index outfile)
+      (println (str "Exception: " (.getMessage e))))))
+
+(defn index-biosequence-collection
+  [coll index-file]
+  (try
+    (let [i (with-open [w (ind/index-writer (bs-path index-file))]
+              (assoc index-file :index
+                     (ind/index-objects w coll accession)))]
+      (ind/save-index (bs-path index-file) i)
+      i)
+    (catch Exception e
+      (ind/delete-index (bs-path index-file))
       (println (str "Exception: " (.getMessage e))))))
 
 (defn get-object
