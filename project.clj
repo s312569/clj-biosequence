@@ -16,8 +16,8 @@
                  [fs "1.3.3"]
                  [org.clojars.hozumi/clj-commons-exec "1.0.7"]]
   :resource-paths ["shared" "resources"]
-  :plugins [[cider/cider-nrepl "0.7.0"]
-            [codox "0.6.4"]]
+  :plugins [[codox "0.6.4"]
+            [cider/cider-nrepl "0.8.0-SNAPSHOT"]]
   :codox {:src-dir-uri "https://github.com/s312569/clj-biosequence/blob/master/"
           :src-linenum-anchor-prefix "L"}
   :jvm-opts ["-Xmx1000M"])
