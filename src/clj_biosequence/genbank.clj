@@ -3,7 +3,6 @@
             [clojure.data.zip.xml :as zf]
             [clojure.zip :as zip]
             [clojure.string :refer [split]]
-            [clj-http.client :as client]
             [clojure.java.io :as io]
             [fs.core :as fs]
             [clj-biosequence.alphabet :as ala]
@@ -409,7 +408,7 @@
   [a-list db rettype]
   (if (empty? a-list)
     nil
-    (let [r (client/post "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+    (let [r (bs/post-req "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
                          {:query-params
                           {:db (name db)
                            :id (apply str (interpose "," a-list))
@@ -427,7 +426,7 @@
   ([term db retstart key]
    (xml/parse-str
     (:body
-     (client/get
+     (bs/get-req
       (str "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db="
            (java.net.URLEncoder/encode (name db))
            "&term="
