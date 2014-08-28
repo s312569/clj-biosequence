@@ -11,7 +11,7 @@
                  [com.novemberain/monger "1.7.0"]
                  [com.taoensso/nippy "2.5.2"]
                  [com.velisco/tagged "0.3.4"]
-                 [clj-http "0.9.0"]
+                 [clj-http "1.0.0"]
                  [iota "1.1.2"]
                  [fs "1.3.3"]
                  [org.clojars.hozumi/clj-commons-exec "1.0.7"]]
