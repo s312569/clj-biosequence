@@ -226,7 +226,7 @@
   ([term email] (uniprot-search term email 0))
   ([term email offset]
      (let [r (remove #(= % "")
-                     (-> (client/get
+                     (-> (bs/get-req
                           (str "http://www.uniprot.org/uniprot/?query="
                                term
                                "&format=list"
