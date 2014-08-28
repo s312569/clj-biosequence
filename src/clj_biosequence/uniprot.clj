@@ -5,7 +5,6 @@
             [clojure.zip :refer [node xml-zip]]
             [clojure.string :refer [split]]
             [clj-biosequence.core :as bs]
-            [clj-http.client :as client]
             [fs.core :refer [file? temp-file delete absolute-path]]))
 
 (declare prot-name meta-data recommended-name alternative-name get-uniprot-stream organism init-indexed-uniprot)
@@ -68,6 +67,7 @@
                                  :citation (zf/attr :volume))))
 
   (pstart [this]
+
     (Integer/parseInt (zf/xml1-> (xml-zip (:src this))
                                  :citation (zf/attr :first))))
 
@@ -393,9 +393,9 @@
 
 (defn- uniprot-process-request
   [address params file]
-  (let [p (client/post address params)]
+  (let [p (bs/post-req address params)]
     (letfn [(check [a c]
-              (let [r (client/get a {:follow-redirects false
+              (let [r (bs/get-req a {:follow-redirects false
                                      :as :stream})]
                 (cond
                  (nil? (get (:headers r) "retry-after"))
