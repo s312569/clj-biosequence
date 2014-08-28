@@ -1,7 +1,7 @@
 (ns clj-biosequence.core
   (:require [clojure.java.io :refer [writer reader]]
             [fs.core :refer [file? absolute-path]]
-            [clj-http.client :refer [post]]
+            [clj-http.client :as client]
             [clojure.string :refer [trim split upper-case]]
             [clj-biosequence.alphabet :as ala]
             [clj-biosequence.indexing :as ind]
@@ -12,6 +12,24 @@
             [clojure.core.reducers :as r]))
 
 (declare init-fasta-store init-fasta-sequence translate init-indexed-fasta)
+
+;; network
+
+(def bioseq-proxy (atom {}))
+
+(defn set-bioseq-proxy!
+  [params]
+  (reset! bioseq-proxy params))
+
+(defn get-req
+  [a param]
+  (client/get a (merge param @bioseq-proxy)))
+
+(defn post-req
+  [a param]
+  (client/post a (merge param @bioseq-proxy)))
+
+;; protocols
 
 (defprotocol biosequenceIO
   (bs-reader [this]
@@ -276,6 +294,9 @@ meters, if any.")
        (+ (ccalc (:pka (a \C)) cys)
           (reduce + (cons (ccalc 2.34 1) (map (fn [[x n]] (ccalc (:pka (a x)) n))
                                               (select-keys freq [\E \D \Y]))))))))
+
+(defn set-proxy
+  [])
 
 ;; serialising
 
