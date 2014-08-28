@@ -31,7 +31,7 @@
                   :follow-redirects true
                   :force-redirects true
                   :form-params param}
-          r (post address params)]
+          r (post-req address params)]
       (if-not (= 200 (:status r))
         (throw (Throwable. (str "Error in mapping request: " (:body r))))
         (into {} (map #(split % #"\t") (rest (split (:body r) #"\n"))))))
