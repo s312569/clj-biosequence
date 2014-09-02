@@ -20,4 +20,5 @@
             [cider/cider-nrepl "0.8.0-SNAPSHOT"]]
   :codox {:src-dir-uri "https://github.com/s312569/clj-biosequence/blob/master/"
           :src-linenum-anchor-prefix "L"}
+  :global-vars {*print-length* 10}
   :jvm-opts ["-Xmx1000M"])
