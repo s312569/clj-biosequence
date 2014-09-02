@@ -64,31 +64,15 @@
   (alphabet [this]
     "Returns the alphabet of a biosequence.")
   (feature-seq [this]
-    "Returns a lazy list of features in a sequence."))
+    "Returns a lazy list of features in a sequence.")
+  (references [this]
+    "Returns a collection of references in a sequence record."))
 
 (defprotocol biosequenceFile
   (bs-path [this]
     "Returns the path of the file as string.")
   (index-file [this] [this ofile])
   (empty-instance [this path]))
-
-(defprotocol biosequenceCitation
-  (ref-type [this]
-    "Returns the citation type from a citation object.")
-  (title [this]
-    "Returns the title of a citation object.")
-  (journal [this]
-    "Returns the journal of a citation object.")
-  (year [this]
-    "Returns the year of a citation object.")
-  (volume [this]
-    "Returns the volume of a citation object.")
-  (pstart [this]
-    "Returns the start page of a citation object.")
-  (pend [this]
-    "Returns the end page of a citation object.")
-  (authors [this]
-    "Returns the authors from a citation object."))
 
 (defprotocol biosequenceFeature
   (interval-seq [this]
@@ -344,6 +328,10 @@
     (catch Exception e
       (ind/delete-index (bs-path index-file))
       (println (str "Exception: " (.getMessage e))))))
+
+(defn delete-indexed-biosequence
+  [index-file]
+  (ind/delete-index (bs-path index-file)))
 
 (defn get-object
   [reader key func]

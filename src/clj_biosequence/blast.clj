@@ -433,7 +433,8 @@
   bs/biosequenceIO
 
   (bs-reader [this]
-    (->indexedBlastReader (:index this) (bs/open-index-reader (:path this)) (:parameters this)))
+    (->indexedBlastReader
+     (:index this) (bs/open-index-reader (:path this)) (:parameters this)))
 
   bs/biosequenceFile
 

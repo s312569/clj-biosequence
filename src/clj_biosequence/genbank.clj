@@ -6,11 +6,65 @@
             [clojure.java.io :as io]
             [fs.core :as fs]
             [clj-biosequence.alphabet :as ala]
-            [clj-biosequence.core :as bs]))
+            [clj-biosequence.core :as bs]
+            [clj-biosequence.citation :as ci]))
 
 (declare genbank-search-helper genbank-sequence-helper moltype get-genbank-stream check-db check-rt init-indexed-genbank)
 
-; interval
+;; genbank citation
+
+(defrecord genbankCitation [src]
+
+  ci/biosequenceCitation
+
+  (title [this]
+    (zf/xml1-> (zip/xml-zip (:src this))
+               :GBReference_title zf/text))
+
+  (journal [this]
+    (zf/xml1-> (zip/xml-zip (:src this))
+               :GBReference_journal zf/text))
+
+  (year [this]
+    (zf/xml1-> (zip/xml-zip (:src this))
+               :GBReference_journal zf/text))
+
+  (volume [this]
+    (zf/xml1-> (zip/xml-zip (:src this))
+               :GBReference_journal zf/text))
+
+  (pstart [this]
+    (zf/xml1-> (zip/xml-zip (:src this))
+               :GBReference_journal zf/text))
+
+  (pend [this]
+    (zf/xml1-> (zip/xml-zip (:src this))
+               :GBReference_journal zf/text))
+
+  (authors [this]
+    (zf/xml-> (zip/xml-zip (:src this))
+              :GBReference_authors
+              :GBAuthor zf/text))
+
+  (pubmed [this]
+    (zf/xml1-> (zip/xml-zip (:src this))
+               :GBReference_pubmed zf/text))
+
+  (crossrefs [this]
+    (map (fn [x]
+           (assoc {}
+             (zf/xml1-> x :GBXref :GBXref_dbname
+                        zf/text)
+             (zf/xml1-> x :GBXref :GBXref_id
+                        zf/text)))
+         (zf/xml-> (zip/xml-zip (:src this))
+                   :GBReference_xref)))
+
+  (notes [this]
+    (zf/xml-> (zip/xml-zip (:src this))
+              :GBReference_remark zf/text)))
+
+;; interval
 
 (defrecord genbankInterval [src]
 
@@ -111,6 +165,12 @@
 
   bs/Biosequence
 
+  (references [this]
+    (map #(->genbankCitation (zip/node %))
+         (zf/xml-> (zip/xml-zip (:src this))
+                   :GBSeq_references
+                   :GBReference)))
+
   (feature-seq [this]
     (map #(->genbankFeature %)
          (:content (some #(if (= (:tag %) :GBSeq_feature-table)
@@ -136,11 +196,10 @@
     (= (bs/alphabet this) :iupacAminoAcids))
 
   (bs-seq [this]
-    (bs/clean-sequence
-     (zf/xml1-> (zip/xml-zip (:src this))
-                :GBSeq_sequence
-                zf/text)
-     (bs/alphabet this)))
+    (if-let [s (zf/xml1-> (zip/xml-zip (:src this))
+                          :GBSeq_sequence
+                          zf/text)]
+      (bs/clean-sequence s (bs/alphabet this))))
 
   (fasta-string [this]
     (str ">gb|" (bs/accession this) "|"
@@ -150,7 +209,8 @@
 
   (alphabet [this]
     (cond (#{"genomic" "precursor RNA" "mRNA" "rRNA" "tRNA" "snRNA" "scRNA"
-             "other-genetic" "DNA" "cRNA" "snoRNA" "transcribed RNA"} (moltype this))
+             "other-genetic" "DNA" "cRNA" "snoRNA" "transcribed RNA"}
+           (moltype this))
           :iupacNucleicAcids
           (#{"AA"} (moltype this))
           :iupacAminoAcids
@@ -189,7 +249,9 @@
 
 ;; coding sequences
 
-(defn cds-filter [gb-sequence]
+(defn cds-filter
+  [gb-sequence]
+  "Filters CDS objects from a Genbank sequence."
   (filter #(= "CDS" (bs/feature-type %)) (bs/feature-seq gb-sequence)))
 
 (defn cds-protein-id
@@ -268,8 +330,9 @@
                                 (:retype this))]
       (condp = (:retype this)
         :xml (init-genbank-reader (io/reader s))
-        :fasta (bs/init-fasta-reader (io/reader s)
-                                     (cond (#{:nucest :nuccore :nucgss :popset} db)
+        :fasta (bs/init-fasta-reader
+                (io/reader s)
+                (cond (#{:nucest :nuccore :nucgss :popset} db)
                                            :iupacNucleicAcids
                                            (= :protein db)
                                            :iupacAminoAcids))))))

@@ -86,24 +86,26 @@
   (let [flist (atom ())
         sps (map #(signalp % (register-outfile flist) :params params)
                  (partition-all 10000 bsl))]
-    (try (let [h (->> (doall (pmap #(with-open [r (bs/bs-reader %)]
-                                      (into {}
-                                            (map (fn [x]
-                                                   (vector (bs/accession x)
-                                                                (list (:result x)
-                                                                      (:cpos x))))
-                                                 (bs/biosequence-seq r)))) sps))
+    (try (let [h (->> (doall
+                       (pmap #(with-open [r (bs/bs-reader %)]
+                                (into {}
+                                      (map (fn [x]
+                                             (vector (bs/accession x)
+                                                     (list (:result x)
+                                                           (:cpos x))))
+                                           (bs/biosequence-seq r)))) sps))
                       (apply merge))]
            (remove nil?
                    (map #(if (= "Y" (first (get h (bs/accession %))))
                            (if trim
-                             (bs/init-fasta-sequence (bs/accession %)
-                                                     (bs/def-line %)
-                                                     :iupacAminoAcids
-                                                     (subvec
-                                                      (bs/bs-seq %)
-                                                      (+ 1 (second
-                                                            (get h (bs/accession %))))))
+                             (bs/init-fasta-sequence
+                              (bs/accession %)
+                              (bs/def-line %)
+                              :iupacAminoAcids
+                              (subvec
+                               (bs/bs-seq %)
+                               (+ 1 (second
+                                     (get h (bs/accession %))))))
                              %))
                         bsl)))
          (finally
@@ -121,9 +123,7 @@
   [params infile]
   (conj (->> (concat
               ["-f" "short"        
-               "-s" "best"
-               "-t" "euk"
-               "-c" "70"]
+               "-t" "euk"]
               (flatten (vec params)))
              (cons "signalp")
              vec)

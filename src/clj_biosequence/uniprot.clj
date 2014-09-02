@@ -5,9 +5,44 @@
             [clojure.zip :refer [node xml-zip]]
             [clojure.string :refer [split]]
             [clj-biosequence.core :as bs]
+            [clj-biosequence.citation :as ci]
             [fs.core :refer [file? temp-file delete absolute-path]]))
 
 (declare prot-name meta-data recommended-name alternative-name get-uniprot-stream organism init-indexed-uniprot)
+
+;; citations
+
+(defrecord uniprotCitation [src]
+
+  ci/biosequenceCitation
+
+  (title [this]
+    (zf/xml1-> (xml-zip (:src this))
+               :citation :title zf/text))
+
+  (journal [this]
+    (zf/xml1-> (xml-zip (:src this))
+               :citation (zf/attr :name)))
+
+  (year [this]
+    (zf/xml1-> (xml-zip (:src this))
+               :citation (zf/attr :date)))
+
+  (volume [this]
+    (zf/xml1-> (xml-zip (:src this))
+               :citation (zf/attr :volume)))
+
+  (pstart [this]
+    (zf/xml1-> (xml-zip (:src this))
+               :citation (zf/attr :first)))
+
+  (pend [this]
+    (zf/xml1-> (xml-zip (:src this))
+               :citation (zf/attr :last)))
+
+  (authors [this]
+    (zf/xml-> (xml-zip (:src this))
+              :citation :authorList :person (zf/attr :name))))
 
 ;; interval
 
@@ -40,50 +75,15 @@
          (filter #(= (:tag %) :location)
                  (:content (:src this))))))
 
-;; citation
-
-(defrecord uniprotCitation [src]
-
-  bs/biosequenceCitation
-
-  (ref-type [this]
-    (zf/xml1-> (xml-zip (:src this))
-               :citation (zf/attr :type)))
-
-  (title [this]
-    (zf/xml1-> (xml-zip (:src this))
-               :citation :title zf/text))
-
-  (journal [this]
-    (zf/xml1-> (xml-zip (:src this))
-               :citation (zf/attr :name)))
-
-  (year [this]
-    (Integer/parseInt (zf/xml1-> (xml-zip (:src this))
-                                 :citation (zf/attr :date))))
-
-  (volume [this]
-    (Integer/parseInt (zf/xml1-> (xml-zip (:src this))
-                                 :citation (zf/attr :volume))))
-
-  (pstart [this]
-
-    (Integer/parseInt (zf/xml1-> (xml-zip (:src this))
-                                 :citation (zf/attr :first))))
-
-  (pend [this]
-    (Integer/parseInt (zf/xml1-> (xml-zip (:src this))
-                                 :citation (zf/attr :last))))
-
-  (authors [this]
-    (zf/xml-> (xml-zip (:src this))
-              :citation :authorList :person (zf/attr :name))))
-
 ;; protein
 
 (defrecord uniprotProtein [src]
 
   bs/Biosequence
+
+  (references [this]
+    (->> (zf/xml-> (xml-zip (:src this)) :reference)
+         (map #(->uniprotCitation (node %)))))
   
   (accessions [uniprot]
     (zf/xml-> (xml-zip (:src uniprot)) :accession zf/text))
@@ -293,11 +293,6 @@
                (hash-map :gene (zf/xml1-> % :name zf/text)))
        (zf/xml-> (xml-zip (:src uniprot)) :gene)))
 
-(defn citations
-  [uniprot]
-  (->> (zf/xml-> (xml-zip (:src uniprot)) :reference)
-       (map #(->uniprotCitation (node %)))))
-
 (defn comments
   "Returns the XML tree representations of all comments in the
   sequence."
@@ -461,8 +456,8 @@
   bs/biosequenceIO
 
   (bs-reader [this]
-    (->indexedUniprotReader (:index this) (bs/open-index-reader (:path this))))
-  
+    (->indexedUniprotReader (:index this)
+                            (bs/open-index-reader (:path this))))
   bs/biosequenceFile
 
   (bs-path [this]

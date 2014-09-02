@@ -128,8 +128,10 @@
   biosequenceIO
 
   (bs-reader [this]
-    (init-fasta-reader (java.io.BufferedReader. (java.io.StringReader. (:str this)))
-                       (:alphabet this))))
+    (init-fasta-reader
+     (java.io.BufferedReader. (java.io.StringReader. (:str this)))
+     (:alphabet this)
+     nil)))
 
 (defn init-fasta-string
   "Initialises a fasta string. Accession numbers and description are
