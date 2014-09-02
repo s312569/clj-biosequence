@@ -19,3 +19,4 @@ resources/test-files/nuc-sequence.fasta.idx
 resources/test-files/toxins.fasta.bin
 resources/test-files/toxins.fasta.idx
 .nrepl-port
+resources/test-files/go-basic.obo
