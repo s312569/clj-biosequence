@@ -19,4 +19,5 @@
   :plugins [[codox "0.6.4"]]
   :codox {:src-dir-uri "https://github.com/s312569/clj-biosequence/blob/master/"
           :src-linenum-anchor-prefix "L"}
+  :repl-options {:init (set! *print-length* 50)}
   :jvm-opts ["-Xmx1000M"])

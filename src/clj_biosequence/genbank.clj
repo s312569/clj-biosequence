@@ -12,7 +12,60 @@
 
 (declare genbank-search-helper genbank-sequence-helper moltype get-genbank-stream check-db check-rt init-indexed-genbank)
 
-; interval
+;; genbank citation
+
+(defrecord genbankCitation [src]
+
+  ci/biosequenceCitation
+
+  (title [this]
+    (zf/xml1-> (zip/xml-zip (:src this))
+               :GBReference_title zf/text))
+
+  (journal [this]
+    (zf/xml1-> (zip/xml-zip (:src this))
+               :GBReference_journal zf/text))
+
+  (year [this]
+    (zf/xml1-> (zip/xml-zip (:src this))
+               :GBReference_journal zf/text))
+
+  (volume [this]
+    (zf/xml1-> (zip/xml-zip (:src this))
+               :GBReference_journal zf/text))
+
+  (pstart [this]
+    (zf/xml1-> (zip/xml-zip (:src this))
+               :GBReference_journal zf/text))
+
+  (pend [this]
+    (zf/xml1-> (zip/xml-zip (:src this))
+               :GBReference_journal zf/text))
+
+  (authors [this]
+    (zf/xml-> (zip/xml-zip (:src this))
+              :GBReference_authors
+              :GBAuthor zf/text))
+
+  (pubmed [this]
+    (zf/xml1-> (zip/xml-zip (:src this))
+               :GBReference_pubmed zf/text))
+
+  (crossrefs [this]
+    (map (fn [x]
+           (assoc {}
+             (zf/xml1-> x :GBXref :GBXref_dbname
+                        zf/text)
+             (zf/xml1-> x :GBXref :GBXref_id
+                        zf/text)))
+         (zf/xml-> (zip/xml-zip (:src this))
+                   :GBReference_xref)))
+
+  (notes [this]
+    (zf/xml-> (zip/xml-zip (:src this))
+              :GBReference_remark zf/text)))
+
+;; interval
 
 (defrecord genbankInterval [src]
 
@@ -113,6 +166,12 @@
 
   bs/Biosequence
 
+  (references [this]
+    (map #(->genbankCitation (zip/node %))
+         (zf/xml-> (zip/xml-zip (:src this))
+                   :GBSeq_references
+                   :GBReference)))
+
   (feature-seq [this]
     (map #(->genbankFeature %)
          (:content (some #(if (= (:tag %) :GBSeq_feature-table)
@@ -151,7 +210,8 @@
 
   (alphabet [this]
     (cond (#{"genomic" "precursor RNA" "mRNA" "rRNA" "tRNA" "snRNA" "scRNA"
-             "other-genetic" "DNA" "cRNA" "snoRNA" "transcribed RNA"} (moltype this))
+             "other-genetic" "DNA" "cRNA" "snoRNA" "transcribed RNA"}
+           (moltype this))
           :iupacNucleicAcids
           (#{"AA"} (moltype this))
           :iupacAminoAcids
@@ -271,8 +331,9 @@
                                 (:retype this))]
       (condp = (:retype this)
         :xml (init-genbank-reader (io/reader s))
-        :fasta (bs/init-fasta-reader (io/reader s)
-                                     (cond (#{:nucest :nuccore :nucgss :popset} db)
+        :fasta (bs/init-fasta-reader
+                (io/reader s)
+                (cond (#{:nucest :nuccore :nucgss :popset} db)
                                            :iupacNucleicAcids
                                            (= :protein db)
                                            :iupacAminoAcids))))))
@@ -331,27 +392,6 @@
          (throw (Throwable. (str "'" db "' " "not allowed. Only :protein, :nucleotide, :nucest, :nuccore, :nucgss and :popset are acceptable database arguments. See the documentation for 'genbank-search' for an explanation of the different databases."))))))
 
 ;; convenience functions
-
-(defn references
-  "Returns a list of biosequence reference objects."
-  [gbseq]
-  (map #(ci/map->biosequenceJournalCite
-         {:title (zf/xml1-> % :GBReference_title zf/text)
-          :citation (zf/xml1-> % :GBReference_journal zf/text)
-          :pubmed (zf/xml1-> % :GBReference_pubmed zf/text)
-          :crossrefs (map (fn [x]
-                            (assoc {}
-                              (zf/xml1-> x :GBXref :GBXref_dbname
-                                         zf/text)
-                              (zf/xml1-> x :GBXref :GBXref_id
-                                         zf/text)))
-                          (zf/xml-> % :GBReference_xref))
-          :authors (zf/xml-> % :GBReference_authors
-                             :GBAuthor zf/text)
-          :notes (zf/xml-> % :GBReference_remark zf/text)})
-       (zf/xml-> (zip/xml-zip (:src gbseq))
-                 :GBSeq_references
-                 :GBReference)))
 
 (defn created
   "Returns the creation date of the sequence. Content of the GBSeq_create-date tag."

@@ -47,7 +47,9 @@ meters, if any.")
   (alphabet [this]
     "Returns the alphabet of a biosequence.")
   (feature-seq [this]
-    "Returns a lazy list of features in a sequence."))
+    "Returns a lazy list of features in a sequence.")
+  (references [this]
+    "Returns a collection of references in a sequence record."))
 
 (defprotocol biosequenceFile
   (bs-path [this]
@@ -294,6 +296,11 @@ meters, if any.")
     (catch Exception e
       (ind/delete-index outfile)
       (println (str "Exception: " (.getMessage e))))))
+
+
+(defn delete-indexed-biosequence
+  [index-file]
+  (ind/delete-index (bs-path index-file)))
 
 (defn get-object
   [reader key func]

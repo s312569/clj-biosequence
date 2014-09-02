@@ -3,8 +3,9 @@
             [clojure.string :as string]
             [clj-biosequence.core :as bs]
             [fs.core :as fs])
-  (:import (org.apache.commons.compress.compressors.gzip GzipCompressorInputStream)
-           (org.apache.commons.compress.compressors.bzip2 BZip2CompressorInputStream)))
+  (:import
+   (org.apache.commons.compress.compressors.gzip GzipCompressorInputStream)
+   (org.apache.commons.compress.compressors.bzip2 BZip2CompressorInputStream)))
 
 (declare init-indexed-fastq)
 
@@ -195,7 +196,8 @@
   bs/biosequenceIO
 
   (bs-reader [this]
-    (->indexedFastqReader (:index this) (:alphabet this) (bs/open-index-reader (:path this))))
+    (->indexedFastqReader (:index this)
+                          (bs/open-index-reader (:path this))))
 
   bs/biosequenceFile
 
