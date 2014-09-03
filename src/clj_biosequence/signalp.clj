@@ -81,33 +81,35 @@
   [a]
   (first (swap! a #(cons (fs/temp-file "sp-") %))))
 
+(defn- trimmed-fasta
+  [s c]
+  (bs/init-fasta-sequence (bs/accession s) (bs/def-line s)
+                          :iupacAminoAcids
+                          (subvec (bs/bs-seq s) (+ 1 c))))
+
+(defn- result-hash
+  [file]
+  (with-open [r (bs/bs-reader file)]
+    (->> (map #(vector (bs/accession %)
+                       (vector (:result %)
+                               (:cpos %)))
+              (bs/biosequence-seq r))
+         (into {}))))
+
 (defn filter-signalp
   [bsl & {:keys [trim params] :or {trim false params {}}}]
   (let [flist (atom ())
         sps (map #(signalp % (register-outfile flist) :params params)
                  (partition-all 10000 bsl))]
-    (try (let [h (->> (doall
-                       (pmap #(with-open [r (bs/bs-reader %)]
-                                (into {}
-                                      (map (fn [x]
-                                             (vector (bs/accession x)
-                                                     (list (:result x)
-                                                           (:cpos x))))
-                                           (bs/biosequence-seq r)))) sps))
+    (try (let [h (->> (pmap result-hash sps)
                       (apply merge))]
-           (remove nil?
-                   (map #(if (= "Y" (first (get h (bs/accession %))))
-                           (if trim
-                             (bs/init-fasta-sequence
-                              (bs/accession %)
-                              (bs/def-line %)
-                              :iupacAminoAcids
-                              (subvec
-                               (bs/bs-seq %)
-                               (+ 1 (second
-                                     (get h (bs/accession %))))))
-                             %))
-                        bsl)))
+           (->> (map #(let [r (get h (bs/accession %))]
+                        (if (= "Y" (first r))
+                          (if trim
+                            (trimmed-fasta % (second r))
+                            %)))
+                     bsl)
+                (remove nil?)))
          (finally
            (doall (map #(fs/delete %) @flist))))))
 
@@ -117,14 +119,24 @@
   [line]
   (let [[name cmax cpos ymax ypos smax spos smean D result Dmaxcut network]
         (string/split line #"\s+")]
-    (->signalpProtein name (read-string cmax) (read-string cpos) (read-string ymax) (read-string ypos) (read-string smax) (read-string spos) (read-string smean) (read-string D) result (read-string Dmaxcut) network)))
+    (->signalpProtein name (Float/parseFloat cmax) (Integer/parseInt cpos) (Float/parseFloat ymax)
+                      (Integer/parseInt ypos) (Float/parseFloat smax) (Integer/parseInt spos)
+                      (Float/parseFloat smean) (Float/parseFloat D) result (Float/parseFloat Dmaxcut)
+                      network)))
 
 (defn- signal-command
   [params infile]
-  (conj (->> (concat
-              ["-f" "short"        
-               "-t" "euk"]
-              (flatten (vec params)))
-             (cons "signalp")
-             vec)
-        (fs/absolute-path infile)))
+  (let [up (flatten (vec (dissoc params "-f" "-g" "-k" "-m" "-n" "-T" "-w" "-l" "-v" "-V" "-h")))]
+    (-> (cons "signalp" up)
+        vec
+        (conj (fs/absolute-path infile)))))
+
+
+;; allowed
+  ;; -s   Signal peptide networks to use ('best' or 'notm'). Default: 'best'
+  ;; -t   Organism type> (euk, gram+, gram-). Default: 'euk'
+  ;; -u   user defined D-cutoff for noTM networks
+  ;; -U   user defined D-cutoff for TM networks
+  ;; -M   Minimal predicted signal peptide length. Default: [10]
+  ;; -c   truncate to sequence length - 0 means no truncation. Default '70'
+
