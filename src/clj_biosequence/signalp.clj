@@ -13,7 +13,9 @@
 
 ;; signalp analysis
 
-(defrecord signalpProtein [name cmax cpos ymax ypos smax spos smean D result Dmaxcut network]
+(defrecord signalpProtein [name cmax cpos ymax ypos
+                           smax spos smean D result
+                           Dmaxcut network]
 
   bs/Biosequence
 
@@ -34,9 +36,6 @@
     (map #(make-signal-result %)
          (drop 2 (line-seq strm))))
 
-  (parameters [this]
-    ())
-
   java.io.Closeable
 
   (close [this]
@@ -54,32 +53,36 @@
   (bs-path [this]
     (fs/absolute-path (:file this))))
 
+(defn- protein-only-error
+  [x]
+  (if (bs/protein? x)
+    (bs/fasta-string x)
+    (throw (Throwable.
+            "SignalP only analyses proteins."))))
+
 (defn signalp
+  "Runs signalp on a collection of biosequences and returns a signalp
+  result file. Only the first 10,000 biosequences will be analysed. For
+  greater numbers see `filter-signalp` or partition collections before
+  running."
   [bs outfile & {:keys [params] :or {params {}}}]
-  (let [in (bs/biosequence->file
-            bs (fs/temp-file "sp-in")
-            :append false
-            :func (fn [x]
-                    (if (bs/protein? x)
-                      (bs/fasta-string x)
-                      (throw (Throwable. "SignalP only analyses proteins.")))))]
+  (let [in (bs/biosequence->file (take 10000 bs) (fs/temp-file "sp-in")
+                                 :append false
+                                 :func protein-only-error)]
     (try
       (with-open [out (io/output-stream outfile)]
-        (let [sp @(exec/sh (signal-command params in) {:out out})]
+        (let [sp @(exec/sh (signal-command params in) {:out out}
+                           :close-err? false)]
           (if (and (= 0 (:exit sp)) (nil? (:err sp)))
             (->signalpFile (fs/absolute-path outfile))
             (if (:err sp)
               (throw (Throwable. (str "SignalP error: " (:err sp))))
-              (throw (Throwable. (str "Exception: " (:exception sp))))))))
+              (throw (Throwable. (str "!Exception: " (:exception sp))))))))
       (catch Exception e
         (fs/delete outfile)
         (fs/delete in)
         (println e))
       (finally (fs/delete in)))))
-
-(defn- register-outfile
-  [a]
-  (first (swap! a #(cons (fs/temp-file "sp-") %))))
 
 (defn- trimmed-fasta
   [s c]
@@ -98,8 +101,7 @@
 
 (defn filter-signalp
   [bsl & {:keys [trim params] :or {trim false params {}}}]
-  (let [flist (atom ())
-        sps (map #(signalp % (register-outfile flist) :params params)
+  (let [sps (map #(signalp % (fs/temp-file "sp-") :params params)
                  (partition-all 10000 bsl))]
     (try (let [h (->> (pmap result-hash sps)
                       (apply merge))]
@@ -111,7 +113,7 @@
                      bsl)
                 (remove nil?)))
          (finally
-           (doall (map #(fs/delete %) @flist))))))
+           (doall (map #(fs/delete (bs/bs-path %)) sps))))))
 
 ;; private
 
@@ -119,24 +121,23 @@
   [line]
   (let [[name cmax cpos ymax ypos smax spos smean D result Dmaxcut network]
         (string/split line #"\s+")]
-    (->signalpProtein name (Float/parseFloat cmax) (Integer/parseInt cpos) (Float/parseFloat ymax)
-                      (Integer/parseInt ypos) (Float/parseFloat smax) (Integer/parseInt spos)
-                      (Float/parseFloat smean) (Float/parseFloat D) result (Float/parseFloat Dmaxcut)
+    (->signalpProtein name (Float/parseFloat cmax)
+                      (Integer/parseInt cpos)
+                      (Float/parseFloat ymax)
+                      (Integer/parseInt ypos)
+                      (Float/parseFloat smax)
+                      (Integer/parseInt spos)
+                      (Float/parseFloat smean)
+                      (Float/parseFloat D) result
+                      (Float/parseFloat Dmaxcut)
                       network)))
 
 (defn- signal-command
   [params infile]
-  (let [up (flatten (vec (dissoc params "-f" "-g" "-k" "-m" "-n" "-T" "-w" "-l" "-v" "-V" "-h")))]
+  (let [ak ["-s" "-t" "-u" "-U" "-M" "-c"]
+        up (flatten (vec (select-keys params ak)))]
+    (doseq [w (keys (apply dissoc params ak))]
+      (println (str "warning: " w " is not a signalp argument - ignored.")))
     (-> (cons "signalp" up)
         vec
         (conj (fs/absolute-path infile)))))
-
-
-;; allowed
-  ;; -s   Signal peptide networks to use ('best' or 'notm'). Default: 'best'
-  ;; -t   Organism type> (euk, gram+, gram-). Default: 'euk'
-  ;; -u   user defined D-cutoff for noTM networks
-  ;; -U   user defined D-cutoff for TM networks
-  ;; -M   Minimal predicted signal peptide length. Default: [10]
-  ;; -c   truncate to sequence length - 0 means no truncation. Default '70'
-
