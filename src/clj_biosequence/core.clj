@@ -113,6 +113,19 @@
                             (apply str (subvec (bs-seq bs) beg end))
                             (apply str (subvec (bs-seq bs) beg))))))
 
+(defn partition-bioseq
+  [n bs]
+  (let [ns (init-fasta-sequence (accession bs) (def-line bs) (alphabet bs) (bs-seq bs))]
+    (map (fn [x c] (assoc ns
+                     :acc (str (accession ns) "-" c)
+                     :description (str (def-line ns)
+                                       " - ["
+                                       (- (* c n) (- n 1)) "-" (* c n)
+                                       "]")
+                     :sequence (vec x)))
+         (partition-all n (bs-seq bs))
+         (iterate inc 1))))
+
 (defn reverse-comp
   "Returns a new fastaSequence with the reverse complement sequence."
   [this]
@@ -318,16 +331,17 @@
       (println (str "Exception: " (.getMessage e))))))
 
 (defn index-biosequence-collection
-  [coll index-file]
-  (try
-    (let [i (with-open [w (ind/index-writer (bs-path index-file))]
-              (assoc index-file :index
-                     (ind/index-objects w coll accession)))]
-      (ind/save-index (bs-path index-file) i)
-      i)
-    (catch Exception e
-      (ind/delete-index (bs-path index-file))
-      (println (str "Exception: " (.getMessage e))))))
+  ([coll index-file] (index-biosequence-collection coll index-file accession))
+  ([coll index-file func]
+     (try
+       (let [i (with-open [w (ind/index-writer (bs-path index-file))]
+                 (assoc index-file :index
+                        (ind/index-objects w coll func)))]
+         (ind/save-index (bs-path index-file) i)
+         i)
+       (catch Exception e
+         (ind/delete-index (bs-path index-file))
+         (println (str "Exception: " (.getMessage e)))))))
 
 (defn delete-indexed-biosequence
   [index-file]
