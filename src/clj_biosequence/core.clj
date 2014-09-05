@@ -64,7 +64,9 @@
   (alphabet [this]
     "Returns the alphabet of a biosequence.")
   (feature-seq [this]
-    "Returns a lazy list of features in a sequence."))
+    "Returns a lazy list of features in a sequence.")
+  (frame [this]
+    "Returns the translation frame of an interval."))
 
 (defprotocol biosequenceFile
   (bs-path [this]
@@ -191,6 +193,31 @@
               (recur (rest l))))
         (throw (Throwable. "N50 calculation failed!"))))))
 
+(defn get-interval-sequence
+  [bs interval]
+  (cond (and (> (start interval) (end interval))
+             (not (comp? interval)))
+        (let [o (sub-bioseq bs (- (start interval) 1))
+              t (sub-bioseq bs 0 (end interval))]
+          (assoc o :sequence (vec (concat (bs-seq o) (bs-seq t)))
+                 :description (str (second (re-find #"^(.+)\s[^\[]+\]$"))
+                                   " [" (start interval) " - " (end interval) "]")))
+        (and (comp? interval)
+             (> (end interval) (start interval)))
+        (let [o (sub-bioseq bs (- (end interval) 1))
+              t (sub-bioseq bs 0 (start interval))]
+          (assoc o :sequence (vec (concat (bs-seq o) (bs-seq t)))
+                 :description (str (second (re-find #"^(.+)\s[^\[]+\]$"))
+                                   " [" (end interval) " - " (start interval) "]")))
+        :else
+        (let [s (if (comp? interval)
+                  (- (end interval) 1)
+                  (- (start interval) 1))
+              e (if (comp? interval)
+                  (start interval)
+                  (end interval))]
+          (sub-bioseq bs s e))))
+
 (defn get-feature-sequence
   "Returns a fastaSequence object containing the sequence specified in a 
    genbankFeature object from a genbankSequence object. Designed for applying
@@ -209,20 +236,6 @@
                      (apply str (subvec (bs-seq bs)
                                         (- (start %) 1)
                                         (end %)))) intervals)))))
-
-(defn get-interval-sequence
-  "Returns a fasta sequence of an interval."
-  [interval bs]
-  (let [dna (bs-seq bs)
-        start (start interval)
-        end (end interval)]
-    (init-fasta-sequence
-     (accession bs)
-     (str (def-line bs) " [" start "-" end "]")
-     (if (protein? bs) :iupacAminoAcids :iupacNucleicAcids)
-     (if (false? (comp? interval))
-       (apply str (subvec dna (- start 1) end))
-       (apply str (subvec (ala/revcom dna) (- end 1) start))))))
 
 ;;;;;;;;;;;;;;
 ;; utilities

@@ -42,7 +42,12 @@
     (let [c (zf/xml1-> (zip/xml-zip (:src gb-interval))
                        :GBInterval_iscomp
                        (zf/attr :value))]
-      (if (= "true" c) true false))))
+      (and c (= "true" c))))
+
+  bs/Biosequence
+
+  (frame [this]
+    (:frame this)))
 
 ;; qualifier
 
@@ -156,36 +161,6 @@
           :iupacAminoAcids
           :else
           (throw (Throwable. (str "Unknown moltype: " (moltype this)))))))
-
-(defn get-interval-dna
-  [gbseq gbinterval]
-  (cond (and (> (bs/start gbinterval) (bs/end gbinterval))
-             (not (bs/comp? gbinterval)))
-        (let [o (bs/sub-bioseq gbseq (- (bs/start gbinterval) 1))
-              t (bs/sub-bioseq gbseq 0 (bs/end gbinterval))]
-          (assoc o :sequence (vec (concat (bs/bs-seq o) (bs/bs-seq t)))
-                 :description (str (second (re-find #"^(.+)\s[^\[]+\]$"))
-                                   " [" (bs/start gbinterval) " - " (bs/end gbinterval) "]")))
-        (and (bs/comp? gbinterval)
-             (> (bs/end gbinterval) (bs/start gbinterval)))
-        (let [o (bs/sub-bioseq gbseq (- (bs/end gbinterval) 1))
-              t (bs/sub-bioseq gbseq 0 (bs/start gbinterval))]
-          (assoc o :sequence (vec (concat (bs/bs-seq o) (bs/bs-seq t)))
-                 :description (str (second (re-find #"^(.+)\s[^\[]+\]$"))
-                                   " [" (bs/end gbinterval) " - " (bs/start gbinterval) "]")))
-        :else
-        (let [s (if (bs/comp? gbinterval)
-                  (- (bs/end gbinterval) 1)
-                  (- (bs/start gbinterval) 1))
-              e (if (bs/comp? gbinterval)
-                  (bs/start gbinterval)
-                  (bs/end gbinterval))]
-          (bs/sub-bioseq gbseq s e))))
-
-(defn get-interval-protein
-  [gbseq gbinterval]
-  (let [s (get-interval-dna gbseq gbinterval)]
-    (bs/translate s (:frame gbinterval))))
 
 ;; coding sequences
 

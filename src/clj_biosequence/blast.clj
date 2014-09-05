@@ -17,7 +17,12 @@
 
 ;; blast hsp
 
-(defrecord blastHsp [src])
+(defrecord blastHsp [src]
+
+  bs/Biosequence
+
+  (frame [this]
+    (Integer/parseInt (get-hit-value this :Hsp_query-frame))))
 
 (defn get-hsp-value
   "Takes a blastHsp object and returns the value corresponding to key.
@@ -51,11 +56,6 @@
          (filter #(= (:tag %) :Hsp_midline))
          first :content first)
     (zf/xml1-> (zip/xml-zip (:src this)) key zf/text)))
-
-(defn frame
-  "Returns the frame of query match (if there is one)."
-  [hsp]
-  (Integer/parseInt (get-hit-value hsp :Hsp_query-frame)))
 
 (defn print-alignment [hsp]
   (let [ss (fn [x] (map (partial apply str) (partition-all 52 x)))
