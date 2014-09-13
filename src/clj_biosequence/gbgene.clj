@@ -10,6 +10,8 @@
             [clj-biosequence.core :as bs]
             [clj-biosequence.citation :as ci]))
 
+(declare init-indexed-gbgene)
+
 ;; gene
 
 (defrecord gbGene [src]
@@ -79,13 +81,11 @@
   (bs-path [this]
     (fs/absolute-path (:file this)))
 
-  ;; (index-file [this]
-  ;;   (init-indexed-gbgene (bs/bs-path this)))
+  (index-file [this]
+    (init-indexed-gbgene (bs/bs-path this)))
 
-  ;; (index-file [this ofile]
-  ;;   (init-indexed-gbgene (fs/absolute-path ofile)))
-
-  )
+  (index-file [this ofile]
+    (init-indexed-gbgene (fs/absolute-path ofile))))
 
 (defn init-gbgene-file
   [file]
@@ -113,3 +113,43 @@
 (defn init-gbgene-connection
   [acc-list]
   (->gbgeneConnection acc-list))
+
+;; indexing
+
+(defrecord indexedgbGeneReader [index strm]
+
+  bs/biosequenceReader
+
+  (biosequence-seq [this]
+    (bs/indexed-seq this map->gbGene))
+
+  (get-biosequence [this accession]
+    (bs/get-object this accession map->gbGene))
+
+  java.io.Closeable
+
+  (close [this]
+    (bs/close-index-reader this)))
+
+(defrecord indexedgbGeneFile [index path]
+
+  bs/biosequenceIO
+
+  (bs-reader [this]
+    (->indexedgbGeneReader (:index this) (bs/open-index-reader (:path this))))
+
+  bs/biosequenceFile
+
+  (bs-path [this]
+    (fs/absolute-path (:path this)))
+
+  (empty-instance [this path]
+    (init-indexed-gbgene path)))
+
+(defn init-indexed-gbgene
+  [file]
+  (->indexedgbGeneFile {} file))
+
+(defmethod print-method clj_biosequence.gbgene.indexedgbGeneFile
+  [this w]
+  (bs/print-tagged-index this w))
