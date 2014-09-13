@@ -7,6 +7,7 @@
             [fs.core :as fs]
             [clj-biosequence.alphabet :as ala]
             [clj-biosequence.core :as bs]
+            [clj-biosequence.eutilities :as eu]
             [clj-biosequence.citation :as ci]))
 
 (declare genbank-search-helper genbank-sequence-helper moltype get-genbank-stream check-db check-rt init-indexed-genbank)
@@ -300,9 +301,10 @@
   bs/biosequenceIO
 
   (bs-reader [this]
-    (let [s (get-genbank-stream (:acc-list this)
-                                (:db this)
-                                (:retype this))]
+    (let [s (eu/e-fetch (:acc-list this)
+                        (:db this)
+                        (condp = (:retype this) :xml "gb" :fasta "fasta")
+                        (condp = (:retype this) :xml "xml" :fasta "text"))]
       (condp = (:retype this)
         :xml (init-genbank-reader (io/reader s))
         :fasta (bs/init-fasta-reader
@@ -323,10 +325,10 @@
   (->genbankString str))
 
 (defn init-genbank-connection
-  [accessions db retype]
+  [accessions db format]
   (and (check-db db)
-       (check-rt retype)
-       (->genbankConnection accessions db retype)))
+       (check-rt format)
+       (->genbankConnection accessions db format)))
 
 ;; web
 
@@ -355,15 +357,8 @@
    single accession number. Returns an empty list if no matches found."
   ([term db] (genbank-search term db 0 nil))
   ([term db restart key]
-     (if (check-db db)
-         (let [r (genbank-search-helper term db restart key)
-               k (zf/xml1-> (zip/xml-zip r) :WebEnv zf/text)
-               c (Integer/parseInt (zf/xml1-> (zip/xml-zip r) :Count zf/text))]
-           (if (> restart c)
-             nil
-             (lazy-cat (zf/xml-> (zip/xml-zip r) :IdList :Id zf/text)
-                       (genbank-search term db (+ restart 1000) k))))
-         (throw (Throwable. (str "'" db "' " "not allowed. Only :protein, :nucleotide, :nucest, :nuccore, :nucgss and :popset are acceptable database arguments. See the documentation for 'genbank-search' for an explanation of the different databases."))))))
+     (check-db db)
+     (eu/e-search term db restart key)))
 
 ;; convenience functions
 
@@ -430,9 +425,10 @@
 (defn- check-db
   [db]
   (if (not (#{:nucest :nuccore :nucgss :popset :protein} db))
-    (throw (Throwable. (str "DB not supported: "
-                            db
-                            ". Only :protein, :nucest, :nuccore, :nucgss and :popset are supported.")))
+    (throw (Throwable.
+            (str "DB not supported: "
+                 db
+                 ". Only :protein, :nucest, :nuccore, :nucgss and :popset are supported.")))
     true))
 
 (defn- check-rt
@@ -441,38 +437,6 @@
     (throw (Throwable. (str rt " not supported. "
                             "Only :xml and :fasta are allowed retype values.")))
     true))
-
-(defn- get-genbank-stream
-  [a-list db rettype]
-  (if (empty? a-list)
-    nil
-    (let [r (bs/post-req "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
-                         {:query-params
-                          {:db (name db)
-                           :id (apply str (interpose "," a-list))
-                           :rettype (condp = rettype
-                                      :xml "gb"
-                                      :fasta "fasta")
-                           :retmode (condp = rettype
-                                      :xml "xml"
-                                      :fasta "text")}
-                          :as :stream})]
-      (:body r))))
-
-(defn- genbank-search-helper
-  ([term db retstart] (genbank-search-helper term db retstart nil))
-  ([term db retstart key]
-   (xml/parse-str
-    (:body
-     (bs/get-req
-      (str "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db="
-           (java.net.URLEncoder/encode (name db))
-           "&term="
-           (java.net.URLEncoder/encode term)
-           "&retmax=" 1000
-           "&retstart=" retstart
-           (if key (str "&WebEnv=" key))
-           "&usehistory=y"))))))
 
 (defn- extract-features-genbank
   [rdr feature]
