@@ -315,7 +315,14 @@
   "Returns all db-references as a list of xml elements."
   [uniprot]
   (map node (zf/xml-> (xml-zip (:src uniprot))
-                          :dbReference)))
+                      :dbReference)))
+
+(defn gb-gene-id
+  [uniprot]
+  (zf/xml1-> (xml-zip (:src uniprot))
+             :dbReference
+             (zf/attr= :type "GeneID")
+             (zf/attr :id)))
 
 (defn go-terms
   "Returns a list of GO terms. Only returns the term itself and not
@@ -394,17 +401,17 @@
                                      :as :stream})]
                 (cond
                  (nil? (get (:headers r) "retry-after"))
-                 (if (= (:status r) 200)
-                   r
-                   (throw (Throwable. (str "Error in sequence retrieval: code"
-                                           (:status r)))))
+                 (cond (= (:status r) 200)
+                       r
+                       (= (:status r) 302)
+                       (recur (get (:headers r) "Location") 0)
+                       :else
+                       (throw (Throwable. (str "Error in sequence retrieval: code"
+                                               (:status r)))))
                  (> c 50)
                  (throw (Throwable. "Too many tries."))
                  :else
-                 (recur
-                  (do (Thread/sleep 10000)
-                      a)
-                  (+ 1 c)))))]
+                 (recur (do (Thread/sleep 10000) a) (inc c)))))]
       (if (some #(= (:status p) %) '(302 303))
         (do
           (if (get (:headers p) "retry-after")
