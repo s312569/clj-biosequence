@@ -261,7 +261,7 @@
   [s a]
   (let [k (ala/get-alphabet a)
         w #{\space \newline}
-        t (upper-case s)]
+        t (if (string? s) (upper-case s) s)]
     (loop [l t a []]
       (if-not (seq l)
         a
