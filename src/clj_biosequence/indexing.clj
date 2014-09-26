@@ -74,7 +74,8 @@
 
 (defn save-index
   [path index]
-  (spit (str path ".idx") (pr-str index)))
+  (binding [*print-length* false]
+    (spit (str path ".idx") (pr-str index))))
 
 (defn delete-index
   [path]
