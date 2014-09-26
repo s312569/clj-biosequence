@@ -270,6 +270,11 @@
             (recur (rest l) (conj a (if (k c) c \X)))
             (recur (rest l) a)))))))
 
+(defn object->file
+  [obj file]
+  (binding [*print-length* false]
+    (spit file (pr-str obj))))
+
 ;; utilities
 
 (defn protein-charge
@@ -309,13 +314,13 @@
 ;; serialising
 
 (defn index-biosequence-file
-  [file]
+  [file & {:keys [func] :or {func accession}}]
   (try
     (let [index (index-file file)
           i (with-open [w (ind/index-writer (bs-path index))]
               (assoc index :index
                      (with-open [r (bs-reader file)]
-                       (ind/index-objects w (biosequence-seq r) accession))))]
+                       (ind/index-objects w (biosequence-seq r) func))))]
       (ind/save-index (bs-path file) i)
       i)
     (catch Exception e
@@ -343,17 +348,16 @@
       (println (str "Exception: " (.getMessage e))))))
 
 (defn index-biosequence-collection
-  ([coll index-file] (index-biosequence-collection coll index-file accession))
-  ([coll index-file func]
-     (try
-       (let [i (with-open [w (ind/index-writer (bs-path index-file))]
-                 (assoc index-file :index
-                        (ind/index-objects w coll func)))]
-         (ind/save-index (bs-path index-file) i)
-         i)
-       (catch Exception e
-         (ind/delete-index (bs-path index-file))
-         (println (str "Exception: " (.getMessage e)))))))
+  [coll index-file & {:keys [func] :or {func accession}}]
+  (try
+    (let [i (with-open [w (ind/index-writer (bs-path index-file))]
+              (assoc index-file :index
+                     (ind/index-objects w coll func)))]
+      (ind/save-index (bs-path index-file) i)
+      i)
+    (catch Exception e
+      (ind/delete-index (bs-path index-file))
+      (println (str "Exception: " (.getMessage e))))))
 
 (defn delete-indexed-biosequence
   [index-file]
