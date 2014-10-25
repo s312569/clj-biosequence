@@ -168,31 +168,29 @@ servers (see below).
 
 ## Indexing
 
-It can get tedious using `with-open` and random access to particular biosequences
-is also slow as it relies on filtering the lazy sequences for accession numbers.
-So `clj-biosequence.index` provides a simple mechanism for indexing biosequence files.
+For random access to biosequences each supported file format also has
+an indexed version.
 
 Typical usage as follows:
 
 ```clojure
 ;; calling `index-biosequence-file` on any biosequence file returns a
-;; biosequence index. This index can be used in calls to `biosequence-seq`
-;; and `get-biosequence` (amongst others) without the `with-open` construct
+;; biosequence index. Which is accessed using `with-open` just like 
+;; other readers but with faster retrieval of specific biosequences.
 
 user> (use 'clj-biosequence.index)
 nil
 user> (def fasta-in (index-biosequence-file fa-file))
 #'user/fasta-in
-user> (count (biosequence-seq fasta-in))
+user> (with-open [r (bs-reader fasta-in)]
+        (count (biosequence-seq r))
 6
-user> (first (biosequence-seq fasta-in))
+user> (with-open [r (bs-reader fasta-in)]
+        (first (biosequence-seq r))
 #clj_biosequence.core.fastaSequence{:acc "gi|116025203|gb|EG339215.1|EG339215", :description "KAAN-aaa29f08.b1 ... etc"
 
-;; Indexed files also offer random access to the biosequences,
-;; this is many times faster than using `get-biosequence` with
-;; a biosequence file opened with `bs-reader`.
-
-user> (accession (get-biosequence fasta-in "gi|114311762|gb|EE738912.1|EE738912"))
+user> (with-open [r (bs-reader fasta-in)]
+        (accession (get-biosequence r "gi|114311762|gb|EE738912.1|EE738912"))
 "gi|114311762|gb|EE738912.1|EE738912"
 
 ;; when a file is indexed two additional files are created with the same
@@ -204,17 +202,19 @@ user> (accession (get-biosequence fasta-in "gi|114311762|gb|EE738912.1|EE738912"
 
 user> (def fa-ind-2 (load-biosequence-index "/Users/jason/Dropbox/clj-biosequence/resources/test-files/nuc-sequence.fasta"))
 #'user/fa-ind-2
-user> (accession (get-biosequence fa-ind-2 "gi|114311762|gb|EE738912.1|EE738912"))
+user> (with-open [r (bs-reader fa-ind-2)]
+        (accession (get-biosequence r "gi|114311762|gb|EE738912.1|EE738912"))
 "gi|114311762|gb|EE738912.1|EE738912"
 
 ;; biosequence collections can be indexed using `index-biosequence-list` but the
 ;; base name of the index needs to be supplied
 
 user> (def fa-ind-3 (with-open [r (bs-reader fa-file)]
-                               (index-biosequence-list (biosequence-seq r)
-                                                       "/tmp/fasta-ind")))
+                      (index-biosequence-list (biosequence-seq r)
+                                              "/tmp/fasta-ind")))
 #'user/fa-ind-3
-user> (accession (get-biosequence fa-ind-3 "gi|114311762|gb|EE738912.1|EE738912"))
+user> (with-open [r (bs-reader fa-ind-3)]
+        (accession (get-biosequence r "gi|114311762|gb|EE738912.1|EE738912"))
 "gi|114311762|gb|EE738912.1|EE738912"
 
 ;; this can be handy when filtering biosequences. For example secreted proteins
@@ -225,7 +225,8 @@ user> (def secreted (with-open [r (bs-reader toxins)]
                                                            (filter-signalp :trim true))
                                                        "/tmp/secreted-ind")))
 #'user/secreted
-user> (count (biosequence-seq secreted))
+user> (with-open [r (bs-reader fa-ind-3)]
+        (count (biosequence-seq r))
 6
 
 ;; Finally, multi biosequence files can be merged into a single index using.
@@ -311,10 +312,14 @@ user> (with-open [r (bs-reader tox-bl)]
 ;; This can be combined with indexes or biosequence files to obtain the original
 ;; query biosequences.
 
-user> (with-open [r (bs-reader tox-bl)]
+user> (def toxin-index (index-biosequence-file toxins))
+#'user/toxin-index
+
+user> (with-open [r (bs-reader tox-bl)
+                  i (bs-reader toxin-index)]
                  (->> (biosequence-seq r)
                       (filter #(>= (-> (hit-seq %) second hit-bit-scores first) 50))
-                      (map #(get-biosequence toxin-index (accession %)))
+                      (map #(get-biosequence i (accession %)))
                       first))
 #clj_biosequence.core.fastaSequence{:acc "sp|P84001|29C0_ANCSP", :description
 "U3-ctenitoxin-Asp1a (Fragment) OS=Ancylometes sp. PE=1 SV=1", :alphabet :iupacAminoAcids,
@@ -323,11 +328,12 @@ user> (with-open [r (bs-reader tox-bl)]
 
 ;; or sent off to a file.
 
-user> (with-open [r (bs-reader tox-bl)]
+user> (with-open [r (bs-reader tox-bl)
+                  i (bs-reader toxin-index)]
                  (biosequence->file
                   (->> (biosequence-seq r)
                        (filter #(>= (-> (hit-seq %) second hit-bit-scores first) 50))
-                       (map #(get-biosequence toxin-index (accession %))))
+                       (map #(get-biosequence i (accession %))))
                   "/tmp/blast.fa"))
 "/tmp/blast.fa"
 
@@ -335,14 +341,13 @@ user> (with-open [r (bs-reader tox-bl)]
 ;; can be thrown at them (hopefully). So one could annotate a large fasta file
 ;; starting with a fasta index and a blast DB by:
 
-user> (def toxin-index (index-biosequence-file toxins))
-#'user/toxin-index
 user> (with-open [r (bs-reader (blast (biosequence-seq toxin-index) "blastp" toxindb
-                                      "/tmp/outfile.xml"))]
+                                      "/tmp/outfile.xml"))
+	          i (bs-reader toxin-index)]
                  (biosequence->file
                   (->> (biosequence-seq r)
                        (filter #(>= (-> (hit-seq %) second hit-bit-scores first) 50))
-                       (map #(let [s (get-biosequence toxin-index (accession %))
+                       (map #(let [s (get-biosequence i (accession %))
                                    h (-> (hit-seq %) first)]
                                (assoc s :description
                                       (str (def-line s) " - "
