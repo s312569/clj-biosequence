@@ -210,16 +210,12 @@
         (let [i (index-biosequence-file tox-bl)]
           (try
             (with-open [r (bs-reader i)]
-              (is (= "sp|P84001|29C0_ANCSP"
-                     (accession (first (biosequence-seq r)))))
               (is (= "sp|P0CE81|A1HB1_LOXIN"
                      (accession (get-biosequence
                                  r
                                  "sp|P0CE81|A1HB1_LOXIN")))))
             (let [ii (load-biosequence-index (bs-path tox-bl))]
               (with-open [rr (bs-reader ii)]
-                (is (= "sp|P84001|29C0_ANCSP"
-                       (accession (first (biosequence-seq rr)))))
                 (is (= "sp|P0CE81|A1HB1_LOXIN"
                        (accession (get-biosequence
                                    rr
@@ -243,16 +239,12 @@
               (io/resource "test-files/fastq-test.fastq")))]
       (try
         (with-open [r (bs-reader i)]
-          (is (= "@HWI-ST1213:141:C17PWACXX:6:1101:6408:1991 1:N:0:ACAGTG"
-                 (accession (first (biosequence-seq r)))))
           (is (= "@HWI-ST1213:141:C17PWACXX:6:1101:5381:1994 1:N:0:ACAGTG"
                  (accession (get-biosequence r "@HWI-ST1213:141:C17PWACXX:6:1101:5381:1994 1:N:0:ACAGTG")))))
         (let [ii (-> (io/resource "test-files/fastq-test.fastq")
                      fs/absolute-path
                      load-biosequence-index)]
           (with-open [rr (bs-reader ii)]
-            (is (= "@HWI-ST1213:141:C17PWACXX:6:1101:6408:1991 1:N:0:ACAGTG"
-                   (accession (first (biosequence-seq rr)))))
             (is (= "@HWI-ST1213:141:C17PWACXX:6:1101:5381:1994 1:N:0:ACAGTG"
                    (accession
                     (get-biosequence
