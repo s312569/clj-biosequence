@@ -1,6 +1,6 @@
 (ns clj-biosequence.core
-  (:require [clojure.java.io :refer [writer reader]]
-            [fs.core :refer [file? absolute-path]]
+  (:require [clojure.java.io :refer [writer reader input-stream]]
+            [fs.core :refer [file? absolute-path extension]]
             [clj-http.client :as client]
             [clojure.string :refer [trim split upper-case]]
             [clj-biosequence.alphabet :as ala]
@@ -236,6 +236,23 @@
 ;;;;;;;;;;;;;;
 ;; utilities
 ;;;;;;;;;;;;;;
+
+(defn file-reader
+  [file & {:keys [encoding] :or {encoding "UTF-8"}}]
+  "Takes a file and returns a reader based on the file
+  extension. Recognises .gz and .zip files and returns a buffered
+  reader if these extensions not found. Defaults to UTF-8 encoding but
+  this can be changed using the encoding keyword."
+  (condp = (extension file)
+    ".gz" (reader
+           (java.util.zip.GZIPInputStream.
+            (input-stream file))
+           :encoding encoding)
+    ".zip" (reader
+            (java.util.zip.ZipInputStream.
+             (input-stream file))
+            :encoding encoding)
+    (reader file :encoding encoding)))
 
 (defn biosequence->file
   "Takes a collection of biosequences and prints them to file. To

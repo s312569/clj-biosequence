@@ -66,10 +66,6 @@
   (close [this]
     (.close ^java.io.BufferedReader (:strm this))))
 
-(defn init-fasta-reader
-  [strm alphabet path]
-  (->fastaReader strm alphabet path))
-
 ;; fasta files
 
 (defprotocol fastaReduce
@@ -80,14 +76,14 @@
     'identity' value that is returned when the function is called with
     no arguments."))
 
-(defrecord fastaFile [file alphabet]
+(defrecord fastaFile [file alphabet encoding]
 
   biosequenceIO
 
   (bs-reader [this]
-    (init-fasta-reader (reader (:file this))
-                       (:alphabet this)
-                       (bs-path this)))
+    (->fastaReader (file-reader (:file this) :encoding encoding)
+                   (:alphabet this)
+                   (bs-path this)))
 
   biosequenceFile
 
@@ -105,20 +101,21 @@
   (fasta-reduce
     [this func fold]
     (->> (iot/seq (:file this))
-         (r/filter #(not (= \> (first %))))
-         (r/map #(clean-sequence % (:alphabet this)))
-         (r/map func)
-         (r/fold fold))))
+      (r/filter #(not (= \> (first %))))
+      (r/map #(clean-sequence % (:alphabet this)))
+      (r/map func)
+      (r/fold fold))))
 
 (defn init-fasta-file
-  "Initialises fasta protein file. Accession numbers and description are 
-   processed by splitting the string on the first space, the accession 
-   being the first value and description the second."
-  [path alphabet]
+  "Initialises fasta protein file. Accession numbers and description
+  are processed by splitting the string on the first space, the
+  accession being the first value and description the second. Encoding
+  can be specified using the encoding keyword, defaults to UTF-8."
+  [path alphabet & {:keys [encoding] :or {encoding "UTF-8"}}]
   (if-not (ala/alphabet? alphabet)
     (throw (Throwable. "Unrecognised alphabet keyword. Currently :iupacNucleicAcids :iupacAminoAcids are allowed."))
     (if (file? path)
-      (->fastaFile path alphabet)
+      (->fastaFile path alphabet encoding)
       (throw (Throwable. (str "File not found: " path))))))
 
 ;; strings
@@ -128,10 +125,10 @@
   biosequenceIO
 
   (bs-reader [this]
-    (init-fasta-reader
-     (java.io.BufferedReader. (java.io.StringReader. (:str this)))
-     (:alphabet this)
-     nil)))
+    (->fastaReader (java.io.BufferedReader.
+                    (java.io.StringReader. (:str this)))
+                   (:alphabet this)
+                   nil)))
 
 (defn init-fasta-string
   "Initialises a fasta string. Accession numbers and description are
@@ -182,7 +179,8 @@
   (empty-instance [this path]
     (init-indexed-fasta path (:alphabet this))))
 
-(defn init-indexed-fasta [file alphabet]
+(defn init-indexed-fasta
+  [file alphabet]
   (->indexedFastaFile {} file alphabet))
 
 (defmethod print-method clj_biosequence.core.indexedFastaFile

@@ -276,12 +276,12 @@
   [s p]
   (->blastReader s p))
 
-(defrecord blastSearch [file]
+(defrecord blastSearch [file encoding]
 
   bs/biosequenceIO
 
   (bs-reader [this]
-    (let [p (with-open [r (io/reader (:file this))]
+    (let [p (with-open [r (io/reader (:file this) :encoding )]
               (let [x (xml/parse r)
                     pa (->> (:content x)
                             (filter #(= :BlastOutput_param (:tag %)))
@@ -326,9 +326,8 @@
         (assoc ifile :parameters (bs/parameters r))))))
 
 (defn init-blast-search
-  [file]
+  [file & {:keys [encoding] :or {:encoding "UTF-8"}}]
   (->blastSearch (fs/absolute-path file)))
-
 
 (defn delete-blast-search
   [search]
