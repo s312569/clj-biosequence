@@ -2,10 +2,7 @@
   (:require [clojure.java.io :as io]
             [clojure.string :as string]
             [clj-biosequence.core :as bs]
-            [fs.core :as fs])
-  (:import
-   (org.apache.commons.compress.compressors.gzip GzipCompressorInputStream)
-   (org.apache.commons.compress.compressors.bzip2 BZip2CompressorInputStream)))
+            [fs.core :as fs]))
 
 (declare init-indexed-fastq)
 
@@ -73,19 +70,12 @@
   (close [this]
     (.close ^java.io.BufferedReader (:strm this))))
 
-(defrecord fastqFile [file]
+(defrecord fastqFile [file encoding]
 
   bs/biosequenceIO
   
   (bs-reader [this]
-    (condp = (fs/extension (bs/bs-path this))
-      ".gz" (->fastqReader
-             (-> (bs/bs-path this)
-                 io/file io/input-stream GzipCompressorInputStream. io/reader))
-      ".bz2" (->fastqReader
-              (-> (bs/bs-path this)
-                  io/file io/input-stream BZip2CompressorInputStream. io/reader))
-      (->fastqReader (io/reader (bs/bs-path this)))))
+    (->fastqReader (bs/file-reader (bs/bs-path this) :encoding (:encoding this))))
   
   bs/biosequenceFile
 
@@ -106,10 +96,9 @@
     (->fastqReader (java.io.BufferedReader. (java.io.StringReader. (:str this))))))
 
 (defn init-fastq-file
-  [path]
-  (if (fs/file? path)
-    (->fastqFile path)
-    (throw (Throwable. (str "File not found: " path)))))
+  [^String path & {:keys [^String encoding] :or {encoding "UTF-8"}}]
+  {:pre [(fs/file? path)]}
+  (->fastqFile path encoding))
 
 (defn init-fastq-string
   [str]

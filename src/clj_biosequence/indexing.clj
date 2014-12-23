@@ -1,26 +1,12 @@
 (ns clj-biosequence.indexing
   (:require [taoensso.nippy :refer [freeze thaw]]
-            [clojure.edn :as edn]
-            [miner.tagged :refer [pr-tagged-record-on tag->factory some-tag-reader-fn]]
-            [clojure.data.xml :as xml]
-            [fs.core :as fs])
+            [fs.core :refer [exists? delete]])
   (:import [java.io RandomAccessFile]))
-
-(defrecord indexWriter [strm]
-
-  java.io.Closeable
-  
-  (close [this]
-    (.close ^java.io.RandomAccessFile (:strm this))))
-
-(defn- init-index-writer
-  [path]
-  (->indexWriter (RandomAccessFile. (str path ".bin") "rw")))
 
 (defn- write-and-position
   [obj writer acc]
   (let [o (freeze obj)
-        off (.getFilePointer (:strm writer))]
+        off (.getFilePointer writer)]
     (.write (:strm writer) o)
     (vector acc (list off (count o)))))
 
@@ -37,22 +23,13 @@
                           (tag->factory tag))]
     (factory val)))
 
-(def my-tagged-default-reader 
-  (some-tag-reader-fn my-record-tag-reader))
-
 (defn close-index-reader
   [reader]
   (.close ^RandomAccessFile reader))
 
-(defn print-tagged
-  [o w]
-  (pr-tagged-record-on o w))
-
 (defn load-indexed-file
   [path]
-  (edn/read-string {:default my-tagged-default-reader
-                    :readers {'clojure.data.xml.Element clojure.data.xml/map->Element}}
-                   (slurp (str path ".idx"))))
+  (edn/read-string (slurp (str path ".idx"))))
 
 (defn index-objects
   [writer objs id-func]
@@ -65,12 +42,11 @@
 
 (defn index-writer
   [path]
-  (init-index-writer path))
+  (RandomAccessFile. (str path ".bin") "rw"))
 
 (defn object-seq
-  [reader indexes func]
-  (map (fn [[o l]] (func (read-one o l reader)))
-       indexes))
+  [reader indexes]
+  (map (fn [[o l]] (read-one o l reader)) indexes))
 
 (defn save-index
   [path index]
@@ -79,7 +55,7 @@
 
 (defn delete-index
   [path]
-  (if (fs/exists? (str path ".bin"))
-    (fs/delete (str path ".bin")))
-  (if (fs/exists? (str path ".idx"))
-    (fs/delete (str path ".idx"))))
+  (if (exists? (str path ".bin"))
+    (delete (str path ".bin")))
+  (if (exists? (str path ".idx"))
+    (delete (str path ".idx"))))

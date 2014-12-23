@@ -9,9 +9,11 @@
             [clojure.data.xml :as xml]
             [miner.tagged :as tag]
             [iota :as iot]
-            [clojure.core.reducers :as r]))
+            [clojure.core.reducers :as r])
+  (:import
+   (org.apache.commons.compress.compressors.bzip2 BZip2CompressorInputStream)))
 
-(declare init-fasta-store init-fasta-sequence translate init-indexed-fasta)
+(declare init-fasta-store init-fasta-sequence translate init-index-file)
 
 ;; network
 
@@ -36,14 +38,13 @@
     "Returns a reader for a file containing biosequences. Use with
     `with-open'"))
 
+(defprotocol biosequenceParameters
+  (parameters [this]
+    "Returns parameters from a reader."))
+
 (defprotocol biosequenceReader
   (biosequence-seq [this]
     "Returns a lazy sequence of biosequence objects.")
-  (biosequence-seq-lazy [this]
-    "Returns a lazy sequence of biosequence objects with a lazy stream
-    of sequences.")
-  (parameters [this]
-    "Returns parameters, if any.")
   (get-biosequence [this accession]
     "Returns the biosequence object with the corresponding
     accession."))
@@ -57,32 +58,32 @@
     "Returns the description of a biosequence object.")
   (bs-seq [this]
     "Returns the sequence of a biosequence as a vector.")
-  (fasta-string [this]
-    "Returns the biosequence as a string in fasta format.")
   (protein? [this]
     "Returns true if a protein and false otherwise.")
   (alphabet [this]
-    "Returns the alphabet of a biosequence.")
-  (feature-seq [this]
-    "Returns a lazy list of features in a sequence.")
+    "Returns the alphabet of a biosequence."))
+
+(defprotocol biosequenceCitations
   (references [this]
-    "Returns a collection of references in a sequence record.")
+    "Returns a collection of references in a sequence record."))
+
+(defprotocol biosequenceTranslation
   (frame [this]
     "Returns the frame a sequence should be translated in."))
 
 (defprotocol biosequenceFile
   (bs-path [this]
-    "Returns the path of the file as string.")
-  (index-file [this] [this ofile])
-  (empty-instance [this path]))
+    "Returns the path of the file as string."))
 
-(defprotocol biosequenceFeature
+(defprotocol biosequenceFeatures
+  (feature-seq [this]
+    "Returns a lazy list of features in a sequence.")
   (interval-seq [this]
     "Returns a lazy list of intervals in a sequence.")
   (feature-type [this]
     "Returns the feature key."))
 
-(defprotocol biosequenceInterval
+(defprotocol biosequenceIntervals
   (start [this]
     "Returns the start position of an interval as an integer.")
   (end [this]
@@ -94,10 +95,14 @@
 ;; functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn bioseq->string
-  "Returns the sequence of a biosequence as a string."
+(defn- bioseq->string
+  "Returns the sequence of a biosequence as a string with newlines every 80 chars."
   [bs]
   (apply str (interpose "\n" (map #(apply str %) (partition-all 80 (bs-seq bs))))))
+
+(defn fasta-string
+  [bioseq]
+  (str ">" (accession bioseq) " " (def-line bioseq) "\n" (bioseq->string bioseq) "\n"))
 
 (defn sub-bioseq
   "Returns a new fasta sequence object with the sequence corresponding
@@ -252,6 +257,10 @@
             (java.util.zip.ZipInputStream.
              (input-stream file))
             :encoding encoding)
+    ".bz2" (reader
+            (BZip2CompressorInputStream.
+             (input-stream file))
+            :encoding encoding)
     (reader file :encoding encoding)))
 
 (defn biosequence->file
@@ -325,84 +334,8 @@
           (reduce + (cons (ccalc 2.34 1) (map (fn [[x n]] (ccalc (:pka (a x)) n))
                                               (select-keys freq [\E \D \Y]))))))))
 
-(defn set-proxy
-  [])
-
-;; serialising
-
-(defn index-biosequence-file
-  [file & {:keys [func] :or {func accession}}]
-  (try
-    (let [index (index-file file)
-          i (with-open [w (ind/index-writer (bs-path index))]
-              (assoc index :index
-                     (with-open [r (bs-reader file)]
-                       (ind/index-objects w (biosequence-seq r) func))))]
-      (ind/save-index (bs-path file) i)
-      i)
-    (catch Exception e
-      (ind/delete-index (bs-path file))
-      (println (str "Exception: " (.getMessage e))))))
-
-(defn load-biosequence-index
-  [path]
-  (assoc (ind/load-indexed-file path) :path path))
-
-(defn merge-biosequence-indexes
-  [indexes outfile]
-  (try
-    (let [o (empty-instance (first indexes) outfile)
-          i (with-open [w (ind/index-writer (bs-path o))]
-              (assoc o :index
-                     (apply merge
-                            (map (fn [x] (with-open [r (bs-reader x)]
-                                          (ind/index-objects w (biosequence-seq r) accession)))
-                                 indexes))))]
-      (ind/save-index (bs-path o) i)
-      i)
-    (catch Exception e
-      (ind/delete-index outfile)
-      (println (str "Exception: " (.getMessage e))))))
-
-(defn index-biosequence-collection
-  [coll index-file & {:keys [func] :or {func accession}}]
-  (try
-    (let [i (with-open [w (ind/index-writer (bs-path index-file))]
-              (assoc index-file :index
-                     (ind/index-objects w coll func)))]
-      (ind/save-index (bs-path index-file) i)
-      i)
-    (catch Exception e
-      (ind/delete-index (bs-path index-file))
-      (println (str "Exception: " (.getMessage e))))))
-
-(defn delete-indexed-biosequence
-  [index-file]
-  (ind/delete-index (bs-path index-file)))
-
-(defn get-object
-  [reader key func]
-  (let [i (get (:index reader) key)]
-    (if-not (nil? i)
-      (first (ind/object-seq (:strm reader) (list i) func)))))
-
-(defn indexed-seq
-  [index func]
-  (ind/object-seq (:strm index) (vals (:index index)) func))
-
-(defn close-index-reader
-  [reader]
-  (ind/close-index-reader (:strm reader)))
-
-(defn open-index-reader
-  [path]
-  (ind/index-reader path))
-
-(defn print-tagged-index
-  [index w]
-  (ind/print-tagged index w))
-
 ;; helper files
 
+(load "serialising")
 (load "mapping")
 (load "fasta")

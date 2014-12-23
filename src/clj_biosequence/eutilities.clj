@@ -25,7 +25,7 @@
              "&usehistory=y"))))))
 
 (defn e-search
-  "Takes a term and a database and returns alist of accession numbers
+  "Takes a term and a database and returns a list of accession numbers
   matching the search term."
   ([term db] (e-search term db 0 nil))
   ([term db restart key]

@@ -23,9 +23,6 @@
   (protein? [this]
     (ala/alphabet-is-protein (:alphabet this)))
   
-  (fasta-string [this]
-    (str ">" (accession this) " " (def-line this) "\n" (bioseq->string this) "\n"))
-  
   (alphabet [this]
     (:alphabet this)))
 
@@ -35,7 +32,9 @@
   [accession description alphabet sequence]
   (->fastaSequence accession description alphabet (clean-sequence sequence alphabet)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; IO
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defrecord fastaReader [strm alphabet path]
 
@@ -81,7 +80,7 @@
   biosequenceIO
 
   (bs-reader [this]
-    (->fastaReader (file-reader (:file this) :encoding encoding)
+    (->fastaReader (file-reader (:file this) :encoding (:encoding this))
                    (:alphabet this)
                    (bs-path this)))
 
@@ -89,12 +88,6 @@
 
   (bs-path [this]
     (absolute-path (:file this)))
-
-  (index-file [this]
-    (init-indexed-fasta (bs-path this) (:alphabet this)))
-
-  (index-file [this ofile]
-    (init-indexed-fasta (absolute-path ofile) (:alphabet this)))
 
   fastaReduce
 
@@ -138,51 +131,3 @@
   (if-not (ala/alphabet? alphabet)
     (throw (Throwable. "Unrecognised alphabet keyword. Currently :iupacNucleicAcids :iupacAminoAcids are allowed."))
     (->fastaString str alphabet)))
-
-;; indexed files
-
-(defrecord indexedFastaReader [index alphabet strm path]
-
-  biosequenceReader
-
-  (biosequence-seq [this]
-    (indexed-seq this map->fastaSequence))
-
-  (get-biosequence [this accession]
-    (get-object this accession map->fastaSequence))
-
-  biosequenceFile
-
-  (bs-path [this]
-    (absolute-path (:path this)))
-
-  java.io.Closeable
-
-  (close [this]
-    (close-index-reader this)))
-
-(defrecord indexedFastaFile [index path alphabet]
-
-  biosequenceIO
-
-  (bs-reader [this]
-    (->indexedFastaReader (:index this)
-                          (:alphabet this)
-                          (open-index-reader (:path this))
-                          (bs-path this)))
-
-  biosequenceFile
-
-  (bs-path [this]
-    (absolute-path (:path this)))
-
-  (empty-instance [this path]
-    (init-indexed-fasta path (:alphabet this))))
-
-(defn init-indexed-fasta
-  [file alphabet]
-  (->indexedFastaFile {} file alphabet))
-
-(defmethod print-method clj_biosequence.core.indexedFastaFile
-  [this w]
-  (print-tagged-index this w))

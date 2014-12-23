@@ -69,7 +69,7 @@
 
 ;; file
 
-(defrecord gbgeneFile [file]
+(defrecord gbgeneFile [file encoding]
   
   bs/biosequenceIO
 
@@ -88,17 +88,8 @@
     (init-indexed-gbgene (fs/absolute-path ofile))))
 
 (defn init-gbgene-file
-  [file]
-  (->gbgeneFile file))
-
-;; string
-
-(defrecord gbgeneString [str]
-
-  bs/biosequenceIO
-
-  (bs-reader [this]
-    (init-gene-reader (io/reader (:str this)))))
+  [file & {:keys [encoding] :or {encoding "UTF-8"}}]
+  (->gbgeneFile file encoding))
 
 ;; connection
 

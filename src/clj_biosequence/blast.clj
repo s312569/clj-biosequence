@@ -1,6 +1,5 @@
 (ns clj-biosequence.blast
-  (:require [clojure.java.io :as io]
-            [fs.core :as fs]
+  (:require [fs.core :as fs]
             [clj-commons-exec :as exec]
             [clojure.data.zip.xml :as zf]
             [clojure.zip :as zip]
@@ -281,7 +280,7 @@
   bs/biosequenceIO
 
   (bs-reader [this]
-    (let [p (with-open [r (io/reader (:file this) :encoding )]
+    (let [p (with-open [r (bs/file-reader (:file this) :encoding (:encoding this))]
               (let [x (xml/parse r)
                     pa (->> (:content x)
                             (filter #(= :BlastOutput_param (:tag %)))
@@ -307,7 +306,7 @@
                                           first
                                           :content
                                           first)))))
-          r (io/reader (:file this))]
+          r (bs/file-reader (:file this) :encoding (:encoding this))]
       (init-blast-reader r p)))
 
   bs/biosequenceFile
@@ -327,7 +326,7 @@
 
 (defn init-blast-search
   [file & {:keys [encoding] :or {:encoding "UTF-8"}}]
-  (->blastSearch (fs/absolute-path file)))
+  (->blastSearch (fs/absolute-path file) encoding))
 
 (defn delete-blast-search
   [search]
