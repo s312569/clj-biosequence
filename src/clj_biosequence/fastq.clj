@@ -29,9 +29,6 @@
   (protein? [this]
     false)
 
-  (fasta-string [this]
-    (str ">" (bs/accession this) "\n" (bs/bioseq->string this) "\n"))
-
   (alphabet [this]
     :iupacNucleicAcids)
 
@@ -70,23 +67,17 @@
   (close [this]
     (.close ^java.io.BufferedReader (:strm this))))
 
-(defrecord fastqFile [file encoding]
+(defrecord fastqFile [file opts]
 
   bs/biosequenceIO
   
   (bs-reader [this]
-    (->fastqReader (bs/file-reader (bs/bs-path this) :encoding (:encoding this))))
+    (->fastqReader (apply bs/bioreader (bs/bs-path this) (:opts this))))
   
   bs/biosequenceFile
 
   (bs-path [this]
-    (fs/absolute-path (:file this)))
-  
-  (index-file [this]
-    (init-indexed-fastq (bs/bs-path this)))
-
-  (index-file [this ofile]
-    (init-indexed-fastq (fs/absolute-path ofile))))
+    (fs/absolute-path (:file this))))
 
 (defrecord fastqString [str]
 
@@ -96,9 +87,9 @@
     (->fastqReader (java.io.BufferedReader. (java.io.StringReader. (:str this))))))
 
 (defn init-fastq-file
-  [^String path & {:keys [^String encoding] :or {encoding "UTF-8"}}]
+  [^String path & opts]
   {:pre [(fs/file? path)]}
-  (->fastqFile path encoding))
+  (->fastqFile path opts))
 
 (defn init-fastq-string
   [str]
@@ -162,45 +153,3 @@
         (.write r (.readLine i))
         (.write r "\n")
         (recur (.readLine i))))))
-
-;; indexing
-
-(defrecord indexedFastqReader [index strm]
-
-  bs/biosequenceReader
-
-  (biosequence-seq [this]
-    (bs/indexed-seq this map->fastqSequence))
-
-  (get-biosequence [this accession]
-    (bs/get-object this accession map->fastqSequence))
-
-  java.io.Closeable
-
-  (close [this]
-    (bs/close-index-reader this)))
-
-(defrecord indexedFastqFile [index path]
-
-  bs/biosequenceIO
-
-  (bs-reader [this]
-    (->indexedFastqReader (:index this)
-                          (bs/open-index-reader (:path this))))
-
-  bs/biosequenceFile
-
-  (bs-path [this]
-    (fs/absolute-path (:path this)))
-
-  (empty-instance [this path]
-    (init-indexed-fastq path)))
-
-(defn init-indexed-fastq
-  [file]
-  (->indexedFastqFile {} file))
-
-(defmethod print-method clj_biosequence.fastq.indexedFastqFile
-  [this w]
-  (bs/print-tagged-index this w))
-

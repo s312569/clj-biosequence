@@ -17,7 +17,7 @@
                  (first (biosequence-seq f))))
 
 (def un-seq (with-open [f (bs-reader
-                           (init-uniprotxml-file
+                           (init-uniprot-file
                             (io/resource
                              "test-files/uniprot-s-mansoni-20121217.xml")))]
               (first (biosequence-seq f))))
@@ -30,7 +30,6 @@
     (is (= [\G \T \A \C \A \A \A] (subvec (bs-seq fasta-nuc) 0 7)))
     (is (= false (protein? fasta-nuc)))
     (is (= :iupacNucleicAcids (alphabet fasta-nuc)))
-    (is (= java.lang.String (class (bioseq->string fasta-nuc))))
     (is (= [\G \T \A \C \A \A \A] (bs-seq (sub-bioseq fasta-nuc 0 7))))
     (is (= [\G \T \A] (first (partition-all 3 (bs-seq fasta-nuc)))))
     (is (= [\T \A \A \T] (bs-seq (sub-bioseq (reverse-comp fasta-nuc) 0 4))))
@@ -72,20 +71,8 @@
     (is (= [\M \E \Q \C \V \A] (subvec (bs-seq un-seq) 0 6)))
     (is (= true (protein? un-seq)))
     (is (= :iupacAminoAcids (alphabet un-seq)))
-    (is (= java.lang.String (class (bioseq->string un-seq))))
     (is (= [\M \E \Q \C \V \A] (bs-seq (sub-bioseq un-seq 0 6))))
     (is (= [\M \E \Q] (first (partition-all 3 (bs-seq un-seq)))))
-    (is (= "C4PYP8"
-           (with-open [f (-> (io/resource "test-files/uniprot-s-mansoni-20121217.xml")
-                             slurp
-                             init-uniprot-string
-                             bs-reader)]
-             (accession (first (biosequence-seq f))))))
-    (is (= nil
-           (with-open [f (-> (io/resource "test-files/uniprot-s-mansoni-20121217.xml")
-                             init-uniprotxml-file
-                             bs-reader)]
-             (parameters f))))
     (is (= "Schistosoma mansoni" (get (organism un-seq) "scientific")))
     (is (= "Eukaryota" (first (lineage un-seq))))
     (is (= "DRE2_SCHMA" (prot-name un-seq)))
@@ -93,7 +80,7 @@
     (is (= 29662.0 (:mass (sequence-info un-seq))))
     (is (= "Smp_207000" (:gene (first (gene un-seq)))))
     (testing "Citations"
-      (let [c (first (references un-seq))]
+      (let [c (first (citations un-seq))]
         (is (= "The genome of the blood fluke Schistosoma mansoni." (title c)))
         (is (= "Nature" (journal c)))
         (is (= "2009" (year c)))
@@ -106,7 +93,7 @@
     (is (= 1 (-> (feature-seq un-seq) first interval-seq first start))))
   (testing "Uniprot indexing"
     (let [i (index-biosequence-file
-             (init-uniprotxml-file
+             (init-uniprot-file
               (io/resource "test-files/uniprot-s-mansoni-20121217.xml")))]
       (try
         (with-open [r (bs-reader i)]

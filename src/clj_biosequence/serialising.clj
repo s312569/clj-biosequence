@@ -5,11 +5,16 @@
   biosequenceReader
 
   (biosequence-seq [this]
-    (ind/object-seq (:strm this) (vals (:index this))))
+    (ind/object-seq (:strm this) (vals (dissoc (:index this) :parameters))))
 
   (get-biosequence [this accession]
-    (if-let [i ((:index reader) accession)]
+    (if-let [i ((:index this) accession)]
       (first (ind/object-seq (:strm this) (list i)))))
+
+  biosequenceParameters
+
+  (parameters [this]
+    (get-biosequence this :parameters))
 
   java.io.Closeable
 
@@ -29,14 +34,25 @@
   (bs-path [this]
     (absolute-path (:path this))))
 
+(defn- parameters?
+  [r]
+  (if (satisfies? biosequenceParameters r)
+    (parameters r)))
+
+(defn p-key
+  [_]
+  :parameters)
+
 (defn index-biosequence-file
   [file & {:keys [func] :or {func accession}}]
   (try
     (let [index (->biosequenceIndex {} (bs-path file))
-          i (with-open [w (ind/index-writer (bs-path index))]
+          i (with-open [w (ind/index-writer (bs-path index))
+                        r (bs-reader file)]
               (assoc index :index
-                     (with-open [r (bs-reader file)]
-                       (ind/index-objects w (biosequence-seq r) func))))]
+                     (merge (ind/index-objects w (biosequence-seq r) func)
+                            (if-let [p (parameters? r)]
+                              (ind/index-objects w (list p) p-key)))))]
       (ind/save-index (bs-path file) (:index i))
       i)
     (catch Exception e

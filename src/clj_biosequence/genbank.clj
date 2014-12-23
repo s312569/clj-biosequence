@@ -99,7 +99,7 @@
                        (zf/attr :value))]
       (if (= "true" c) true false)))
 
-  bs/Biosequence
+  bs/biosequenceTranslation
 
   (frame [this]
     (:frame this)))
@@ -171,17 +171,6 @@
 
   bs/Biosequence
 
-  (references [this]
-    (map #(->genbankCitation (zip/node %))
-         (zf/xml-> (zip/xml-zip (:src this))
-                   :GBSeq_references
-                   :GBReference)))
-
-  (feature-seq [this]
-    (map #(->genbankFeature %)
-         (:content (some #(if (= (:tag %) :GBSeq_feature-table)
-                            %) (:content (:src this))))))
-
   (accession [this]
     (zf/xml1-> (zip/xml-zip (:src this))
                :GBSeq_primary-accession
@@ -207,12 +196,6 @@
                           zf/text)]
       (bs/clean-sequence s (bs/alphabet this))))
 
-  (fasta-string [this]
-    (str ">gb|" (bs/accession this) "|"
-         (apply str (interpose "|" (bs/accessions this)))
-         "| " (bs/def-line this) \newline
-         (bs/bioseq->string this) \newline))
-
   (alphabet [this]
     (cond (#{"genomic" "precursor RNA" "mRNA" "rRNA" "tRNA" "snRNA" "scRNA"
              "other-genetic" "DNA" "cRNA" "snoRNA" "transcribed RNA"}
@@ -221,7 +204,22 @@
           (#{"AA"} (moltype this))
           :iupacAminoAcids
           :else
-          (throw (Throwable. (str "Unknown moltype: " (moltype this)))))))
+          (throw (Throwable. (str "Unknown moltype: " (moltype this))))))
+
+  bs/biosequenceCitations
+
+  (citations [this]
+    (map #(->genbankCitation (zip/node %))
+         (zf/xml-> (zip/xml-zip (:src this))
+                   :GBSeq_references
+                   :GBReference)))
+
+  bs/biosequenceFeatures
+
+  (feature-seq [this]
+    (map #(->genbankFeature %)
+         (:content (some #(if (= (:tag %) :GBSeq_feature-table)
+                            %) (:content (:src this)))))))
 
 ;; coding sequences
 
@@ -259,9 +257,6 @@
            (filter #(= (:tag %) :GBSeq)
                    (:content xml)))))
 
-  (parameters [this]
-    ())
-
   java.io.Closeable
 
   (close [this]
@@ -281,13 +276,7 @@
   bs/biosequenceFile
 
   (bs-path [this]
-    (fs/absolute-path (:file this)))
-
-  (index-file [this]
-    (init-indexed-genbank (bs/bs-path this)))
-
-  (index-file [this ofile]
-    (init-indexed-genbank (fs/absolute-path ofile))))
+    (fs/absolute-path (:file this))))
 
 (defrecord genbankString [str]
 
@@ -452,42 +441,3 @@
   (:content (some #(if (= (:tag %) :GBSeq_sequence)
                      %)
                   (:content (first (:content (xml/parse rdr)))))))
-
-;; indexing
-
-(defrecord indexedGenbankReader [index strm]
-
-  bs/biosequenceReader
-
-  (biosequence-seq [this]
-    (bs/indexed-seq this map->genbankSequence))
-
-  (get-biosequence [this accession]
-    (bs/get-object this accession map->genbankSequence))
-
-  java.io.Closeable
-
-  (close [this]
-    (bs/close-index-reader this)))
-
-(defrecord indexedGenbankFile [index path]
-
-  bs/biosequenceIO
-
-  (bs-reader [this]
-    (->indexedGenbankReader (:index this) (bs/open-index-reader (:path this))))
-
-  bs/biosequenceFile
-
-  (bs-path [this]
-    (fs/absolute-path (:path this)))
-
-  (empty-instance [this path]
-    (init-indexed-genbank path)))
-
-(defn init-indexed-genbank [file]
-  (->indexedGenbankFile {} file))
-
-(defmethod print-method clj_biosequence.genbank.indexedGenbankFile
-  [this w]
-  (bs/print-tagged-index this w))

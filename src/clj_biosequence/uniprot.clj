@@ -48,7 +48,7 @@
 
 (defrecord uniprotInterval [src]
 
-  bs/biosequenceIntervals
+  bs/biosequenceInterval
 
   (start [this]
     (Integer/parseInt
@@ -63,13 +63,9 @@
 
 ;; feature
 
-(defrecord uniprotFeatures [src]
+(defrecord uniprotFeature [src]
 
-  bs/biosequenceFeatures
-
-  (feature-seq [this]
-    (map #(->uniprotFeature (node %))
-         (zf/xml-> (xml-zip (:src this)) :feature)))
+  bs/biosequenceFeature
 
   (feature-type [this]
     (:type (:attrs (:src this))))
@@ -110,7 +106,13 @@
 
   (citations [this]
     (->> (zf/xml-> (xml-zip (:src this)) :reference)
-         (map #(->uniprotCitation (node %))))))
+      (map #(->uniprotCitation (node %)))))
+
+  bs/biosequenceFeatures
+
+  (feature-seq [this]
+    (map #(->uniprotFeature (node %))
+         (zf/xml-> (xml-zip (:src this)) :feature))))
 
 ;; IO
 
@@ -131,25 +133,17 @@
   (close [this]
     (.close ^java.io.BufferedReader (:strm this))))
 
-(defrecord uniprotFile [file encoding]
+(defrecord uniprotFile [file opts]
 
   bs/biosequenceIO
 
   (bs-reader [this]
-    (->uniprotReader (bs/file-reader (:file this) :encoding (:encoding this))))
+    (->uniprotReader (apply bs/bioreader (bs/bs-path this) (:opts this))))
 
   bs/biosequenceFile
 
   (bs-path [this]
     (absolute-path (:file this))))
-
-(defrecord uniprotString [str]
-
-  bs/biosequenceIO
-
-  (bs-reader [this]
-    (->uniprotReader (java.io.BufferedReader.
-                      (java.io.StringReader. (:str this))))))
 
 (defrecord uniprotConnection [acc-list email]
 
@@ -158,14 +152,14 @@
   (bs-reader [this]
     (let [s (get-uniprot-stream (:acc-list this) (:retype this) (:email this))]
       (condp = (:retype this)
-        :xml (->uniprotReader (reader s))
+        :xml (->uniprotReader (bs/bioreader s))
         :fasta (bs/init-fasta-reader (reader s) :iupacAminoAcids)))))
 
 (defn init-uniprot-file
   "Initialises a uniprotXmlFile object for use with bs-reader."
-  [path]
+  [path & opts]
   (if (file? path)
-    (->uniprotFile path)
+    (->uniprotFile path opts)
     (throw (Throwable. (str "File not found: " path)))))
 
 (defn init-uniprot-connection

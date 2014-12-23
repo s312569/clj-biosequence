@@ -77,13 +77,15 @@
 
 (defprotocol biosequenceFeatures
   (feature-seq [this]
-    "Returns a lazy list of features in a sequence.")
+    "Returns a lazy list of features in a sequence."))
+
+(defprotocol biosequenceFeature
   (interval-seq [this]
     "Returns a lazy list of intervals in a sequence.")
   (feature-type [this]
     "Returns the feature key."))
 
-(defprotocol biosequenceIntervals
+(defprotocol biosequenceInterval
   (start [this]
     "Returns the start position of an interval as an integer.")
   (end [this]
@@ -242,27 +244,6 @@
 ;; utilities
 ;;;;;;;;;;;;;;
 
-(defn file-reader
-  [file & {:keys [encoding] :or {encoding "UTF-8"}}]
-  "Takes a file and returns a reader based on the file
-  extension. Recognises .gz and .zip files and returns a buffered
-  reader if these extensions not found. Defaults to UTF-8 encoding but
-  this can be changed using the encoding keyword."
-  (condp = (extension file)
-    ".gz" (reader
-           (java.util.zip.GZIPInputStream.
-            (input-stream file))
-           :encoding encoding)
-    ".zip" (reader
-            (java.util.zip.ZipInputStream.
-             (input-stream file))
-            :encoding encoding)
-    ".bz2" (reader
-            (BZip2CompressorInputStream.
-             (input-stream file))
-            :encoding encoding)
-    (reader file :encoding encoding)))
-
 (defn biosequence->file
   "Takes a collection of biosequences and prints them to file. To
   append to an existing file use `:append true` and the `:func`
@@ -336,6 +317,7 @@
 
 ;; helper files
 
+(load "bioreader")
 (load "serialising")
 (load "mapping")
 (load "fasta")

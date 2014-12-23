@@ -10,15 +10,13 @@
             [clj-biosequence.alphabet :as ala])
   (:import [clj_biosequence.core fastaSequence]))
 
-(import '(java.io BufferedReader StringReader))
-
 (declare blastp-defaults run-blast get-sequence-from-blast-db blast-default-params split-hsp-align iteration-query-id init-blast-collection get-hit-value init-indexed-blast)
 
 ;; blast hsp
 
 (defrecord blastHsp [src]
 
-  bs/Biosequence
+  bs/biosequenceTranslation
   
   (frame [this]
     (Integer/parseInt (get-hit-value this :Hsp_query-frame))))
@@ -255,6 +253,8 @@
          :content
          (filter #(= :Iteration (:tag %)))
          (map init-blast-iteration)))
+
+  bs/biosequenceParameters
   
   (parameters [this]
     (:parameters this))
@@ -271,62 +271,48 @@
              %)
           (bs/biosequence-seq this))))
 
-(defn init-blast-reader
-  [s p]
-  (->blastReader s p))
-
-(defrecord blastSearch [file encoding]
+(defrecord blastSearch [file opts]
 
   bs/biosequenceIO
 
   (bs-reader [this]
-    (let [p (with-open [r (bs/file-reader (:file this) :encoding (:encoding this))]
+    (let [p (with-open [r (apply bs/bioreader (bs/bs-path this) (:opts this))]
               (let [x (xml/parse r)
                     pa (->> (:content x)
-                            (filter #(= :BlastOutput_param (:tag %)))
-                            first
-                            :content
-                            first)]
+                         (filter #(= :BlastOutput_param (:tag %)))
+                         first
+                         :content
+                         first)]
                 (init-blast-params (assoc pa
-                                     :database
-                                     (->> (:content x)
-                                          (filter #(= :BlastOutput_db (:tag %)))
-                                          first
-                                          :content
-                                          first)
-                                     :version
-                                     (->> (:content x)
-                                          (filter #(= :BlastOutput_version (:tag %)))
-                                          first
-                                          :content
-                                          first)
-                                     :program
-                                     (->> (:content x)
-                                          (filter #(= :BlastOutput_program (:tag %)))
-                                          first
-                                          :content
-                                          first)))))
-          r (bs/file-reader (:file this) :encoding (:encoding this))]
-      (init-blast-reader r p)))
+                                          :database
+                                          (->> (:content x)
+                                            (filter #(= :BlastOutput_db (:tag %)))
+                                            first
+                                            :content
+                                            first)
+                                          :version
+                                          (->> (:content x)
+                                            (filter #(= :BlastOutput_version (:tag %)))
+                                            first
+                                            :content
+                                            first)
+                                          :program
+                                          (->> (:content x)
+                                            (filter #(= :BlastOutput_program (:tag %)))
+                                            first
+                                            :content
+                                            first)))))
+          r (apply bs/bioreader (bs/bs-path this) (:opts this))]
+      (->blastReader r p)))
 
   bs/biosequenceFile
 
   (bs-path [this]
-    (fs/absolute-path (:file this)))
-
-  (index-file [this]
-    (let [ifile (init-indexed-blast (bs/bs-path this))]
-      (with-open [r (bs/bs-reader this)]
-        (assoc ifile :parameters (bs/parameters r)))))
-
-  (index-file [this ofile]
-    (let [ifile (init-indexed-blast (fs/absolute-path ofile))]
-      (with-open [r (bs/bs-reader this)]
-        (assoc ifile :parameters (bs/parameters r))))))
+    (fs/absolute-path (:file this))))
 
 (defn init-blast-search
-  [file & {:keys [encoding] :or {:encoding "UTF-8"}}]
-  (->blastSearch (fs/absolute-path file) encoding))
+  [file & opts]
+  (->blastSearch (fs/absolute-path file) opts))
 
 (defn delete-blast-search
   [search]
@@ -404,51 +390,7 @@
                                    (bs/bs-path db))]
     (let [bl @(exec/sh (cons prog defs))]
       (if (= 0 (:exit bl))
-        (->blastSearch out)
+        (->blastSearch out nil)
         (if (:err bl)
           (throw (Throwable. (str "Blast error: " (:err bl))))
           (throw (Throwable. (str "Exception: " (:exception bl)))))))))
-
-;; indexing
-
-(defrecord indexedBlastReader [index strm parameters]
-
-  bs/biosequenceReader
-
-  (biosequence-seq [this]
-    (bs/indexed-seq this map->blastIteration))
-
-  (get-biosequence [this accession]
-    (bs/get-object this accession map->blastIteration))
-
-  java.io.Closeable
-
-  (close [this]
-    (bs/close-index-reader this)))
-
-(defrecord indexedBlastFile [index path parameters]
-
-  bs/biosequenceIO
-
-  (bs-reader [this]
-    (->indexedBlastReader
-     (:index this) (bs/open-index-reader (:path this)) (:parameters this)))
-
-  bs/biosequenceFile
-
-  (bs-path [this]
-    (fs/absolute-path (:path this)))
-
-  (empty-instance [this path]
-    (init-indexed-blast path)))
-
-(defn init-indexed-blast [file]
-  (->indexedBlastFile {} file nil))
-
-(defmethod print-method clj_biosequence.blast.indexedBlastFile
-  [this w]
-  (bs/print-tagged-index this w))
-
-(defmethod print-method clj_biosequence.blast.blastParameters
-  [this w]
-  (bs/print-tagged-index this w))
