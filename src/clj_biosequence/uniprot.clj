@@ -48,7 +48,7 @@
 
 (defrecord uniprotInterval [src]
 
-  bs/biosequenceInterval
+  bs/biosequenceIntervals
 
   (start [this]
     (Integer/parseInt
@@ -63,9 +63,13 @@
 
 ;; feature
 
-(defrecord uniprotFeature [src]
+(defrecord uniprotFeatures [src]
 
-  bs/biosequenceFeature
+  bs/biosequenceFeatures
+
+  (feature-seq [this]
+    (map #(->uniprotFeature (node %))
+         (zf/xml-> (xml-zip (:src this)) :feature)))
 
   (feature-type [this]
     (:type (:attrs (:src this))))
@@ -80,10 +84,6 @@
 (defrecord uniprotProtein [src]
 
   bs/Biosequence
-
-  (references [this]
-    (->> (zf/xml-> (xml-zip (:src this)) :reference)
-         (map #(->uniprotCitation (node %)))))
   
   (accessions [uniprot]
     (zf/xml-> (xml-zip (:src uniprot)) :accession zf/text))
@@ -101,26 +101,16 @@
     (bs/clean-sequence
      (zf/xml1-> (xml-zip (:src this)) :sequence zf/text) :iupacAminoAcids))
 
-  (fasta-string [this]
-    (let [db (condp = (:dataset (meta-data this))
-               "Swiss-Prot" "sp"
-               "TrEMBL" "tr"
-               "bs")]
-      (str ">" db "|" (bs/accession this) "|"
-           (prot-name this)
-           " " (bs/def-line this)
-           \newline
-           (bs/bioseq->string this)
-           \newline)))
-
   (protein? [this] true)
 
   (alphabet [this]
     :iupacAminoAcids)
 
-  (feature-seq [this]
-    (map #(->uniprotFeature (node %))
-         (zf/xml-> (xml-zip (:src this)) :feature))))
+  bs/biosequenceCitations
+
+  (citations [this]
+    (->> (zf/xml-> (xml-zip (:src this)) :reference)
+         (map #(->uniprotCitation (node %))))))
 
 ;; IO
 
@@ -136,66 +126,47 @@
            (filter #(= (:tag %) :entry)
                    (:content xml)))))
 
-  (parameters [this])
-
   java.io.Closeable
 
   (close [this]
     (.close ^java.io.BufferedReader (:strm this))))
 
-(defn- init-uniprot-reader
-  "Initialises a uniprot reader."
-  [strm]
-  (->uniprotReader strm))
-
-(defrecord uniprotFile [file]
+(defrecord uniprotFile [file encoding]
 
   bs/biosequenceIO
 
   (bs-reader [this]
-    (init-uniprot-reader (reader (:file this))))
+    (->uniprotReader (bs/file-reader (:file this) :encoding (:encoding this))))
 
   bs/biosequenceFile
 
   (bs-path [this]
-    (absolute-path (:file this)))
-
-  (index-file [this]
-    (init-indexed-uniprot (bs/bs-path this)))
-
-  (index-file [this ofile]
-    (init-indexed-uniprot (absolute-path ofile))))
+    (absolute-path (:file this))))
 
 (defrecord uniprotString [str]
 
   bs/biosequenceIO
 
   (bs-reader [this]
-    (init-uniprot-reader (java.io.BufferedReader.
-                          (java.io.StringReader. (:str this))))))
+    (->uniprotReader (java.io.BufferedReader.
+                      (java.io.StringReader. (:str this))))))
 
-(defrecord uniprotConnection [acc-list retype email]
+(defrecord uniprotConnection [acc-list email]
 
   bs/biosequenceIO
 
   (bs-reader [this]
     (let [s (get-uniprot-stream (:acc-list this) (:retype this) (:email this))]
       (condp = (:retype this)
-        :xml (init-uniprot-reader (reader s))
+        :xml (->uniprotReader (reader s))
         :fasta (bs/init-fasta-reader (reader s) :iupacAminoAcids)))))
 
-(defn init-uniprotxml-file
+(defn init-uniprot-file
   "Initialises a uniprotXmlFile object for use with bs-reader."
   [path]
   (if (file? path)
     (->uniprotFile path)
     (throw (Throwable. (str "File not found: " path)))))
-
-(defn init-uniprot-string
-  "Initialises a uniprot string for use with bs-reader. String needs
-  to be valid uniprot xml."
-  [str]
-  (->uniprotString str))
 
 (defn init-uniprot-connection
   "Initialises a connection which can be used with bs-reader to open a
@@ -440,42 +411,3 @@
            :follow-redirects false}
           f))
         (finally (delete f))))))
-
-;; indexing
-
-(defrecord indexedUniprotReader [index strm]
-
-  bs/biosequenceReader
-
-  (biosequence-seq [this]
-    (bs/indexed-seq this map->uniprotProtein))
-
-  (get-biosequence [this accession]
-    (bs/get-object this accession map->uniprotProtein))
-
-  java.io.Closeable
-
-  (close [this]
-    (bs/close-index-reader this)))
-
-(defrecord indexedUniprotFile [index path]
-
-  bs/biosequenceIO
-
-  (bs-reader [this]
-    (->indexedUniprotReader (:index this)
-                            (bs/open-index-reader (:path this))))
-  bs/biosequenceFile
-
-  (bs-path [this]
-    (absolute-path (:path this)))
-
-  (empty-instance [this path]
-    (init-indexed-uniprot path)))
-
-(defn init-indexed-uniprot [file]
-  (->indexedUniprotFile {} file))
-
-(defmethod print-method clj_biosequence.uniprot.indexedUniprotFile
-  [this w]
-  (bs/print-tagged-index this w))

@@ -1,5 +1,6 @@
 (ns clj-biosequence.indexing
   (:require [taoensso.nippy :refer [freeze thaw]]
+            [clojure.edn :as edn]
             [fs.core :refer [exists? delete]])
   (:import [java.io RandomAccessFile]))
 
@@ -7,7 +8,7 @@
   [obj writer acc]
   (let [o (freeze obj)
         off (.getFilePointer writer)]
-    (.write (:strm writer) o)
+    (.write writer o)
     (vector acc (list off (count o)))))
 
 (defn- read-one
@@ -16,12 +17,6 @@
     (.seek reader off)
     (.read reader bb)
     (thaw bb)))
-
-(defn- my-record-tag-reader
-  [tag val]
-  (when-let [factory (and (map? val)
-                          (tag->factory tag))]
-    (factory val)))
 
 (defn close-index-reader
   [reader]

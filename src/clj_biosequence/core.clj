@@ -64,7 +64,7 @@
     "Returns the alphabet of a biosequence."))
 
 (defprotocol biosequenceCitations
-  (references [this]
+  (citations [this]
     "Returns a collection of references in a sequence record."))
 
 (defprotocol biosequenceTranslation

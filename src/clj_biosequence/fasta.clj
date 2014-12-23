@@ -36,7 +36,7 @@
 ;; IO
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord fastaReader [strm alphabet path]
+(defrecord fastaReader [strm alphabet]
 
   biosequenceReader
   
@@ -55,15 +55,14 @@
                                           seqs))))
            (partition 2 (partition-by #(re-find #"^>" %) l)))))
 
-  biosequenceFile
-
-  (bs-path [this]
-    (absolute-path (:path this)))
-
   java.io.Closeable
 
   (close [this]
     (.close ^java.io.BufferedReader (:strm this))))
+
+(defn init-fasta-reader
+  [strm alphabet]
+  (->fastaReader strm alphabet))
 
 ;; fasta files
 
