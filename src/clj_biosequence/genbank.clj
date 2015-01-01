@@ -7,248 +7,343 @@
             [fs.core :as fs]
             [clj-biosequence.alphabet :as ala]
             [clj-biosequence.core :as bs]
-            [clj-biosequence.eutilities :as eu]
-            [clj-biosequence.citation :as ci]))
+            [clj-biosequence.eutilities :as eu]))
 
-(declare genbank-search-helper genbank-sequence-helper moltype get-genbank-stream check-db check-rt init-indexed-genbank)
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; genbank citation
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord genbankCitation [src]
+(defrecord genbankCitation [src])
 
-  ci/biosequenceCitation
+(extend genbankCitation
+  bs/biosequenceCitation
+  (assoc bs/default-biosequence-citation
+    :title
+    (fn [this]
+           (zf/xml1-> (zip/xml-zip (:src this))
+                      :GBReference_title zf/text))
+    :journal
+    (fn [this]
+      (zf/xml1-> (zip/xml-zip (:src this))
+                 :GBReference_journal zf/text))
+    :year
+    (fn [this]
+      (zf/xml1-> (zip/xml-zip (:src this))
+                 :GBReference_journal zf/text))
+    :volume
+    (fn [this]
+      (zf/xml1-> (zip/xml-zip (:src this))
+                 :GBReference_journal zf/text))
+    :pstart
+    (fn [this]
+      (zf/xml1-> (zip/xml-zip (:src this))
+                 :GBReference_journal zf/text))
+    :pend
+    (fn [this]
+      (zf/xml1-> (zip/xml-zip (:src this))
+                 :GBReference_journal zf/text))
+    :authors
+    (fn [this]
+      (zf/xml-> (zip/xml-zip (:src this))
+                :GBReference_authors
+                :GBAuthor zf/text))
+    :pubmed
+    (fn [this]
+      (zf/xml1-> (zip/xml-zip (:src this))
+                 :GBReference_pubmed zf/text))
+    :crossrefs
+    (fn [this]
+      (map (fn [x]
+             (assoc {}
+               (zf/xml1-> x :GBXref :GBXref_dbname
+                          zf/text)
+               (zf/xml1-> x :GBXref :GBXref_id
+                          zf/text)))
+           (zf/xml-> (zip/xml-zip (:src this))
+                     :GBReference_xref))))
+  bs/biosequenceNotes
+  (assoc bs/default-biosequence-notes
+    :notes
+    (fn [this]
+      (zf/xml-> (zip/xml-zip (:src this))
+                :GBReference_remark zf/text))))
 
-  (title [this]
-    (zf/xml1-> (zip/xml-zip (:src this))
-               :GBReference_title zf/text))
-
-  (journal [this]
-    (zf/xml1-> (zip/xml-zip (:src this))
-               :GBReference_journal zf/text))
-
-  (year [this]
-    (zf/xml1-> (zip/xml-zip (:src this))
-               :GBReference_journal zf/text))
-
-  (volume [this]
-    (zf/xml1-> (zip/xml-zip (:src this))
-               :GBReference_journal zf/text))
-
-  (pstart [this]
-    (zf/xml1-> (zip/xml-zip (:src this))
-               :GBReference_journal zf/text))
-
-  (pend [this]
-    (zf/xml1-> (zip/xml-zip (:src this))
-               :GBReference_journal zf/text))
-
-  (authors [this]
-    (zf/xml-> (zip/xml-zip (:src this))
-              :GBReference_authors
-              :GBAuthor zf/text))
-
-  (pubmed [this]
-    (zf/xml1-> (zip/xml-zip (:src this))
-               :GBReference_pubmed zf/text))
-
-  (crossrefs [this]
-    (map (fn [x]
-           (assoc {}
-             (zf/xml1-> x :GBXref :GBXref_dbname
-                        zf/text)
-             (zf/xml1-> x :GBXref :GBXref_id
-                        zf/text)))
-         (zf/xml-> (zip/xml-zip (:src this))
-                   :GBReference_xref)))
-
-  (notes [this]
-    (zf/xml-> (zip/xml-zip (:src this))
-              :GBReference_remark zf/text)))
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; interval
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord genbankInterval [src]
+(defrecord genbankInterval [src])
 
+(extend genbankInterval
+  bs/biosequenceID
+  (assoc bs/default-biosequence-id
+    :accession (fn [this]
+                 (bs/get-text this :GBInterval_accession)))
   bs/biosequenceInterval
-
-  (start [gb-interval]
-    (let [r (or (zf/xml1-> (zip/xml-zip (:src gb-interval))
-                           :GBInterval_from
-                           zf/text)
-                (zf/xml1-> (zip/xml-zip (:src gb-interval))
-                           :GBInterval_point
-                           zf/text))]
-      (if r
-        (Integer/parseInt r)
-        (throw (Throwable. "No start value in interval!")))))
-
-  (end [gb-interval]
-    (let [r (or (zf/xml1-> (zip/xml-zip (:src gb-interval))
-                           :GBInterval_to
-                           zf/text)
-                (zf/xml1-> (zip/xml-zip (:src gb-interval))
-                           :GBInterval_point
-                           zf/text))]
-      (if r
-        (Integer/parseInt r)
-        (throw (Throwable. "No end value in interval!")))))
-
-  (comp? [gb-interval]
-    (let [c (zf/xml1-> (zip/xml-zip (:src gb-interval))
-                       :GBInterval_iscomp
-                       (zf/attr :value))]
-      (if (= "true" c) true false)))
-
+  (assoc bs/default-biosequence-interval
+    :start
+    (fn [this]
+      (let [r (or (bs/get-text this :GBInterval_from)
+                  (bs/get-text this :GBInterval_point))]
+        (if r (Integer/parseInt r)
+            (throw (Throwable. "No start value in interval!")))))
+    :end
+    (fn [this]
+      (let [r (or (bs/get-text this :GBInterval_to)
+                  (bs/get-text this :GBInterval_point))]
+        (if r (Integer/parseInt r)
+            (throw (Throwable. "No end value in interval!")))))
+    :comp?
+    (fn [this]
+      (let [c (bs/get-one this :GBInterval_iscomp (zf/attr :value))]
+        (if (= "true" c) true false))))
   bs/biosequenceTranslation
+  (assoc bs/default-biosequence-translation
+    :frame
+    (fn [this]
+      (:frame this))))
 
-  (frame [this]
-    (:frame this)))
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; qualifier
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defrecord genbankQualifier [src])
 
-(defn qualifier-name
-  [qual]
-  (zf/xml1-> (zip/xml-zip (:src qual)) :GBQualifier_name zf/text))
+(extend genbankQualifier
+  bs/biosequenceName
+  (assoc bs/default-biosequence-nameobject
+    :obj-name
+    (fn [this]
+      (bs/get-text this :GBQualifier_name))
+    :obj-value
+    (fn [this]
+      (bs/get-text this :GBQualifier_value))))
 
-(defn qualifier-value
-  [qual]
-  (zf/xml1-> (zip/xml-zip (:src qual)) :GBQualifier_value zf/text))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; dbref
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; feature
+(defrecord genbankDbRef [src])
 
-(defrecord genbankFeature [src]
+(extend genbankDbRef
+  bs/biosequenceDbRef
+  (assoc bs/default-biosequence-dbref
+    :database-name
+    (fn [this]
+      (first
+       (split (bs/get-text this :GBQualifier_value) #":")))
+    :object-id
+    (fn [this]
+      (second
+       (split (bs/get-text this :GBQualifier_value) #":")))))
 
-  bs/biosequenceFeature
-
-  (feature-type [feature]
-    (zf/xml1-> (zip/xml-zip (:src feature))
-               :GBFeature_key
-               zf/text))
-
-  (interval-seq [gb-feature]
-    (let [m (atom 1)
-          r {1 3 2 2 0 1}
-          f {3 2 2 1 1 0}]
-      (map #(let [i (->genbankInterval (zip/node %))
-                  fi (assoc i :frame (if (bs/comp? i) (* @m -1) @m))
-                  l (if (bs/comp? fi)
-                      (- (+ (- (bs/start fi) (bs/end fi)) 1) (get f @m))
-                      (- (+ (- (bs/end fi) (bs/start fi)) 1) (get f @m)))]
-              (reset! m (get r (mod l 3)))
-              fi)
-           (zf/xml-> (zip/xml-zip (:src gb-feature))
-                     :GBFeature_intervals
-                     :GBInterval)))))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; feature
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn qualifier-seq
+  "Collection of qualifiers in a genbankFeature record."
   [feature]
-  (->> (:content (some #(if (= (:tag %) :GBFeature_quals) %)
-                       (:content (:src feature))))
-       (map #(->genbankQualifier %))))
+  (->> (bs/get-list feature :GBFeature_quals :GBQualifier)
+       (map #(->genbankQualifier (zip/node %)))))
 
-(defn get-qualifier-value
+(defn filter-qualifiers
+  "Filter qualifiers in a genbankFeature record using bs-name
+  function."
   [feature qname]
-  (qualifier-value
-   (first (filter #(= (qualifier-name %) qname) (qualifier-seq feature)))))
+  (filter #(= (bs/obj-name %) qname)
+          (qualifier-seq feature)))
 
-(defn feature-operator
-  [feat]
-  (zf/xml1-> (zip/xml-zip (:src feat)) :GBFeature_operator zf/text))
+(defn get-qualifiers
+  "Returns qualifier values from a genbankFeature record that have a
+  particular bs-name."
+  [feature name]
+  (let [q (filter-qualifiers feature name)]
+    (if (seq q)
+      (map bs/bs-value q))))
 
 (defn feature-location
-  "Returns the value corresponding to the 'GBFeature_location' element of a 
-   genbank feature element."
+  "Returns the value corresponding to the 'GBFeature_location' element
+  of a genbank feature element."
   [feature]
-  (zf/xml1-> (zip/xml-zip (:src feature))
-             :GBFeature_location
-             zf/text))
+  (bs/get-text feature :GBFeature_location))
 
-; sequence
+(defrecord genbankFeature [src])
 
-(defrecord genbankSequence [src]
+(extend genbankFeature
+  bs/biosequenceFeature
+  (assoc bs/default-biosequence-feature
+    :operator (fn [this]
+                (bs/get-text this :GBFeature_operator)))
+  bs/biosequenceGene
+  (assoc bs/default-biosequence-gene
+    :locus-tag (fn [this] (get-qualifiers this "locus_tag"))
+    :products (fn [this] (get-qualifiers this "product"))
+    :gene-names (fn [this] (get-qualifiers this "gene")))
+  bs/biosequenceProtein
+  (assoc bs/default-biosequence-protein
+    :calc-mol-wt (fn [this]
+                   (get-qualifiers this "calculated_mol_wt")))
+  bs/biosequenceEvidence
+  (assoc bs/default-biosequence-evidence
+    :evidence
+    (fn [this]
+      (->> (filter #(re-find #"evidence" (bs/obj-name %))
+                   (qualifier-seq this))
+           (map #(str (bs/obj-name %) ":" (bs/obj-value %))))))
+  bs/biosequenceNotes
+  (assoc bs/default-biosequence-notes
+    :notes (fn [this] (get-qualifiers this "note")))
+  bs/biosequenceTranslation
+  (assoc bs/default-biosequence-translation
+    :trans-table (fn [this]
+                   (get-qualifiers this "transl_table"))
+    :codon-start (fn [this]
+                   (get-qualifiers this "codon_start"))
+    :translation (fn [this]
+                   (get-qualifiers this "translation")))
+  bs/biosequenceName
+  (assoc bs/default-biosequence-name
+    :obj-name (fn [this]
+                (bs/get-text this :GBFeature_key)))
+  bs/biosequenceIntervals
+  (assoc bs/default-biosequence-intervals
+    :intervals
+    (fn [this]
+      (let [m (atom 1)
+            r {1 3 2 2 0 1}
+            f {3 2 2 1 1 0}]
+        (map #(let [i (->genbankInterval (zip/node %))
+                    fi (assoc i :frame
+                              (if (bs/comp? i) (* @m -1) @m))
+                    l (if (bs/comp? fi)
+                        (- (+ (- (bs/start fi) (bs/end fi)) 1)
+                           (get f @m))
+                        (- (+ (- (bs/end fi) (bs/start fi)) 1)
+                           (get f @m)))]
+                (reset! m (get r (mod l 3)))
+                fi)
+             (bs/get-list this :GBFeature_intervals :GBInterval)))))
+  bs/biosequenceDbRefs
+  (assoc bs/default-biosequence-dbrefs
+    :get-db-refs
+    (fn [this]
+      (->> (qualifier-seq this)
+           (filter #(= (bs/obj-name %) "db_xref"))
+           (map #(->genbankDbRef (:src %)))))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; sequence
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defrecord genbankTaxRef [src])
+
+(extend genbankTaxRef
+  bs/biosequenceTaxonomy
+  (assoc bs/default-biosequence-tax
+    :lineage (fn [this] (bs/get-text this :GBSeq_taxonomy))
+    :tax-name (fn [this] (bs/get-text this :GBSeq_organism)))
+  bs/biosequenceDbRefs
+  :get-db-refs
+  (fn [this]
+    (first
+     (->> (bs/filter-features this "source")
+          (mapcat #(bs/get-db-refs %))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; sequence
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- gb-date
+  [str]
+  (bs/make-date str (bs/make-date-format "dd-MMM-yyyy")))
+
+(defrecord genbankSequence [src])
+
+(extend genbankSequence
+  bs/biosequenceGene
+  (assoc bs/default-biosequence-gene
+    :locus (fn [this] (bs/get-text this :GBSeq_locus)))
+  bs/biosequenceID
+  (assoc bs/default-biosequence-id
+    :accession
+    (fn [this] (bs/get-text this :GBSeq_primary-accession))
+    :accessions
+    (fn [this]
+      (concat
+       (bs/get-list this :GBSeq_secondary-accessions
+                    :GBSecondary-accn zf/text)
+       (bs/get-list this :GBSeq_other-seqids :GBSeqid zf/text)))
+    :creation-date
+    (fn [this]
+      (gb-date (bs/get-text this :GBSeq_create-date)))
+    :update-date
+    (fn [this]
+      (gb-date (bs/get-text this :GBSeq_update-date)))
+    :version
+    (fn [this]
+      (Integer.
+       (second
+        (re-find #".+\.(\d+)"
+                 (bs/get-text this :GBSeq_accession-version))))))
+  bs/biosequenceDescription
+  (assoc bs/default-biosequence-description
+    :description
+    (fn [this] (bs/get-text this :GBSeq_definition)))
   bs/Biosequence
-
-  (accession [this]
-    (zf/xml1-> (zip/xml-zip (:src this))
-               :GBSeq_primary-accession
-               zf/text))
-
-  (accessions [this]
-    (zf/xml-> (zip/xml-zip (:src this))
-              :GBSeq_other-seqids
-              :GBSeqid
-              zf/text))
-
-  (def-line [this]
-    (zf/xml1-> (zip/xml-zip (:src this))
-               :GBSeq_definition
-               zf/text))
-
-  (protein? [this]
-    (= (bs/alphabet this) :iupacAminoAcids))
-
-  (bs-seq [this]
-    (if-let [s (zf/xml1-> (zip/xml-zip (:src this))
-                          :GBSeq_sequence
-                          zf/text)]
-      (bs/clean-sequence s (bs/alphabet this))))
-
-  (alphabet [this]
-    (cond (#{"genomic" "precursor RNA" "mRNA" "rRNA" "tRNA" "snRNA" "scRNA"
-             "other-genetic" "DNA" "cRNA" "snoRNA" "transcribed RNA"}
-           (moltype this))
-          :iupacNucleicAcids
-          (#{"AA"} (moltype this))
-          :iupacAminoAcids
-          :else
-          (throw (Throwable. (str "Unknown moltype: " (moltype this))))))
-
+  (assoc bs/default-biosequence-biosequence
+    :bs-seq
+    (fn [this]
+      (if-let [s (bs/get-text this :GBSeq_sequence)]
+        (bs/clean-sequence s (bs/alphabet this))))
+    :protein?
+    (fn [this] (= (bs/alphabet this) :iupacAminoAcids))
+    :alphabet
+    (fn [this]
+      (let [m (bs/moltype this)]
+        (cond (#{"genomic" "precursor RNA" "mRNA" "rRNA" "tRNA"
+                 "snRNA" "scRNA" "other-genetic" "DNA" "cRNA"
+                 "snoRNA" "transcribed RNA"} m)
+              :iupacNucleicAcids
+              (#{"AA"} m)
+              :iupacAminoAcids
+              :else
+              (throw (Throwable.
+                      (str "Unknown moltype: " m))))))
+    :moltype
+    (fn [this]
+      (bs/get-text this :GBSeq_moltype))
+    :keywords
+    (fn [this] (bs/get-list this :GBSeq_keywords :GBKeyword
+                            zf/text)))
   bs/biosequenceCitations
-
-  (citations [this]
-    (map #(->genbankCitation (zip/node %))
-         (zf/xml-> (zip/xml-zip (:src this))
-                   :GBSeq_references
-                   :GBReference)))
-
+  (assoc bs/default-biosequence-citations
+    :citations
+    (fn [this]
+      (map #(->genbankCitation (zip/node %))
+           (bs/get-list this :GBSeq_references :GBReference))))
   bs/biosequenceFeatures
+  (assoc bs/default-biosequence-features
+    :feature-seq
+    (fn [this]
+      (map #(->genbankFeature %)
+           (:content (some #(if (= (:tag %) :GBSeq_feature-table)
+                              %)
+                           (:content (:src this))))))
+    :filter-features
+    (fn [this name]
+      (filter #(= (bs/obj-name %) name)
+              (bs/feature-seq this))))
+  bs/biosequenceTaxonomies
+  (assoc bs/default-biosequence-taxonomies
+    :tax-refs (fn [this] (list (->genbankTaxRef (:src this))))))
 
-  (feature-seq [this]
-    (map #(->genbankFeature %)
-         (:content (some #(if (= (:tag %) :GBSeq_feature-table)
-                            %) (:content (:src this)))))))
-
-;; coding sequences
-
-(defn cds-filter
-  [gb-sequence]
-  "Filters CDS objects from a Genbank sequence."
-  (filter #(= "CDS" (bs/feature-type %)) (bs/feature-seq gb-sequence)))
-
-(defn cds-protein-id
-  [cds]
-  (qualifier-value (first (filter #(= (qualifier-name %) "protein_id")
-                                  (qualifier-seq cds)))))
-
-(defn cds-gene
-  [cds]
-  (qualifier-value (first (filter #(= (qualifier-name %) "gene")
-                                  (qualifier-seq cds)))))
-
-(defn cds-protein-seq
-  [cds]
-  (qualifier-value (first (filter #(= (qualifier-name %) "translation")
-                                  (qualifier-seq cds)))))
-
-; IO
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; IO
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defrecord genbankReader [strm]
-
   bs/biosequenceReader
-
   (biosequence-seq [this]
     (let [xml (xml/parse (:strm this) :support-dtd false)]
       (map (fn [x]
@@ -256,70 +351,81 @@
              (->genbankSequence x))
            (filter #(= (:tag %) :GBSeq)
                    (:content xml)))))
-
   java.io.Closeable
-
   (close [this]
     (.close (:strm this))))
 
 (defn init-genbank-reader
+  "Initializes a genbankReader."
   [strm]
   (->genbankReader strm))
 
-(defrecord genbankFile [file]
-  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; file
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defrecord genbankFile [file])
+
+(extend genbankFile
   bs/biosequenceIO
-
-  (bs-reader [this]
-    (init-genbank-reader (io/reader (:file this))))
-
+  {:bs-reader
+   (fn [this]
+     (init-genbank-reader (io/reader (:file this))))}
   bs/biosequenceFile
+  bs/default-biosequence-file)
 
-  (bs-path [this]
-    (fs/absolute-path (:file this))))
+(defn init-genbank-file
+  "Initializes a genbankFile record."
+  [file]
+  {:pre [(fs/file? file)]}
+  (->genbankFile file))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; string
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defrecord genbankString [str]
-
   bs/biosequenceIO
-
   (bs-reader [this]
     (init-genbank-reader (io/reader (:str this)))))
 
+(defn init-genbank-string
+  "Initializes a genbankString record."
+  [str]
+  (->genbankString str))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; connection
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defrecord genbankConnection [acc-list db retype]
-
   bs/biosequenceIO
-
   (bs-reader [this]
     (let [s (eu/e-fetch (:acc-list this)
                         (:db this)
-                        (condp = (:retype this) :xml "gb" :fasta "fasta")
-                        (condp = (:retype this) :xml "xml" :fasta "text"))]
+                        (condp = (:retype this)
+                          :xml "gb" :fasta "fasta")
+                        (condp = (:retype this)
+                          :xml "xml" :fasta "text"))]
       (condp = (:retype this)
         :xml (init-genbank-reader (io/reader s))
         :fasta (bs/init-fasta-reader
                 (io/reader s)
                 (cond (#{:nucest :nuccore :nucgss :popset} db)
-                                           :iupacNucleicAcids
-                                           (= :protein db)
-                                           :iupacAminoAcids))))))
-
-(defn init-genbank-file
-  [file]
-  (if (fs/file? file)
-    (->genbankFile file)
-    (throw (Throwable. (str "File not found: " file)))))
-
-(defn init-genbank-string
-  [str]
-  (->genbankString str))
+                      :iupacNucleicAcids
+                      (= :protein db)
+                      :iupacAminoAcids))))))
 
 (defn init-genbank-connection
+  "Initializes a genbankConnection record."
   [accessions db format]
-  (and (check-db db)
-       (check-rt format)
-       (->genbankConnection accessions db format)))
+  {:pre [(#{:xml :fasta} format)
+         (#{:nucest :nuccore :nucgss :popset :protein} db)]}
+  (->genbankConnection accessions db format))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; web
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn genbank-search
   "Returns a non-lazy list of result ids from NCBI for a particular search term and
@@ -346,98 +452,5 @@
    single accession number. Returns an empty list if no matches found."
   ([term db] (genbank-search term db 0 nil))
   ([term db restart key]
-     (check-db db)
-     (eu/e-search term db restart key)))
-
-;; convenience functions
-
-(defn created
-  "Returns the creation date of the sequence. Content of the GBSeq_create-date tag."
-  [this]
-  (zf/xml1-> (zip/xml-zip (:src this))
-             :GBSeq_create-date zf/text))
-
-(defn modified
-  "Returns modification date. Content of the GBSeq_update-date tag."
-  [this]
-  (zf/xml1-> (zip/xml-zip (:src this))
-             :GBSeq_update-date zf/text))
-
-(defn version
-  "Version number. Content of GBSeq_accession-version tag."
-  [this]
-  (Integer. (second (re-find #".+\.(\d+)"
-                             (zf/xml1-> (zip/xml-zip (:src this))
-                                        :GBSeq_accession-version zf/text)))))
-
-(defn taxid
-  "NCBI taxonomic id of the organism from which the sequence is derived."
-  [this]
-  (Integer/parseInt
-   (second (split (->> (filter #(= "source" (bs/feature-type %)) (bs/feature-seq this))
-                       first
-                       (qualifier-seq)
-                       (filter #(= "db_xref" (qualifier-name %)))
-                       first
-                       qualifier-value)
-                  #":"))))
-
-(defn taxonomy
-  "Returns a list of the taxonomy of the organism from which the
-  sequence is derived."
-  [this]
-  (seq (split (zf/xml1-> (zip/xml-zip (:src this))
-                                :GBSeq_taxonomy zf/text)
-                     #";")))
-
-(defn org-scientific-name
-  "Scientific name of the organism from which the sequence is derived."
-  [this]
-  (zf/xml1-> (zip/xml-zip (:src this))
-             :GBSeq_organism
-             zf/text))
-
-(defn moltype
-  "The type of the sequence. Content of the GBSeq_moltype tag."
-  [gbseq]
-  (zf/xml1-> (zip/xml-zip (:src gbseq))
-             :GBSeq_moltype
-             zf/text))
-
-(defn gb-locus
-  "Returns the locus. Contents of GBSeq_locus tag."
-  [gbseq]
-  (zf/xml1-> (zip/xml-zip (:src gbseq)) :GBSeq_locus zf/text))
-
-;private
-
-(defn- check-db
-  [db]
-  (if (not (#{:nucest :nuccore :nucgss :popset :protein} db))
-    (throw (Throwable.
-            (str "DB not supported: "
-                 db
-                 ". Only :protein, :nucest, :nuccore, :nucgss and :popset are supported.")))
-    true))
-
-(defn- check-rt
-  [rt]
-  (if (not (#{:xml :fasta} rt))
-    (throw (Throwable. (str rt " not supported. "
-                            "Only :xml and :fasta are allowed retype values.")))
-    true))
-
-(defn- extract-features-genbank
-  [rdr feature]
-  "Returns a lazy list of features, corresponding to 'feature' from a file handle opened on a Genbank xml file."
-  (filter #(and (= (:tag %) :GBFeature)
-                (= (zf/xml1-> (zip/xml-zip %) :GBFeature_key zf/text) feature))
-          (:content (some #(if (= (:tag %) :GBSeq_feature-table)
-                             %)
-                          (:content (first (:content (xml/parse rdr))))))))
-
-(defn- gb-sequence
-  [rdr]
-  (:content (some #(if (= (:tag %) :GBSeq_sequence)
-                     %)
-                  (:content (first (:content (xml/parse rdr)))))))
+   {:pre [(#{:nucest :nuccore :nucgss :popset :protein} db)]}
+   (eu/e-search term db restart key)))

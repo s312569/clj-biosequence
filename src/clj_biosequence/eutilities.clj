@@ -6,8 +6,7 @@
             [clojure.java.io :as io]
             [fs.core :as fs]
             [clj-biosequence.alphabet :as ala]
-            [clj-biosequence.core :as bs]
-            [clj-biosequence.citation :as ci]))
+            [clj-biosequence.core :as bs]))
 
 (defn- search-helper
   ([term db retstart] (search-helper term db retstart nil))
@@ -38,8 +37,8 @@
                    (e-search term db (+ restart 1000) k))))))
 
 (defn e-fetch
-  "Retrieves a list of database entries from GenBank corresponding to
-  the list of accession numbers. Sequences returned in the format
+  "Retrieves a stream of database entries from GenBank corresponding
+  to the list of accession numbers. Sequences returned in the format
   specified by the combination of rettype and retmode as set out in
   the eutilities documentation."
   [a-list db rettype retmode]
@@ -48,7 +47,8 @@
     (let [r (bs/post-req "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
                          {:query-params
                           (merge {:db (name db)
-                                  :id (apply str (interpose "," a-list))}
+                                  :id (apply str
+                                             (interpose "," a-list))}
                                  (if rettype {:rettype rettype} {})
                                  (if retmode {:retmode retmode} {}))
                           :as :stream})]

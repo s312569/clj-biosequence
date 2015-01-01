@@ -9,11 +9,50 @@
             [clojure.data.xml :as xml]
             [miner.tagged :as tag]
             [iota :as iot]
+            [clj-time.format :refer [formatter parse]]
             [clojure.core.reducers :as r])
   (:import
-   (org.apache.commons.compress.compressors.bzip2 BZip2CompressorInputStream)))
+   (org.apache.commons.compress.compressors.bzip2
+    BZip2CompressorInputStream)))
 
 (declare init-fasta-store init-fasta-sequence translate init-index-file)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; protocols 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(load "protocols")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; utilities
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmacro get-text
+  [obj & keys]
+  `(zf/xml1-> (zip/xml-zip (:src ~obj))
+              ~@keys zf/text))
+
+(defmacro get-list
+  [obj & keys]
+  `(zf/xml-> (zip/xml-zip (:src ~obj))
+            ~@keys))
+
+(defmacro get-one
+  [obj & keys]
+  `(zf/xml1-> (zip/xml-zip (:src ~obj))
+              ~@keys))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; date
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn make-date
+  [str f]
+  (parse f str))
+
+(defn make-date-format
+  [str]
+  (formatter str))
 
 ;; network
 
@@ -31,80 +70,23 @@
   [a param]
   (client/post a (merge param @bioseq-proxy)))
 
-;; protocols
-
-(defprotocol biosequenceIO
-  (bs-reader [this]
-    "Returns a reader for a file containing biosequences. Use with
-    `with-open'"))
-
-(defprotocol biosequenceParameters
-  (parameters [this]
-    "Returns parameters from a reader."))
-
-(defprotocol biosequenceReader
-  (biosequence-seq [this]
-    "Returns a lazy sequence of biosequence objects.")
-  (get-biosequence [this accession]
-    "Returns the biosequence object with the corresponding
-    accession."))
-
-(defprotocol Biosequence
-  (accession [this]
-    "Returns the accession of a biosequence object.")
-  (accessions [this]
-    "Returns a list of accessions for a biosequence object.")
-  (def-line [this]
-    "Returns the description of a biosequence object.")
-  (bs-seq [this]
-    "Returns the sequence of a biosequence as a vector.")
-  (protein? [this]
-    "Returns true if a protein and false otherwise.")
-  (alphabet [this]
-    "Returns the alphabet of a biosequence."))
-
-(defprotocol biosequenceCitations
-  (citations [this]
-    "Returns a collection of references in a sequence record."))
-
-(defprotocol biosequenceTranslation
-  (frame [this]
-    "Returns the frame a sequence should be translated in."))
-
-(defprotocol biosequenceFile
-  (bs-path [this]
-    "Returns the path of the file as string."))
-
-(defprotocol biosequenceFeatures
-  (feature-seq [this]
-    "Returns a lazy list of features in a sequence."))
-
-(defprotocol biosequenceFeature
-  (interval-seq [this]
-    "Returns a lazy list of intervals in a sequence.")
-  (feature-type [this]
-    "Returns the feature key."))
-
-(defprotocol biosequenceInterval
-  (start [this]
-    "Returns the start position of an interval as an integer.")
-  (end [this]
-    "Returns the end position of an interval as an integer.")
-  (comp? [this]
-    "Is the interval complementary to the biosequence sequence. Boolean"))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn- bioseq->string
-  "Returns the sequence of a biosequence as a string with newlines every 80 chars."
+  "Returns the sequence of a biosequence as a string with newlines
+  every 80 chars."
   [bs]
-  (apply str (interpose "\n" (map #(apply str %) (partition-all 80 (bs-seq bs))))))
+  (apply str (interpose "\n"
+                        (map #(apply str %)
+                             (partition-all 80 (bs-seq bs))))))
 
 (defn fasta-string
   [bioseq]
-  (str ">" (accession bioseq) " " (def-line bioseq) "\n" (bioseq->string bioseq) "\n"))
+  "Returns the biosequence as a fasta formatted string."
+  (str ">" (accession bioseq) " "
+       (description bioseq) "\n" (bioseq->string bioseq) "\n"))
 
 (defn sub-bioseq
   "Returns a new fasta sequence object with the sequence corresponding
@@ -114,7 +96,7 @@
   ([bs beg] (sub-bioseq bs beg nil))
   ([bs beg end]
      (init-fasta-sequence (accession bs)
-                          (str (def-line bs)
+                          (str (description bs)
                                " [" beg " - "
                                (if end end "End") "]")
                           (alphabet bs)
@@ -122,123 +104,53 @@
                             (apply str (subvec (bs-seq bs) beg end))
                             (apply str (subvec (bs-seq bs) beg))))))
 
-(defn partition-bioseq
-  [n bs]
-  (let [ns (init-fasta-sequence (accession bs) (def-line bs) (alphabet bs) (bs-seq bs))]
-    (map (fn [x c] (assoc ns
-                     :acc (str (accession ns) "-" c)
-                     :description (str (def-line ns)
-                                       " - ["
-                                       (- (* c n) (- n 1)) "-" (* c n)
-                                       "]")
-                     :sequence (vec x)))
-         (partition-all n (bs-seq bs))
-         (iterate inc 1))))
-
-(defn reverse-comp
-  "Returns a new fastaSequence with the reverse complement sequence."
-  [this]
-  (if (protein? this)
-    (throw (IllegalArgumentException. "Can't reverse/complement a protein sequence."))
-    (init-fasta-sequence (accession this)
-                         (str (def-line this) " - Reverse-comp")
-                         (alphabet this)
-                         (apply str (ala/revcom (bs-seq this))))))
-
-(defn reverse-seq
-  "Returns a new fastaSequence with the reverse sequence."
-  [this]
-  (init-fasta-sequence (accession this)
-                       (str (def-line this) " - Reversed")
-                       (alphabet this) 
-                       (apply str (reverse (bs-seq this)))))
-
-(defn translate
-  "Returns a fastaSequence sequence with a sequence translated in the
-   specified frame."
-  [bs frame & {:keys [table id-alter] :or {table (ala/codon-tables 1) id-alter true}}]
-  (let [f ({1 1 2 2 3 3 4 4 5 5 6 6 -1 4 -2 5 -3 6} frame)]
-    (cond (protein? bs)
-          (throw (IllegalArgumentException. "Can't translate a protein sequence!"))
-          (not (#{1 2 3 4 5 6} f))
-          (throw (IllegalArgumentException. (str "Invalid frame: " frame)))
-          :else
-          (init-fasta-sequence (if id-alter (str (accession bs) "-" f) (accession bs))
-                               (str (def-line bs) " - Translated frame: " f)
-                               :iupacAminoAcids
-                               (let [v (cond (#{1 2 3} f)
-                                             (sub-bioseq bs (- f 1))
-                                             (#{4 5 6} f)
-                                             (-> (reverse-comp bs)
-                                                 (sub-bioseq ( - f 4))))]
-                                 (apply str (map #(ala/codon->aa % table)
-                                                 (partition-all 3 (bs-seq v)))))))))
-
-(defn six-frame-translation
-  "Returns a lazy list of fastaSequence objects representing translations of
-   a nucleotide biosequence object in six frames."
-  ([nucleotide] (six-frame-translation nucleotide (ala/codon-tables 1)))
-  ([nucleotide table]
-     (map #(translate nucleotide % :table table)
-          '(1 2 3 -1 -2 -3))))
-
-(defn n50
-  "Takes anything that can have `biosequence-seq' called on it and
-  returns the N50 of the sequences therein."
-  [reader]
-  (let [sa (sort > (pmap #(count (bs-seq %)) (biosequence-seq reader)))
-        t (/ (reduce + sa) 2)
-        n50 (atom 0)]
-    (loop [l sa]
-      (if (seq l)
-        (do (swap! n50 + (first l))
-            (if (>= @n50 t)
-              (first l)
-              (recur (rest l))))
-        (throw (Throwable. "N50 calculation failed!"))))))
-
 (defn get-interval-sequence
+  "Returns a fasta sequence corresponding to the provided interval."
   [interval bs]
-  (cond (and (> (start interval) (end interval))
-             (not (comp? interval)))
-        (let [o (sub-bioseq bs (- (start interval) 1))
-              t (sub-bioseq bs 0 (end interval))]
-          (assoc o :sequence (vec (concat (bs-seq o) (bs-seq t)))
-                 :description (str (second (re-find #"^(.+)\s[^\[]+\]$"))
-                                   " [" (start interval) " - " (end interval) "]")))
-        (and (comp? interval)
-             (> (end interval) (start interval)))
-        (let [o (sub-bioseq bs (- (end interval) 1))
-              t (sub-bioseq bs 0 (start interval))]
-          (assoc o :sequence (vec (concat (bs-seq o) (bs-seq t)))
-                 :description (str (second (re-find #"^(.+)\s[^\[]+\]$"))
-                                   " [" (end interval) " - " (start interval) "]")))
-        :else
-        (let [s (if (comp? interval)
-                  (- (end interval) 1)
-                  (- (start interval) 1))
-              e (if (comp? interval)
-                  (start interval)
-                  (end interval))]
-          (sub-bioseq bs s e))))
+  (cond
+   ;; circular DNA spanning origin not comp
+   (and (> (start interval) (end interval))
+        (not (comp? interval))) 
+   (let [o (sub-bioseq bs (- (start interval) 1))
+         t (sub-bioseq bs 0 (end interval))]
+     (assoc o :sequence (vec (concat (bs-seq o) (bs-seq t)))
+            :description (str (second (re-find #"^(.+)\s[^\[]+\]$"))
+                              " [" (start interval) " - " (end interval) "]")))
+   ;; circular DNA spanning origin comp direction
+   (and (comp? interval)
+        (> (end interval) (start interval)))
+   (let [o (sub-bioseq bs (- (end interval) 1))
+         t (sub-bioseq bs 0 (start interval))]
+     (assoc o :sequence (vec (concat (bs-seq o) (bs-seq t)))
+            :description (str (second (re-find #"^(.+)\s[^\[]+\]$"))
+                              " [" (end interval) " - " (start interval) "]")))
+   ;; otherwise as usual
+   :else
+   (let [s (if (comp? interval)
+             (- (end interval) 1)
+             (- (start interval) 1))
+         e (if (comp? interval)
+             (start interval)
+             (end interval))]
+     (sub-bioseq bs s e))))
 
-(defn get-feature-sequence
-  "Returns a fastaSequence object containing the sequence specified in
-  a feature object from a biosequence."
-  [feature bs]
-  (let [intervals (interval-seq feature)]
-    (init-fasta-sequence
-     (accession bs)
-     (str (def-line bs) " - Feature: " (feature-type feature)
-          " - [" (start (first intervals)) "-" (end (last intervals)) "]")
-     (alphabet bs)
-     (vec (mapcat #(if (comp? %)
-                     (apply str (subvec (ala/revcom (bs-seq bs))
-                                        (- (end %) 1)
-                                        (start %)))
-                     (apply str (subvec (bs-seq bs)
-                                        (- (start %) 1)
-                                        (end %)))) intervals)))))
+;; (defn get-feature-sequence
+;;   "Returns a fastaSequence object containing the sequence specified in
+;;   a feature object from a biosequence."
+;;   [feature bs]
+;;   (let [intervals (intervals feature)]
+;;     (init-fasta-sequence
+;;      (accession bs)
+;;      (str (description bs) " - Feature: " (feature-type feature)
+;;           " - [" (start (first intervals)) "-" (end (last intervals)) "]")
+;;      (alphabet bs)
+;;      (vec (mapcat #(if (comp? %)
+;;                      (apply str (subvec (ala/revcom (bs-seq bs))
+;;                                         (- (end %) 1)
+;;                                         (start %)))
+;;                      (apply str (subvec (bs-seq bs)
+;;                                         (- (start %) 1)
+;;                                         (end %)))) intervals)))))
 
 ;;;;;;;;;;;;;;
 ;; utilities
@@ -258,8 +170,6 @@
                 bs)))
   file)
 
-;; sequence
-
 (defn clean-sequence
   "Removes spaces and newlines and checks that all characters are
    legal characters for the supplied alphabet. Replaces non-valid
@@ -278,45 +188,16 @@
             (recur (rest l) a)))))))
 
 (defn object->file
+  "Spits an object to file after making sure *print-length* is
+  temporarily set to false."
   [obj file]
   (binding [*print-length* false]
     (spit file (pr-str obj))))
 
-;; utilities
-
-(defn protein-charge
-  "Calculates the theoretical protein charge at the specified
-  pH (default 7). Uses pKa values set out in the protein alphabets
-  from cl-biosequence.alphabet. Considers Lys, His, Arg, Glu, Asp, Tyr
-  and Cys residues only and ignores all other amino acids. The number
-  of disulfides can be specified and 2 times this figure will be
-  deducted from the number of Cys residues used in the calculation.
-  Values used for the pKa of the N-term and C-term are 9.69 and 2.34
-  respectively."
-  [p & {:keys [ph disulfides] :or {ph 7 disulfides 0}}]
-  (if-not (protein? p)
-    (throw (Throwable. "Protein charge calculations can only be performed on protein objects.")))
-  (let [a (ala/get-alphabet :signalpAminoAcids)
-        ncalc (fn [x n]
-                (* n
-                   (/ (Math/pow 10 x) (+ (Math/pow 10 ph) (Math/pow 10 x)))))
-        ccalc (fn [x n]
-                (* n
-                   (/ (Math/pow 10 ph) (+ (Math/pow 10 ph) (Math/pow 10 x)))))
-        freq (frequencies (bs-seq p))
-        cys (let [c (freq \C)
-                  f (if c (- c (* 2 disulfides)) 0)]
-              (if (>= f 0)
-                f
-                (throw (Throwable. "More disulfides specified than Cys residues."))))]
-    (- (reduce + (cons (ncalc 9.69 1) (map (fn [[x n]] (ncalc (:pka (a x)) n))
-                                           (select-keys freq [\K \H \R]))))
-       (+ (ccalc (:pka (a \C)) cys)
-          (reduce + (cons (ccalc 2.34 1) (map (fn [[x n]] (ccalc (:pka (a x)) n))
-                                              (select-keys freq [\E \D \Y]))))))))
-
 ;; helper files
 
+(load "dna")
+(load "protein")
 (load "bioreader")
 (load "serialising")
 (load "mapping")

@@ -2,124 +2,377 @@
   (:require [clojure.data.xml :refer [parse]]
             [clojure.data.zip.xml :as zf]
             [clojure.java.io :refer [reader]]
-            [clojure.zip :refer [node xml-zip]]
+            [clojure.zip :as zip]
             [clojure.string :refer [split]]
             [clj-biosequence.core :as bs]
-            [clj-biosequence.citation :as ci]
             [fs.core :refer [file? temp-file delete absolute-path]]))
 
-(declare prot-name meta-data recommended-name alternative-name get-uniprot-stream organism init-indexed-uniprot)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; citation
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; citations
+(defrecord uniprotCitation [src])
 
-(defrecord uniprotCitation [src]
+(extend uniprotCitation
+  bs/biosequenceCitation
+  (assoc bs/default-biosequence-citation
+    :title (fn [this] (bs/get-text this :citation :title))
+    :journal (fn [this] (bs/get-one this :citation (zf/attr :name)))
+    :year (fn [this] (Integer/parseInt
+                      (bs/get-one this :citation (zf/attr :date))))
+    :volume (fn [this] (bs/get-one this :citation (zf/attr :volume)))
+    :pstart (fn [this] (bs/get-one this :citation (zf/attr :first)))
+    :pend (fn [this] (bs/get-one this :citation (zf/attr :last)))
+    :authors (fn [this]
+               (bs/get-list this :citation :authorList
+                            :person (zf/attr :name)))))
 
-  ci/biosequenceCitation
-
-  (title [this]
-    (zf/xml1-> (xml-zip (:src this))
-               :citation :title zf/text))
-
-  (journal [this]
-    (zf/xml1-> (xml-zip (:src this))
-               :citation (zf/attr :name)))
-
-  (year [this]
-    (zf/xml1-> (xml-zip (:src this))
-               :citation (zf/attr :date)))
-
-  (volume [this]
-    (zf/xml1-> (xml-zip (:src this))
-               :citation (zf/attr :volume)))
-
-  (pstart [this]
-    (zf/xml1-> (xml-zip (:src this))
-               :citation (zf/attr :first)))
-
-  (pend [this]
-    (zf/xml1-> (xml-zip (:src this))
-               :citation (zf/attr :last)))
-
-  (authors [this]
-    (zf/xml-> (xml-zip (:src this))
-              :citation :authorList :person (zf/attr :name))))
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; interval
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord uniprotInterval [src]
+(defrecord uniprotInterval [src])
 
+(extend uniprotInterval
   bs/biosequenceInterval
+  (assoc bs/default-biosequence-interval
+    :start
+    (fn [this]
+      (Integer/parseInt
+       (bs/get-one this :begin (zf/attr :position))))
+    :end
+    (fn [this]
+      (Integer/parseInt
+       (bs/get-one this :end (zf/attr :position))))
+    :point
+    (fn [this]
+      (Integer/parseInt
+       (bs/get-one this :position (zf/attr :position))))
+    :comp? (fn [this] false))
+  bs/biosequenceStatus
+  (assoc bs/default-biosequence-status
+    :status
+    (fn [this]
+      (bs/get-one this :position (zf/attr :status))))
+  bs/biosequenceEvidence
+  (assoc bs/default-biosequence-evidence
+    :evidence
+    (fn [this]
+      (split (bs/get-one this :position (zf/attr :evidence))
+             #"\s+"))))
 
-  (start [this]
-    (Integer/parseInt
-     (zf/xml1-> (xml-zip (:src this)) :begin (zf/attr :position))))
-
-  (end [this]
-    (Integer/parseInt
-     (zf/xml1-> (xml-zip (:src this)) :end (zf/attr :position))))
-
-  (comp? [this]
-    false))
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; feature
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord uniprotFeature [src]
+(defrecord uniprotFeature [src])
 
-  bs/biosequenceFeature
-
-  (feature-type [this]
-    (:type (:attrs (:src this))))
-
-  (interval-seq [this]
-    (map #(->uniprotInterval %)
-         (filter #(= (:tag %) :location)
-                 (:content (:src this))))))
-
-;; protein
-
-(defrecord uniprotProtein [src]
-
-  bs/Biosequence
-  
-  (accessions [uniprot]
-    (zf/xml-> (xml-zip (:src uniprot)) :accession zf/text))
-
-  (accession
-    [this]
-    (first (bs/accessions this)))
-
-  (def-line [this]
-    (str (recommended-name this) " | "
-         (alternative-name this) " ["
-         (get (organism this) "scientific") "]"))
-
-  (bs-seq [this]
-    (bs/clean-sequence
-     (zf/xml1-> (xml-zip (:src this)) :sequence zf/text) :iupacAminoAcids))
-
-  (protein? [this] true)
-
-  (alphabet [this]
-    :iupacAminoAcids)
-
+(extend uniprotFeature
+  bs/biosequenceName
+  (assoc bs/default-biosequence-name
+    :bs-name
+    (fn [this]
+      (:type (:attrs (:src this))))
+    :bs-value
+    (fn [this]
+      (:description (:attrs (:src this)))))
+  bs/biosequenceID
+  (assoc bs/default-biosequence-id
+    :accession
+    (fn [this]
+      (:id (:attrs (:src this)))))
+  bs/biosequenceStatus
+  (assoc bs/default-biosequence-status
+    :status
+    (fn [this]
+      (:status (:attrs (:src this)))))
+  bs/biosequenceDescription
+  (assoc bs/default-biosequence-description
+    :description
+    (fn [this]
+      (:status (:attrs (:src this)))))
+  bs/biosequenceEvidence
+  (assoc bs/default-biosequence-evidence
+    :evidence
+    (fn [this]
+      (if-let [e (:evidence (:attrs (:src this)))]
+        (split e #"\s+"))))
   bs/biosequenceCitations
+  (assoc bs/default-biosequence-citations
+    :citation-key
+    (fn [this]
+      (:ref (:attrs (:src this)))))
+  bs/biosequenceIntervals
+  (assoc bs/default-biosequence-intervals
+    :intervals (fn [this]
+                 (map #(->uniprotInterval %)
+                      (filter #(= (:tag %) :location)
+                              (:content (:src this))))))
+  bs/Biosequence
+  (assoc bs/default-biosequence-biosequence
+    :bs-seq
+    (fn [this]
+      (vec (bs/get-one this :location (zf/attr :sequence)))))
+  bs/biosequenceVariant
+  (assoc bs/default-biosequence-variant
+    :original (fn [this] (bs/get-text this :original))
+    :variant (fn [this] (bs/get-list this :variation
+                                     zf/text))))
 
-  (citations [this]
-    (->> (zf/xml-> (xml-zip (:src this)) :reference)
-      (map #(->uniprotCitation (node %)))))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; db ref
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn- get-db-prop
+  [this]
+  (into {}
+   (map #(vector (zf/xml1-> % (zf/attr :type))
+                 (zf/xml1-> % (zf/attr :value)))
+        (bs/get-list this :property))))
+
+(defn- go-help
+  [this f]
+  (if-let [g ((bs/db-properties this) "term")]
+    (f (split g #":"))))
+
+(defrecord uniprotDbRef [src])
+
+(extend uniprotDbRef
+  bs/biosequenceDbRef
+  (assoc bs/default-biosequence-dbref
+    :database-name (fn [this] (:type (:attrs (:src this))))
+    :object-id (fn [this] (:id (:attrs (:src this))))
+    :db-properties (fn [this]
+                     (get-db-prop this)))
+  bs/biosequenceGoTerm
+  (assoc bs/default-biosequence-goterm
+    :go-id (fn [this] (bs/object-id this))
+    :go-term (fn [this] (go-help this second))
+    :go-component (fn [this] (go-help this first)))
+  bs/biosequenceEvidence
+  (assoc bs/default-biosequence-evidence
+    :evidence
+    (fn [this] ((bs/db-properties this) "evidence"))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; org ref
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defrecord uniprotTaxRef [src])
+
+(extend uniprotTaxRef
+  bs/biosequenceTaxonomy
+  (assoc bs/default-biosequence-tax
+    :tax-name
+    (fn [this] (bs/get-text this :name
+                            (zf/attr= :type "scientific")))
+    :common-name
+    (fn [this] (bs/get-text this :name
+                            (zf/attr= :type "common")))
+    :lineage
+    (fn [this] (let [l (bs/get-list this :lineage :taxon
+                                    zf/text)]
+                 (apply str (interpose ";" l)))))
+  bs/biosequenceDbRefs
+  (assoc bs/default-biosequence-dbrefs
+    :get-db-refs
+    (fn [this] (->> (bs/get-list this :dbReference)
+                    (map #(->uniprotDbRef (node %))))))
+  bs/biosequenceEvidence
+  (assoc bs/default-biosequence-evidence
+    :evidence
+    (fn [this]
+      (if-let [e (bs/get-text this (zf/attr :evidence))]
+        (split e #"\s+")))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; genes
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defrecord uniprotGene [src])
+
+(extend uniprotGene
+  bs/biosequenceGene
+  (assoc bs/default-biosequence-gene
+    :locus (fn [this] (bs/get-text this :name
+                                   (zf/attr= :type "ordered locus")))
+    :orf (fn [this] (bs/get-text this :name
+                                 (zf/attr= :type "ORF"))))
+  bs/biosequenceID
+  (assoc bs/default-biosequence-id
+    :accession
+    (fn [this]
+      (bs/get-text this :name (zf/attr= :type "primary"))))
+  bs/biosequenceSynonyms
+  (assoc bs/default-biosequence-synonyms
+    :synonyms
+    (fn [this] (bs/get-list this :name
+                            (zf/attr= :type "synonym")
+                            zf/text))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; comment
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- get-subcell
+  [this tag]
+  (interleave
+   (bs/get-list this :subcellularLocation tag zf/text)
+   (bs/get-list this :subcellularLocation tag
+                (zf/attr :status))))
+
+(defrecord uniprotComment [src])
+
+(extend uniprotComment
+  bs/biosequenceSubCellLoc
+  (assoc bs/default-biosequence-subcell
+    :subcell-location (fn [this] (get-subcell this :location))
+    :subcell-topol (fn [this] (get-subcell this :topology))
+    :subcell-orient (fn [this] (get-subcell this :orientation)))
+  bs/biosequenceNameObject
+  (assoc bs/default-biosequence-nameobject
+    :obj-type (fn [this]
+                (bs/get-one this (zf/attr :type)))
+    :obj-text (fn [this]
+                (bs/get-text this :text))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; protein
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- u-date
+  [str]
+  (bs/make-date str (bs/make-date-format "yyyy-MM-dd")))
+
+(defn- get-short-full
+  [this]
+  (remove nil?
+          (vector (bs/get-text {:src (node this)} :fullName)
+                  (bs/get-text {:src (node this)} :shortName))))
+
+(defrecord uniprotProtein [src])
+
+(extend uniprotProtein
+  bs/Biosequence
+  (assoc bs/default-biosequence-biosequence
+    :bs-seq (fn [this] (bs/clean-sequence
+                        (bs/get-text :sequence zf/text)
+                        :iupacAminoAcids))
+    :protein? (fn [this] true)
+    :alphabet (fn [this] :iupacAminoAcids)
+    :moltype (fn [this] "AA")
+    :keywords (fn [this]
+                (map #(vector (zf/attr % :id)
+                              (zf/text %))
+                     (bs/get-list this :keyword))))
+  bs/biosequenceID
+  (assoc bs/default-biosequence-id
+    :accessions (fn [this]
+                  (concat (list (bs/get-text this :name))
+                          (bs/get-list this :accession zf/text)))
+    :accession (fn [this] (first (bs/accessions this)))
+    :version (fn [this] (:version (:attrs (:src this))))
+    :creation-date (fn [this]
+                     (u-date (:created (:attrs (:src this)))))
+    :update-date (fn [this]
+                   (u-date (:modified (:attrs (:src this)))))
+    :dataset (fn [this] (:dataset (:attrs (:src this)))))
+  bs/biosequenceName
+  (assoc bs/default-biosequence-name
+    :names
+    (fn [this]
+      (let [r (get-short-full (bs/get-one this :protein
+                                          :recommendedName))]
+        (if r r (bs/accession this))))
+    :alternate-names
+    (fn [this]
+      (mapcat #(get-short-full %)
+              (bs/get-list this :protein :alternativeName)))
+    :submitted-names
+    (fn [this]
+      (mapcat #(get-short-full %)
+              (bs/get-list this :protein :submittedName)))
+    :allergen-names
+    (fn [this]
+      (mapcat #(get-short-full %)
+              (bs/get-list this :protein :allergenName)))
+    :biotech-names
+    (fn [this]
+      (mapcat #(get-short-full %)
+              (bs/get-list this :protein :biotechName)))
+    :cd-antigen-names
+    (fn [this]
+      (mapcat #(get-short-full %)
+              (bs/get-list this :protein :cdAntigenName)))
+    :innnames
+    (fn [this]
+      (mapcat #(get-short-full %)
+              (bs/get-list this :protein :innName))))
+  bs/biosequenceDescription
+  (assoc bs/default-biosequence-description
+    :description (fn [this]
+                   (str (recommended-name this) " | "
+                        (alternative-name this) " ["
+                        (get (organism this) "scientific") "]")))
+  bs/biosequenceCitations
+  (assoc bs/default-biosequence-citations
+    :citations
+    (fn [this]
+      (->> (bs/get-list this :reference)
+           (map #(->uniprotCitation (node %))))))
   bs/biosequenceFeatures
+  (assoc bs/default-biosequence-features
+    :feature-seq
+    (fn [this]
+      (map #(->uniprotFeature (node %))
+           (zf/xml-> (xml-zip (:src this)) :feature))))
+  bs/biosequenceTaxonomies
+  (assoc bs/default-biosequence-taxonomies
+    :tax-refs
+    (fn [this] (->> (bs/get-list this :organism)
+                    (map #(->uniprotTaxRef (node %))))))
+  bs/biosequenceGenes
+  (assoc bs/default-biosequence-genes
+    :genes
+    (fn [this] (->> (bs/get-list this :gene)
+                    (map #(->uniprotGene (node %))))))
+  bs/biosequenceComments
+  (assoc bs/default-biosequence-comments
+    :comments
+    (fn [this]
+      (->> (bs/get-list this :comment)
+           (map #(->uniprotComment (node %))))))
+  bs/biosequenceSubCellLocs
+  (assoc bs/default-biosequence-subcells
+    :subcell-locations
+    (fn [this]
+      (->> (bs/comments this)
+           (filter #(= (bs/obj-type %) "subcellular location")))))
+  bs/biosequenceDbRefs
+  (assoc bs/default-biosequence-dbrefs
+    :get-db-refs
+    (fn [this]
+      (->> (bs/get-list this :dbReference)
+           (map #(->uniprotDbRef (node %))))))
+  bs/biosequenceGoTerms
+  (assoc bs/default-biosequence-goterms
+    :gos (fn [this]
+           (filter #(= (bs/database-name %) "GO")
+                   (bs/get-db-refs this))))
+  bs/biosequenceEvidence
+  (assoc bs/default-biosequence-evidence
+    :evidence
+    (fn [this]
+      (zf/xml-> (xml-zip (:src this))
+                :proteinExistence
+                (zf/attr :type)))))
 
-  (feature-seq [this]
-    (map #(->uniprotFeature (node %))
-         (zf/xml-> (xml-zip (:src this)) :feature))))
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; IO
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defrecord uniprotReader [strm]
-
   bs/biosequenceReader
-
   (bs/biosequence-seq [this]
     (let [xml (parse (:strm this))]
       (map (fn [x]
@@ -127,33 +380,24 @@
              (->uniprotProtein x))
            (filter #(= (:tag %) :entry)
                    (:content xml)))))
-
   java.io.Closeable
-
   (close [this]
     (.close ^java.io.BufferedReader (:strm this))))
 
-(defrecord uniprotFile [file opts]
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; file
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defrecord uniprotFile [file opts])
+
+(extend uniprotFile
   bs/biosequenceIO
-
-  (bs-reader [this]
-    (->uniprotReader (apply bs/bioreader (bs/bs-path this) (:opts this))))
-
+  {:bs-reader
+   (fn [this]
+     (->uniprotReader (apply bs/bioreader (bs/bs-path this)
+                             (:opts this))))}
   bs/biosequenceFile
-
-  (bs-path [this]
-    (absolute-path (:file this))))
-
-(defrecord uniprotConnection [acc-list email]
-
-  bs/biosequenceIO
-
-  (bs-reader [this]
-    (let [s (get-uniprot-stream (:acc-list this) (:retype this) (:email this))]
-      (condp = (:retype this)
-        :xml (->uniprotReader (bs/bioreader s))
-        :fasta (bs/init-fasta-reader (reader s) :iupacAminoAcids)))))
+  bs/default-biosequence-file)
 
 (defn init-uniprot-file
   "Initialises a uniprotXmlFile object for use with bs-reader."
@@ -162,201 +406,9 @@
     (->uniprotFile path opts)
     (throw (Throwable. (str "File not found: " path)))))
 
-(defn init-uniprot-connection
-  "Initialises a connection which can be used with bs-reader to open a
-  lazy list of uniprotProteins from the Uniprot servers."
-  [accessions retype email]
-  (if (#{:xml :fasta} retype)
-    (let [l (if (coll? accessions) accessions (list accessions))]
-      (->uniprotConnection l retype email))
-    (throw (Throwable. (str retype " not supported. "
-                            "Only :xml and :fasta are allowed retype values.")))))
-
-;; web search
-
-(defn uniprot-search
-  "Returns a non-lazy list of uniprot accession numbers satisfying the search term. 
-   The search term uses the same syntax as the uniprot web interface. For 
-   example:
-   - to get all Schistosoma mansoni proteins in the proteome reference set term
-     would be:
-     'organism:6183 AND keyword:1185'
-   - get all Schistosoma mansoni proteins in the proteome set that are intrinsic
-     to the membrane:
-     'taxonomy:6183 AND keyword:1185 AND go:0031224'
-   - get all reviewed human entries:
-     'reviewed:yes AND organism:9606'
-   And so on. Returns an empty list if no matches found. Uniprot
-   requires an email so an email can be supplied using the email argument."
-  ([term email] (uniprot-search term email 0))
-  ([term email offset]
-     (let [r (remove #(= % "")
-                     (-> (bs/get-req
-                          (str "http://www.uniprot.org/uniprot/?query="
-                               term
-                               "&format=list"
-                               (str "&offset=" offset)
-                               "&limit=1000")
-                          {:client-params {"http.useragent"
-                                           (str "clj-http " email)}})
-                         (:body)
-                         (split #"\n")))]
-       (if (empty? r)
-         nil
-         (lazy-cat r (uniprot-search term email (+ offset 1000)))))))
-
-;; uniprot convienence functions
-
-(defn organism
-  "Returns a hash-map of organism names keyed by name type, eg.
-  scientific etc."
-  [uniprot]
-  (assoc (->> (map node (zf/xml-> (xml-zip (:src uniprot)) :organism :name))
-              (map #(vector (:type (:attrs %)) (first (:content %))))
-              (into {}))
-    :taxid (Integer/parseInt
-            (zf/xml1-> (xml-zip (:src uniprot)) :organism :dbReference
-                       (zf/attr= :type "NCBI Taxonomy") (zf/attr :id)))))
-
-(defn lineage
-  "Returns a list of the taxon terms of an organism"
-  [uniprot]
-  (zf/xml-> (xml-zip (:src uniprot)) :organism :lineage :taxon zf/text))
-
-(defn prot-name
-  "Returns the name of a uniprot as a string."
-  [uniprot]
-  (zf/xml1-> (xml-zip (:src uniprot)) :name zf/text))
-
-(defn sequence-info
-  "Returns a list of sequence information, including \"length\",
-  \"mass\", \"checksum\", \"modified\", and \"version\"."
-  [uniprot]
-  (let [a (:attrs (node (zf/xml1-> (xml-zip (:src uniprot))
-                                   :sequence)))]
-    (assoc a
-      :length (Integer/parseInt (:length a))
-      :mass (Float/parseFloat (:mass a))
-      :version (Integer/parseInt (:version a)))))
-
-(defn recommended-name
-  "Returns the recommended name. If multiple returns the first."
-  [uniprot]
-  (zf/xml1-> (xml-zip (:src uniprot))
-             :protein :recommendedName :fullName zf/text))
-
-(defn alternative-name
-  "Returns the alternative name. If multiple returns the first."
-  [uniprot & kinds]
-  (zf/xml1-> (xml-zip (:src uniprot))
-             :protein :alternativeName :fullName zf/text))
-
-(defn gene
-  "Returns a list of maps comprised of gene names and types."
-  [uniprot]
-  (map #(merge (:attrs (node (zf/xml1-> % :name)))
-               (hash-map :gene (zf/xml1-> % :name zf/text)))
-       (zf/xml-> (xml-zip (:src uniprot)) :gene)))
-
-(defn comments
-  "Returns the XML tree representations of all comments in the
-  sequence."
-  [uniprot]
-  (map node (zf/xml-> (xml-zip (:src uniprot)) :comment)))
-
-(defn subcellular-location
-  "Returns a list of hash-maps describing the sub-cellular location of
-   the sequence. Keys are :text, which describes the location,
-   and :status, which describes the evidence."
-  [uniprot]
-  (->> (zf/xml-> (xml-zip (:src uniprot))
-                 :comment
-                 (zf/attr= :type "subcellular location")
-                 :subcellularLocation :location)
-       (map node)
-       (map #(assoc (:attrs %) :text (first (:content %))))))
-
-(defn db-references
-  "Returns all db-references as a list of xml elements."
-  [uniprot]
-  (map node (zf/xml-> (xml-zip (:src uniprot))
-                      :dbReference)))
-
-(defn gb-gene-id
-  [uniprot]
-  (zf/xml1-> (xml-zip (:src uniprot))
-             :dbReference
-             (zf/attr= :type "GeneID")
-             (zf/attr :id)))
-
-(defn go-terms
-  "Returns a list of GO terms. Only returns the term itself and not
-   any other information, for more information see `db-references`."
-  [uniprot]
-  (zf/xml-> (xml-zip (:src uniprot))
-            :dbReference
-            (zf/attr= :type "GO")
-            :property
-            (zf/attr= :type "term")
-            (zf/attr :value)))
-
-(defn bp-go-terms
-  "Returns a list of process GO terms.Only returns the term itself and
-   not any other information, for more information see
-   `db-references`."
-  [uprot]
-  (->> (go-terms uprot)
-       (filter #(= \P (first %)))
-       (map (fn [[a b & rest]]
-              (apply str rest)))))
-
-(defn mf-go-terms
-  "Returns a list of process GO terms.Only returns the term itself and
-   not any other information, for more information see
-   `db-references`."
-  [uprot]
-  (->> (go-terms uprot)
-       (filter #(= \F (first %)))
-       (map (fn [[a b & rest]]
-              (apply str rest)))))
-
-(defn cc-go-terms
-  "Returns a list of process GO terms.Only returns the term itself and
-   not any other information, for more information see
-   `db-references`."
-  [uprot]
-  (->> (go-terms uprot)
-       (filter #(= \C (first %)))
-       (map (fn [[a b & rest]]
-              (apply str rest)))))
-
-(defn existence
-  "Protein existence evidence as a list of strings."
-  [uniprot]
-  (zf/xml-> (xml-zip (:src uniprot))
-            :proteinExistence
-            (zf/attr :type)))
-
-(defn keywords
-  "Keywords as a list of maps."
-  [uniprot]
-  (map #(merge (:attrs (node (zf/xml1-> %)))
-               (hash-map :text (zf/xml1-> % zf/text)))
-       (zf/xml-> (xml-zip (:src uniprot))
-                 :keyword)))
-
-(defn meta-data
-  "Returns a map with uniprot meta-data. Keys - :dataset, :created, :modified
-   and :version. All values are strings except :version, which is an integer."
-  [uniprot]
-  (let [s (xml-zip (:src uniprot))]
-    {:dataset (zf/attr s :dataset)
-     :created (zf/attr s :created)
-     :modified (zf/attr s :modified)
-     :version (if-let [f (zf/attr s :version)]
-                (Integer. ^String f))}))
-
-;; utilities
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; connection
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn- uniprot-process-request
   [address params file]
@@ -405,3 +457,55 @@
            :follow-redirects false}
           f))
         (finally (delete f))))))
+
+(defrecord uniprotConnection [acc-list retype email]
+  bs/biosequenceIO
+  (bs-reader [this]
+    (let [s (get-uniprot-stream (:acc-list this)
+                                (:retype this) (:email this))]
+      (condp = (:retype this)
+        :xml (->uniprotReader (bs/bioreader s))
+        :fasta (bs/init-fasta-reader (reader s) :iupacAminoAcids)))))
+
+(defn init-uniprot-connection
+  "Initialises a connection which can be used with bs-reader to open a
+  lazy list of uniprotProteins from the Uniprot servers."
+  [accessions retype email]
+  {:pre [(#{:xml :fasta} retype)]}
+  (let [l (if (coll? accessions) accessions (list accessions))]
+    (->uniprotConnection l retype email)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; web search
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn uniprot-search
+  "Returns a non-lazy list of uniprot accession numbers satisfying the search term. 
+   The search term uses the same syntax as the uniprot web interface. For 
+   example:
+   - to get all Schistosoma mansoni proteins in the proteome reference set term
+     would be:
+     'organism:6183 AND keyword:1185'
+   - get all Schistosoma mansoni proteins in the proteome set that are intrinsic
+     to the membrane:
+     'taxonomy:6183 AND keyword:1185 AND go:0031224'
+   - get all reviewed human entries:
+     'reviewed:yes AND organism:9606'
+   And so on. Returns an empty list if no matches found. Uniprot
+   requires an email so an email can be supplied using the email argument."
+  ([term email] (uniprot-search term email 0))
+  ([term email offset]
+     (let [r (remove #(= % "")
+                     (-> (bs/get-req
+                          (str "http://www.uniprot.org/uniprot/?query="
+                               term
+                               "&format=list"
+                               (str "&offset=" offset)
+                               "&limit=1000")
+                          {:client-params {"http.useragent"
+                                           (str "clj-http " email)}})
+                         (:body)
+                         (split #"\n")))]
+       (if (empty? r)
+         nil
+         (lazy-cat r (uniprot-search term email (+ offset 1000)))))))

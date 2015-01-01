@@ -9,66 +9,93 @@
             [clojure.pprint :as pp]
             [clojure.data.xml :as xml]))
 
-(declare signal-command make-signal-result)
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; signalp analysis
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defrecord signalpProtein [name cmax cpos ymax ypos
                            smax spos smean D result
-                           Dmaxcut network]
+                           Dmaxcut network])
 
-  bs/Biosequence
-
-  (accession [this]
-    (:name this)))
+(extend signalpProtein
+  bs/biosequenceID
+  (assoc bs/default-biosequence-id
+    :accession
+    (fn [this]
+      (:name this))))
 
 (defn signalp?
   [sp]
   (= "Y" (:result sp)))
 
-;; results
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; reader
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- make-signal-result
+  [line]
+  (let [[name cmax cpos ymax ypos smax spos
+         smean D result Dmaxcut network]
+        (string/split line #"\s+")]
+    (->signalpProtein name (Float/parseFloat cmax)
+                      (Integer/parseInt cpos)
+                      (Float/parseFloat ymax)
+                      (Integer/parseInt ypos)
+                      (Float/parseFloat smax)
+                      (Integer/parseInt spos)
+                      (Float/parseFloat smean)
+                      (Float/parseFloat D) result
+                      (Float/parseFloat Dmaxcut)
+                      network)))
 
 (defrecord signalpReader [strm]
-
   bs/biosequenceReader
-
   (biosequence-seq [this]
     (map #(make-signal-result %)
          (drop 2 (line-seq strm))))
-
   java.io.Closeable
-
   (close [this]
     (.close ^java.io.BufferedReader (:strm this))))
 
-(defrecord signalpFile [file]
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; file
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defrecord signalpFile [file])
+
+(extend signalpFile
   bs/biosequenceIO
-
-  (bs-reader [this]
-    (->signalpReader (io/reader (:file this))))
-
+  {:bs-reader
+   (fn [this]
+     (->signalpReader (io/reader (:file this))))}
   bs/biosequenceFile
+  bs/default-biosequence-file)
 
-  (bs-path [this]
-    (fs/absolute-path (:file this))))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; run signalp
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn- protein-only-error
-  [x]
-  (if (bs/protein? x)
-    (bs/fasta-string x)
-    (throw (Throwable.
-            "SignalP only analyses proteins."))))
+(defn- signal-command
+  [params infile]
+  (let [ak ["-s" "-t" "-u" "-U" "-M" "-c"]
+        up (flatten (vec (select-keys params ak)))]
+    (doseq [w (keys (apply dissoc params ak))]
+      (println (str "warning: " w
+                    " is not a signalp argument - ignored.")))
+    (-> (cons "signalp" up)
+        vec
+        (conj (fs/absolute-path infile)))))
 
 (defn signalp
   "Runs signalp on a collection of biosequences and returns a signalp
-  result file. Only the first 10,000 biosequences will be analysed. For
-  greater numbers see `filter-signalp` or partition collections before
-  running."
+  result file. Only the first 10,000 biosequences will be
+  analysed. For greater numbers see `filter-signalp` or partition
+  collections before running."
   [bs outfile & {:keys [params] :or {params {}}}]
-  (let [in (bs/biosequence->file (take 10000 bs) (fs/temp-file "sp-in")
-                                 :append false
-                                 :func protein-only-error)]
+  {:pre [(not (some false? (map bs/protein? bs)))]}
+  (let [in (bs/biosequence->file (take 10000 bs)
+                                 (fs/temp-file "sp-in")
+                                 :append false)]
     (try
       (with-open [out (io/output-stream outfile)]
         (let [sp @(exec/sh (signal-command params in) {:out out}
@@ -76,17 +103,24 @@
           (if (and (= 0 (:exit sp)) (nil? (:err sp)))
             (->signalpFile (fs/absolute-path outfile))
             (if (:err sp)
-              (throw (Throwable. (str "SignalP error: " (:err sp))))
-              (throw (Throwable. (str "!Exception: " (:exception sp))))))))
+              (throw (Throwable. (str "SignalP error: "
+                                      (:err sp))))
+              (throw (Throwable. (str "!Exception: "
+                                      (:exception sp))))))))
       (catch Exception e
         (fs/delete outfile)
         (fs/delete in)
         (println e))
       (finally (fs/delete in)))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; filter
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defn- trimmed-fasta
   [s c]
-  (bs/init-fasta-sequence (bs/accession s) (bs/def-line s)
+  (bs/init-fasta-sequence (bs/accession s)
+                          (bs/description s)
                           :iupacAminoAcids
                           (subvec (bs/bs-seq s) (+ 1 c))))
 
@@ -116,28 +150,3 @@
            (doall (map #(fs/delete (bs/bs-path %)) sps))))))
 
 ;; private
-
-(defn- make-signal-result
-  [line]
-  (let [[name cmax cpos ymax ypos smax spos smean D result Dmaxcut network]
-        (string/split line #"\s+")]
-    (->signalpProtein name (Float/parseFloat cmax)
-                      (Integer/parseInt cpos)
-                      (Float/parseFloat ymax)
-                      (Integer/parseInt ypos)
-                      (Float/parseFloat smax)
-                      (Integer/parseInt spos)
-                      (Float/parseFloat smean)
-                      (Float/parseFloat D) result
-                      (Float/parseFloat Dmaxcut)
-                      network)))
-
-(defn- signal-command
-  [params infile]
-  (let [ak ["-s" "-t" "-u" "-U" "-M" "-c"]
-        up (flatten (vec (select-keys params ak)))]
-    (doseq [w (keys (apply dissoc params ak))]
-      (println (str "warning: " w " is not a signalp argument - ignored.")))
-    (-> (cons "signalp" up)
-        vec
-        (conj (fs/absolute-path infile)))))

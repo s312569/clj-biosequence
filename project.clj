@@ -13,6 +13,7 @@
                  [com.velisco/tagged "0.3.4"]
                  [clj-http "1.0.0"]
                  [iota "1.1.2"]
+                 [clj-time "0.8.0"]
                  [fs "1.3.3"]
                  [org.clojars.hozumi/clj-commons-exec "1.0.7"]]
   :resource-paths ["shared" "resources"]
