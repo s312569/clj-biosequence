@@ -395,7 +395,6 @@
 
 (defn blast
   [bs program db outfile & {:keys [params] :or {params {}}}]
-  {:pre [(not (fs/file? outfile))]}
   (let [i (bs/biosequence->file bs (fs/temp-file "seq-")
                                 :append false)]
     (try

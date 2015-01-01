@@ -110,7 +110,7 @@
 (defrecord genbankQualifier [src])
 
 (extend genbankQualifier
-  bs/biosequenceName
+  bs/biosequenceNameObject
   (assoc bs/default-biosequence-nameobject
     :obj-name
     (fn [this]
@@ -160,7 +160,7 @@
   [feature name]
   (let [q (filter-qualifiers feature name)]
     (if (seq q)
-      (map bs/bs-value q))))
+      (map bs/obj-value q))))
 
 (defn feature-location
   "Returns the value corresponding to the 'GBFeature_location' element
@@ -178,8 +178,12 @@
   bs/biosequenceGene
   (assoc bs/default-biosequence-gene
     :locus-tag (fn [this] (get-qualifiers this "locus_tag"))
-    :products (fn [this] (get-qualifiers this "product"))
-    :gene-names (fn [this] (get-qualifiers this "gene")))
+    :products (fn [this] (get-qualifiers this "product")))
+  bs/biosequenceID
+  (assoc bs/default-biosequence-id
+    :accessions
+    (fn [this]
+      (map bs/accession (bs/intervals this))))
   bs/biosequenceProtein
   (assoc bs/default-biosequence-protein
     :calc-mol-wt (fn [this]
@@ -202,7 +206,7 @@
                    (get-qualifiers this "codon_start"))
     :translation (fn [this]
                    (get-qualifiers this "translation")))
-  bs/biosequenceName
+  bs/biosequenceNameObject
   (assoc bs/default-biosequence-name
     :obj-name (fn [this]
                 (bs/get-text this :GBFeature_key)))
@@ -243,12 +247,24 @@
   (assoc bs/default-biosequence-tax
     :lineage (fn [this] (bs/get-text this :GBSeq_taxonomy))
     :tax-name (fn [this] (bs/get-text this :GBSeq_organism)))
+  bs/biosequenceFeatures
+  (assoc bs/default-biosequence-features
+    :feature-seq
+    (fn [this]
+      (map #(->genbankFeature %)
+           (:content (some #(if (= (:tag %) :GBSeq_feature-table)
+                              %)
+                           (:content (:src this))))))
+    :filter-features
+    (fn [this name]
+      (filter #(= (bs/obj-name %) name)
+              (bs/feature-seq this))))
   bs/biosequenceDbRefs
-  :get-db-refs
-  (fn [this]
-    (first
-     (->> (bs/filter-features this "source")
-          (mapcat #(bs/get-db-refs %))))))
+  (assoc bs/default-biosequence-dbrefs
+    :get-db-refs
+    (fn [this]
+      (->> (bs/filter-features this "source")
+           (mapcat #(bs/get-db-refs %))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; sequence
@@ -257,6 +273,12 @@
 (defn- gb-date
   [str]
   (bs/make-date str (bs/make-date-format "dd-MMM-yyyy")))
+
+(defn gb-seq-comment
+  "Returns strings from GbSeq_comment xml elements."
+  [gbseq]
+  (fn [this]
+    (bs/get-list this :GBSeq_comment zf/text)))
 
 (defrecord genbankSequence [src])
 

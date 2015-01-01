@@ -85,13 +85,6 @@
 (def default-biosequence-notes
   {:notes return-nil})
 
-(defprotocol biosequenceComments
-  (comments [this]
-    "Returns comments."))
-
-(def default-biosequence-comments
-  {:comments return-nil})
-
 (defprotocol biosequenceUrl
   (url [this]
     "Returns the url.")
@@ -191,8 +184,6 @@
     "Returns the map location.")
   (locus-tag [this]
     "Returns a locus tag.")
-  (gene-names [this]
-    "The gene name")
   (products [this]
     "The products of a gene.")
   (orf [this]
@@ -203,7 +194,6 @@
    :orf return-nil
    :map-location return-nil
    :locus-tag return-nil
-   :gene-names return-nil
    :products return-nil})
 
 (defprotocol biosequenceSummary
@@ -238,7 +228,7 @@
   {:proteins return-nil})
 
 (defprotocol biosequenceProtein
-  (ec [this]
+  (ecs [this]
     "Returns list of E.C numbers.")
   (activities [this]
     "Returns a lit of activities.")
@@ -255,6 +245,8 @@
 
 (defprotocol biosequenceNameObject
   (obj-name [this])
+  (obj-id [this])
+  (obj-description [this])
   (obj-type [this])
   (obj-value [this])
   (obj-label [this])
@@ -263,11 +255,25 @@
 
 (def default-biosequence-nameobject
   {:obj-name return-nil
+   :obj-id return-nil
+   :obj-description return-nil
    :obj-type return-nil
    :obj-value return-nil
    :obj-label return-nil
    :obj-heading return-nil
    :obj-text return-nil})
+
+(defprotocol biosequenceComments
+  (comments [this]
+    "Returns comments.")
+  (filter-comments [this value]
+    "Filters comments based on the return value of obj-type."))
+
+(def default-biosequence-comments
+  {:comments return-nil
+   :filter-comments (fn [this value]
+                      (filter #(= value (obj-type %))
+                              (comments this)))})
 
 (defprotocol biosequenceName
   (names [this]

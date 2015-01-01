@@ -9,7 +9,7 @@
             [clojure.data.xml :as xml]
             [miner.tagged :as tag]
             [iota :as iot]
-            [clj-time.format :refer [formatter parse]]
+            [clj-time.format :refer [formatter parse unparse]]
             [clojure.core.reducers :as r])
   (:import
    (org.apache.commons.compress.compressors.bzip2
@@ -53,6 +53,11 @@
 (defn make-date-format
   [str]
   (formatter str))
+
+(defn parse-date
+  [d]
+  (if d
+    (unparse (formatter "yyyy-MM-dd") d)))
 
 ;; network
 
