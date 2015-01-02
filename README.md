@@ -600,13 +600,13 @@ Implements: Biosequence
 	    biosequenceID
 	    biosequenceName
 	    biosequenceDescription
-	    biosequenceCitations
-	    biosequenceFeatures
-	    biosequenceTaxonomies
-	    biosequenceGenes
-	    biosequenceComments
-	    biosequenceSubcelllocs
-	    biosequenceGoterms
+	    biosequenceCitations ;; returns uniprotCitation records
+	    biosequenceFeatures ;; returns uniprotFeature records
+	    biosequenceTaxonomies ;; returns uniprotTaxref records
+	    biosequenceGenes ;; returns uniprotGene records
+	    biosequenceComments ;; returns uniprotComment records
+	    biosequenceSubcelllocs ;; returns uniprotFeature records containg sub celllar location data
+	    biosequenceGoterms ;; returns uniprotFeature records containg GO data
 	    biosequenceEvidence
 	    biosequenceProtein
 ->uniprotComment
