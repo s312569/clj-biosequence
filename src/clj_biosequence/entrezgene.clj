@@ -1,12 +1,11 @@
 (ns clj-biosequence.entrezgene
   (:require [clojure.data.xml :refer [parse]]
             [clojure.data.zip.xml :as zf]
-            [clojure.zip :as zip]
+            [clojure.zip :refer [node]]
             [clojure.string :refer [split]]
-            [clojure.java.io :as io]
-            [fs.core :as fs]
-            [clj-biosequence.alphabet :as ala]
-            [clj-biosequence.eutilities :as eu]
+            [clojure.java.io :refer [reader]]
+            [fs.core :refer [file?]]
+            [clj-biosequence.eutilities :refer [e-fetch]]
             [clj-biosequence.core :as bs]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -78,7 +77,7 @@
   (assoc bs/default-biosequence-intervals
     :intervals
     (fn [this]
-      (map #(->entrezInterval (zip/node %))
+      (map #(->entrezInterval (node %))
            (bs/get-list this :Seq-loc_int :Seq-interval)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -119,7 +118,7 @@
     :get-db-refs
     (fn [this]
       (if-let [d (bs/get-one this :Other-source_src :Dbtag)]
-        (list (->entrezDbTag (zip/node d)))))))
+        (list (->entrezDbTag (node d)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xtra terms
@@ -152,17 +151,17 @@
   (assoc default-entrez-comments
     :entrez-comments
     (fn [this]
-      (map #(->entrezGeneComment (zip/node %))
+      (map #(->entrezGeneComment (node %))
            (bs/get-list this :Gene-commentary_comment
                         :Gene-commentary)))
     :property-comments
     (fn [this]
-      (map #(->entrezGeneComment (zip/node %))
+      (map #(->entrezGeneComment (node %))
            (bs/get-list this :Gene-commentary_properties
                         :Gene-commentary)))
     :product-comments
     (fn [this]
-      (map #(->entrezGeneComment (zip/node %))
+      (map #(->entrezGeneComment (node %))
            (bs/get-list this :Gene-commentary_products
                         :Gene-commentary))))
   bs/biosequenceComments
@@ -191,7 +190,7 @@
   "Returns a list of vectors with the tag and value pairs from an
   Xtra-Terms in an entrezGeneComment."
   [comment]
-  (map #(let [x {:src (zip/node %)}]
+  (map #(let [x {:src (node %)}]
           (vector (bs/get-text x :Xtra-Terms_tag)
                   (bs/get-text x :Xtra-Terms_value)))
        (bs/get-list comment :Gene-commentary_xtra-properties
@@ -207,14 +206,14 @@
   "Returns a list of other entrezOtherSource records from an
   entrezGeneComment."
   [comment]
-  (map #(->entrezOtherSource (zip/node %))
+  (map #(->entrezOtherSource (node %))
        (bs/get-list comment :Gene-commentary_source :Other-source)))
 
 (defn seq-locations
   "Returns a list of entrezSeqLocation records from an
   entrezGeneComment."
   [comment]
-  (map #(->entrezSeqLocation (zip/node %))
+  (map #(->entrezSeqLocation (node %))
        (concat (bs/get-list comment :Gene-commentary_seqs
                             :Seq-loc)
                (bs/get-list comment
@@ -355,7 +354,7 @@
   "Returns a org-name record from an org ref."
   [org]
   (->entrezOrgName
-   (zip/node (bs/get-one org :Org-ref_orgname :OrgName))))
+   (node (bs/get-one org :Org-ref_orgname :OrgName))))
 
 (defrecord entrezOrgRef [src])
 
@@ -374,7 +373,7 @@
   (assoc bs/default-biosequence-dbrefs
     :get-db-refs
     (fn [this]
-      (map #(->entrezDbTag (zip/node %))
+      (map #(->entrezDbTag (node %))
            (bs/get-list this :Org-ref_db :Dbtag))))
   bs/biosequenceSynonyms
   (assoc bs/default-biosequence-synonyms
@@ -438,12 +437,12 @@
   "Returns an org-ref from an entrezBiosource."
   [biosource]
   (if-let [d (bs/get-one biosource :BioSource_org :Org-ref)]
-    (->entrezOrgRef (zip/node d))))
+    (->entrezOrgRef (node d))))
 
 (defn subsource
   "Returns a list of subsource records from an entrezBiosource."
   [biosource]
-  (map #(->entrezSubSource (zip/node %))
+  (map #(->entrezSubSource (node %))
        (bs/get-list biosource :BioSource_subtype :SubSource)))
 
 (defn pcr-primers
@@ -451,7 +450,7 @@
   [biosource]
   (if-let [d (bs/get-one biosource :BioSource_pcr-primers
                          :PCRReactionSet)]
-    (->entrezOrgRef (zip/node d))))
+    (->entrezOrgRef (node d))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; protein
@@ -481,7 +480,7 @@
   (assoc bs/default-biosequence-dbrefs
     :get-db-refs
     (fn [this]
-      (map #(->entrezDbTag (zip/node %))
+      (map #(->entrezDbTag (node %))
            (bs/get-list this :Prot-ref_db :Dbtag)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -492,37 +491,37 @@
   "Returns an entrezGeneTrack record from a entrezgene."
   [entrezgene]
   (->entrezGeneTrack
-   (zip/node (bs/get-one entrezgene :Entrezgene_track-info :Gene-track))))
+   (node (bs/get-one entrezgene :Entrezgene_track-info :Gene-track))))
 
 (defn entrez-biosource
   "Returns a entrezgeneBiosource from an entrezgene."
   [entrezgene]
   (->entrezBiosource
-   (zip/node (bs/get-one entrezgene :Entrezgene_source :BioSource))))
+   (node (bs/get-one entrezgene :Entrezgene_source :BioSource))))
 
 (defn entrez-location
   "Returns a list of location maps from an entrezgene"
   [entrezgene]
-  (map #(->entrezMap (zip/node %))
+  (map #(->entrezMap (node %))
        (bs/get-list entrezgene :Entrezgene_location :Maps)))
 
 (defn entrez-gene-source
   "Returns a gene source record from an entrezgene."
   [entrezgene]
   (->entrezGeneSource
-   (zip/node
+   (node
     (bs/get-one entrezgene :Entrezgene_gene-source :Gene-source))))
 
 (defn entrez-unique-keys
   "Returns a list of entrezDbtags representing unique keys."
   [entrezgene]
-  (map #(->entrezDbTag (zip/node %))
+  (map #(->entrezDbTag (node %))
        (bs/get-list entrezgene :Entrezgene_unique-keys :Dbtag)))
 
 (defn entrez-non-unique-keys
   "Returns a list of entrezDbtags representing non-unique keys."
   [entrezgene]
-  (map #(->entrezDbTag (zip/node %))
+  (map #(->entrezDbTag (node %))
        (bs/get-list entrezgene :Entrezgene_non-unique-keys :Dbtag)))
 
 (defrecord entrezGene [src])
@@ -556,28 +555,28 @@
   bs/biosequenceDbRefs
   (assoc bs/default-biosequence-dbrefs
     :get-db-refs (fn [this]
-                   (map #(->entrezDbTag (zip/node %))
+                   (map #(->entrezDbTag (node %))
                         (bs/get-list this :Entrezgene_gene :Gene-ref
                                      :Gene-ref_db :Dbtag))))
   entrezComments
   (assoc default-entrez-comments
     :entrez-comments
     (fn [this]
-      (map #(->entrezGeneComment (zip/node %))
+      (map #(->entrezGeneComment (node %))
            (bs/get-list this :Entrezgene_comments :Gene-commentary)))
     :property-comments
     (fn [this]
-      (map #(->entrezGeneComment (zip/node %))
+      (map #(->entrezGeneComment (node %))
            (bs/get-list this :Entrezgene_properties
                         :Gene-commentary)))
     :homology-comments
     (fn [this]
-      (map #(->entrezGeneComment (zip/node %))
+      (map #(->entrezGeneComment (node %))
            (bs/get-list this :Entrezgene_homology
                         :Gene-commentary)))
     :locus-comments
     (fn [this]
-      (map #(->entrezGeneComment (zip/node %))
+      (map #(->entrezGeneComment (node %))
            (bs/get-list this :Entrezgene_locus
                         :Gene-commentary))))
   bs/biosequenceComments
@@ -618,7 +617,7 @@
     :proteins
     (fn [this]
       (list (->entrezProtein
-             (zip/node (bs/get-one this :Entrezgene_prot
+             (node (bs/get-one this :Entrezgene_prot
                                    :Prot-ref))))))
   bs/Biosequence
   (assoc bs/default-biosequence-biosequence
@@ -656,12 +655,13 @@
 (extend entrezgeneFile
   bs/biosequenceIO
   {:bs-reader (fn [this]
-                (init-gene-reader (io/reader (:file this))))}
+                (init-gene-reader (reader (:file this))))}
   bs/biosequenceFile
   bs/default-biosequence-file)
 
 (defn init-entrezgene-file
   [file & {:keys [encoding] :or {encoding "UTF-8"}}]
+  {:pre [(file? file)]}
   (->entrezgeneFile file encoding))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -672,8 +672,8 @@
   bs/biosequenceIO
   (bs-reader [this]
     (init-gene-reader
-     (io/reader
-      (eu/e-fetch (:acc-list this) "gene" nil "xml")))))
+     (reader
+      (e-fetch (:acc-list this) "gene" nil "xml")))))
 
 (defn init-entrezgene-connection
   [acc-list]

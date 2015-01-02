@@ -1,13 +1,12 @@
 (ns clj-biosequence.genbank
-  (:require [clojure.data.xml :as xml]
+  (:require [clojure.data.xml :refer [parse]]
             [clojure.data.zip.xml :as zf]
-            [clojure.zip :as zip]
+            [clojure.zip :refer [xml-zip node]]
             [clojure.string :refer [split]]
-            [clojure.java.io :as io]
-            [fs.core :as fs]
-            [clj-biosequence.alphabet :as ala]
+            [clojure.java.io :refer [reader]]
+            [fs.core :refer [file?]]
             [clj-biosequence.core :as bs]
-            [clj-biosequence.eutilities :as eu]))
+            [clj-biosequence.eutilities :refer [e-search e-fetch]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; genbank citation
@@ -20,36 +19,36 @@
   (assoc bs/default-biosequence-citation
     :title
     (fn [this]
-           (zf/xml1-> (zip/xml-zip (:src this))
+           (zf/xml1-> (xml-zip (:src this))
                       :GBReference_title zf/text))
     :journal
     (fn [this]
-      (zf/xml1-> (zip/xml-zip (:src this))
+      (zf/xml1-> (xml-zip (:src this))
                  :GBReference_journal zf/text))
     :year
     (fn [this]
-      (zf/xml1-> (zip/xml-zip (:src this))
+      (zf/xml1-> (xml-zip (:src this))
                  :GBReference_journal zf/text))
     :volume
     (fn [this]
-      (zf/xml1-> (zip/xml-zip (:src this))
+      (zf/xml1-> (xml-zip (:src this))
                  :GBReference_journal zf/text))
     :pstart
     (fn [this]
-      (zf/xml1-> (zip/xml-zip (:src this))
+      (zf/xml1-> (xml-zip (:src this))
                  :GBReference_journal zf/text))
     :pend
     (fn [this]
-      (zf/xml1-> (zip/xml-zip (:src this))
+      (zf/xml1-> (xml-zip (:src this))
                  :GBReference_journal zf/text))
     :authors
     (fn [this]
-      (zf/xml-> (zip/xml-zip (:src this))
+      (zf/xml-> (xml-zip (:src this))
                 :GBReference_authors
                 :GBAuthor zf/text))
     :pubmed
     (fn [this]
-      (zf/xml1-> (zip/xml-zip (:src this))
+      (zf/xml1-> (xml-zip (:src this))
                  :GBReference_pubmed zf/text))
     :crossrefs
     (fn [this]
@@ -59,13 +58,13 @@
                           zf/text)
                (zf/xml1-> x :GBXref :GBXref_id
                           zf/text)))
-           (zf/xml-> (zip/xml-zip (:src this))
+           (zf/xml-> (xml-zip (:src this))
                      :GBReference_xref))))
   bs/biosequenceNotes
   (assoc bs/default-biosequence-notes
     :notes
     (fn [this]
-      (zf/xml-> (zip/xml-zip (:src this))
+      (zf/xml-> (xml-zip (:src this))
                 :GBReference_remark zf/text))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -145,7 +144,7 @@
   "Collection of qualifiers in a genbankFeature record."
   [feature]
   (->> (bs/get-list feature :GBFeature_quals :GBQualifier)
-       (map #(->genbankQualifier (zip/node %)))))
+       (map #(->genbankQualifier (node %)))))
 
 (defn filter-qualifiers
   "Filter qualifiers in a genbankFeature record using bs-name
@@ -217,7 +216,7 @@
       (let [m (atom 1)
             r {1 3 2 2 0 1}
             f {3 2 2 1 1 0}]
-        (map #(let [i (->genbankInterval (zip/node %))
+        (map #(let [i (->genbankInterval (node %))
                     fi (assoc i :frame
                               (if (bs/comp? i) (* @m -1) @m))
                     l (if (bs/comp? fi)
@@ -342,7 +341,7 @@
   (assoc bs/default-biosequence-citations
     :citations
     (fn [this]
-      (map #(->genbankCitation (zip/node %))
+      (map #(->genbankCitation (node %))
            (bs/get-list this :GBSeq_references :GBReference))))
   bs/biosequenceFeatures
   (assoc bs/default-biosequence-features
@@ -367,7 +366,7 @@
 (defrecord genbankReader [strm]
   bs/biosequenceReader
   (biosequence-seq [this]
-    (let [xml (xml/parse (:strm this) :support-dtd false)]
+    (let [xml (parse (:strm this) :support-dtd false)]
       (map (fn [x]
              (vec x) ;; realising all the laziness
              (->genbankSequence x))
@@ -392,14 +391,14 @@
   bs/biosequenceIO
   {:bs-reader
    (fn [this]
-     (init-genbank-reader (io/reader (:file this))))}
+     (init-genbank-reader (reader (:file this))))}
   bs/biosequenceFile
   bs/default-biosequence-file)
 
 (defn init-genbank-file
   "Initializes a genbankFile record."
   [file]
-  {:pre [(fs/file? file)]}
+  {:pre [(file? file)]}
   (->genbankFile file))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -409,7 +408,7 @@
 (defrecord genbankString [str]
   bs/biosequenceIO
   (bs-reader [this]
-    (init-genbank-reader (io/reader (:str this)))))
+    (init-genbank-reader (reader (:str this)))))
 
 (defn init-genbank-string
   "Initializes a genbankString record."
@@ -423,16 +422,16 @@
 (defrecord genbankConnection [acc-list db retype]
   bs/biosequenceIO
   (bs-reader [this]
-    (let [s (eu/e-fetch (:acc-list this)
+    (let [s (e-fetch (:acc-list this)
                         (:db this)
                         (condp = (:retype this)
                           :xml "gb" :fasta "fasta")
                         (condp = (:retype this)
                           :xml "xml" :fasta "text"))]
       (condp = (:retype this)
-        :xml (init-genbank-reader (io/reader s))
+        :xml (init-genbank-reader (reader s))
         :fasta (bs/init-fasta-reader
-                (io/reader s)
+                (reader s)
                 (cond (#{:nucest :nuccore :nucgss :popset} db)
                       :iupacNucleicAcids
                       (= :protein db)
@@ -475,4 +474,4 @@
   ([term db] (genbank-search term db 0 nil))
   ([term db restart key]
    {:pre [(#{:nucest :nuccore :nucgss :popset :protein} db)]}
-   (eu/e-search term db restart key)))
+   (e-search term db restart key)))

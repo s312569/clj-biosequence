@@ -1,13 +1,9 @@
 (ns clj-biosequence.signalp
-  (:require [clojure.java.io :as io]
+  (:require [clojure.java.io :refer [reader output-stream]]
             [fs.core :as fs]
-            [clj-commons-exec :as exec]
-            [clojure.data.zip.xml :as zf]
-            [clojure.zip :as zip]
+            [clj-commons-exec :refer [sh]]
             [clj-biosequence.core :as bs]
-            [clojure.string :as string]
-            [clojure.pprint :as pp]
-            [clojure.data.xml :as xml]))
+            [clojure.string :refer [split]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; signalp analysis
@@ -36,7 +32,7 @@
   [line]
   (let [[name cmax cpos ymax ypos smax spos
          smean D result Dmaxcut network]
-        (string/split line #"\s+")]
+        (split line #"\s+")]
     (->signalpProtein name (Float/parseFloat cmax)
                       (Integer/parseInt cpos)
                       (Float/parseFloat ymax)
@@ -67,7 +63,7 @@
   bs/biosequenceIO
   {:bs-reader
    (fn [this]
-     (->signalpReader (io/reader (:file this))))}
+     (->signalpReader (reader (:file this))))}
   bs/biosequenceFile
   bs/default-biosequence-file)
 
@@ -97,8 +93,8 @@
                                  (fs/temp-file "sp-in")
                                  :append false)]
     (try
-      (with-open [out (io/output-stream outfile)]
-        (let [sp @(exec/sh (signal-command params in) {:out out}
+      (with-open [out (output-stream outfile)]
+        (let [sp @(sh (signal-command params in) {:out out}
                            :close-err? false)]
           (if (and (= 0 (:exit sp)) (nil? (:err sp)))
             (->signalpFile (fs/absolute-path outfile))

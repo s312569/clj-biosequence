@@ -75,11 +75,8 @@ user> (with-open [r (bs-reader fa-file)]
 ```
 
 And thats just about it. The same pattern is used for all sequence
-formats supported (at the moment this includes Genbank xml, Uniprot
-xml, fasta, fastq, bed and arf formats) and each format has a number
-of accessor functions providing access to information contained in the
-format. `clj-biosequence.core` also defines a set of functions
-supported by all formats as outlined here.
+formats supported (at the moment this includes Geneseq xml, Entrezgene
+xml, Uniprot xml, fasta and fastq formats).
 
 Some examples:
 
@@ -130,12 +127,15 @@ user> (with-open [r (bs-reader fa-file)]
 ;; a Uniprot to fasta converter is thus:
 
 user> (with-open [r (bs-reader uniprot-f)]
-                 (biosequence->file (biosequence-seq r) "/tmp/fasta.fa"))
+                 (biosequence->file (biosequence-seq r)
+		                     "/tmp/fasta.fa"))
 "/tmp/fasta.fa"
-user> (with-open [r (bs-reader (init-fasta-file "/tmp/fasta.fa" :iupacAminoAcids))]
+user> (with-open [r (bs-reader (init-fasta-file "/tmp/fasta.fa"
+                               :iupacAminoAcids))]
                  (count (biosequence-seq r)))
 2
-user> (with-open [r (bs-reader (init-fasta-file "/tmp/fasta.fa" :iupacAminoAcids))]
+user> (with-open [r (bs-reader (init-fasta-file "/tmp/fasta.fa"
+                                                :iupacAminoAcids))]
                  (class (first (biosequence-seq r))))
 clj_biosequence.core.fastaSequence
 
@@ -206,8 +206,7 @@ user> (with-open [r (bs-reader fa-ind-2)]
         (accession (get-biosequence r "gi|114311762|gb|EE738912.1|EE738912"))
 "gi|114311762|gb|EE738912.1|EE738912"
 
-;; biosequence collections can be indexed using `index-biosequence-list` but the
-;; base name of the index needs to be supplied
+;; biosequence collections can be indexed using `index-biosequence-list`.
 
 user> (def fa-ind-3 (with-open [r (bs-reader fa-file)]
                       (index-biosequence-list (biosequence-seq r)
@@ -228,10 +227,6 @@ user> (def secreted (with-open [r (bs-reader toxins)]
 user> (with-open [r (bs-reader fa-ind-3)]
         (count (biosequence-seq r))
 6
-
-;; Finally, multi biosequence files can be merged into a single index using.
-;; `index-biosequence-multi-file`. Once again the path and basename of the index
-;; files needs to be supplied.
 ```
 ## BLAST
 
@@ -582,6 +577,9 @@ clj_biosequence.genbank.genbankSequence
 
 ## Supported formats
 
+clj-biosequence uses protocols and records to provide a uniformish
+interface to diferent formats.
+
 ### Uniprot
 
 ```clojure
@@ -595,13 +593,53 @@ user> (with-open [r (bs-reader up)]
                  (count (biosequence-seq r)))
 2
 
-;; In addition to the accessors defined in the core module there are a
-;; number of convenience functions (see documentation for full
-;; details).
+;; records and protocols implemented by them are as follows:
 
-user> (with-open [r (bs-reader up)]
-        (-> (biosequence-seq r) first sequence-info))
-{:length 272, :mass 29662.0, :checksum "11A38702F71B84D8", :modified "2010-03-23", :version 2}
+->uniprotProtein ;; top level record for uniprot sequences
+Implements: Biosequence
+	    biosequenceID
+	    biosequenceName
+	    biosequenceDescription
+	    biosequenceCitations
+	    biosequenceFeatures
+	    biosequenceTaxonomies
+	    biosequenceGenes
+	    biosequenceComments
+	    biosequenceSubcelllocs
+	    biosequenceGoterms
+	    biosequenceEvidence
+	    biosequenceProtein
+->uniprotComment
+Implements: biosequenceSubcellloc
+	    biosequenceSubcellloc
+->uniprotGene
+Implements: biosequenceGene
+	    biosequenceID
+	    biosequenceSynonyms
+->uniprotTaxref
+Implements: biosequenceTaxonomy
+	    biosequenceDbrefs
+	    biosequenceEvidence
+->uniprotDbref
+Implements: biosequenceDbref
+	    biosequenceGoterm
+	    biosequenceEvidence
+->uniprotFeature
+Implements: biosequenceNameobject
+	    biosequenceID
+	    biosequenceStatus
+	    biosequenceDescription
+	    biosequenceEvidence
+	    biosequenceCitations
+	    biosequenceIntervals
+	    Biosequence
+	    biosequenceVariant
+->uniprotInterval
+Implements: biosequenceInterval
+	    biosequenceStatus
+	    biosequenceEvidence
+->uniprotCitation
+Implements: biosequenceCitation
 
 user> (with-open [r (bs-reader up)]
         (-> (biosequence-seq r) first lineage))

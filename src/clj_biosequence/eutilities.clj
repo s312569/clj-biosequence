@@ -1,19 +1,16 @@
 (ns clj-biosequence.eutilities
-  (:require [clojure.data.xml :as xml]
-            [clojure.data.zip.xml :as zf]
-            [clojure.zip :as zip]
+  (:require [clojure.data.xml :refer [parse-str]]
+            [clojure.data.zip.xml :refer [xml1-> xml-> text]]
+            [clojure.zip :refer [xml-zip]]
             [clojure.string :refer [split]]
-            [clojure.java.io :as io]
-            [fs.core :as fs]
-            [clj-biosequence.alphabet :as ala]
-            [clj-biosequence.core :as bs]))
+            [clj-biosequence.core :refer [get-req post-req]]))
 
 (defn- search-helper
   ([term db retstart] (search-helper term db retstart nil))
   ([term db retstart key]
-     (xml/parse-str
+     (parse-str
       (:body
-       (bs/get-req
+       (get-req
         (str "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db="
              (java.net.URLEncoder/encode (name db))
              "&term="
@@ -29,11 +26,11 @@
   ([term db] (e-search term db 0 nil))
   ([term db restart key]
      (let [r (search-helper term db restart key)
-           k (zf/xml1-> (zip/xml-zip r) :WebEnv zf/text)
-           c (Integer/parseInt (zf/xml1-> (zip/xml-zip r) :Count zf/text))]
+           k (xml1-> (xml-zip r) :WebEnv text)
+           c (Integer/parseInt (xml1-> (xml-zip r) :Count text))]
        (if (> restart c)
          nil
-         (lazy-cat (zf/xml-> (zip/xml-zip r) :IdList :Id zf/text)
+         (lazy-cat (xml-> (xml-zip r) :IdList :Id text)
                    (e-search term db (+ restart 1000) k))))))
 
 (defn e-fetch
@@ -44,7 +41,7 @@
   [a-list db rettype retmode]
   (if (empty? a-list)
     nil
-    (let [r (bs/post-req "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+    (let [r (post-req "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
                          {:query-params
                           (merge {:db (name db)
                                   :id (apply str

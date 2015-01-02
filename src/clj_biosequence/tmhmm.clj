@@ -1,13 +1,9 @@
 (ns clj-biosequence.tmhmm
-  (:require [clojure.java.io :as io]
-            [fs.core :as fs]
+  (:require [clojure.java.io :refer [reader output-stream]]
+            [fs.core :refer [temp-file absolute-path delete]]
             [clj-commons-exec :as exec]
-            [clojure.data.zip.xml :as zf]
-            [clojure.zip :as zip]
             [clj-biosequence.core :as bs]
-            [clojure.string :as string]
-            [clojure.pprint :as pp]
-            [clojure.data.xml :as xml]))
+            [clojure.string :refer [split]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; sequence
@@ -34,11 +30,11 @@
 (defn- make-tmhmm-result
   [line]
   (let [[accession length expaa first60 predhel topology]
-        (map #(let [spl (string/split % #"=")]
+        (map #(let [spl (split % #"=")]
                 (if (second spl)
                   (second spl)
                   (first spl)))
-             (string/split line #"\s+"))]
+             (split line #"\s+"))]
     (->tmhmmProtein accession
                     (Integer/parseInt length)
                     (Float/parseFloat expaa)
@@ -47,7 +43,7 @@
                     topology)))
 
 (defrecord tmhmmReader [strm]
-  bios/biosequenceReader
+  bs/biosequenceReader
   (biosequence-seq [this]
     (map #(make-tmhmm-result %)
          (line-seq strm)))
@@ -65,7 +61,7 @@
   bs/biosequenceIO
   {:bs-reader
    (fn [this]
-     (->tmhmmReader (io/reader (bs/bs-path this))))}
+     (->tmhmmReader (reader (bs/bs-path this))))}
   bs/biosequenceFile
   bs/default-biosequence-file)
 
@@ -74,21 +70,21 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn tmhmm
-  [bs & {:keys [outfile] :or {outfile (fs/temp-file "sp-out")}}]
+  [bs & {:keys [outfile] :or {outfile (temp-file "sp-out")}}]
   {:pre [(not (some false? (map bs/protein? bs)))]}
-  (let [in (bios/biosequence->file bs
-                                   (fs/temp-file "sp-in")
+  (let [in (bs/biosequence->file bs
+                                   (temp-file "sp-in")
                                    :append false)]
-    (with-open [out (io/output-stream outfile)]
+    (with-open [out (output-stream outfile)]
       (try (let [sp @(exec/sh ["tmhmm" "-short"
-                               (fs/absolute-path in)] {:out out})]
+                               (absolute-path in)] {:out out})]
              (if (= 0 (:exit sp))
-               (->tmhmmFile (fs/absolute-path outfile))
+               (->tmhmmFile (absolute-path outfile))
                (if (:err sp)
                  (throw (Throwable. (str "TMHMM error: "
                                          (:err sp))))
                  (throw (Throwable. (str "Exception: "
                                          (:exception sp)))))))
-           (finally (fs/delete in))))))
+           (finally (delete in))))))
 
 ;; private

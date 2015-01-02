@@ -38,7 +38,8 @@
   (gos [this]
     "Returns go term records."))
 
-(def default-biosequence-goterms
+(def ^{:doc "Default implementation of biosequenceGoTerms protocol."}
+  default-biosequence-goterms
   {:gos return-nil})
 
 (defprotocol biosequenceGoTerm
@@ -49,7 +50,8 @@
   (go-component [this]
     "The GO component, molecular function etc."))
 
-(def default-biosequence-goterm
+(def ^{:doc "Default implementation of biosequenceGoTerm protocol."}
+  default-biosequence-goterm
   {:go-id return-nil
    :go-term return-nil
    :go-component return-nil})
@@ -62,7 +64,8 @@
   (get-db-refs [this]
     "Returns db ref records."))
 
-(def default-biosequence-dbrefs
+(def ^{:doc "Default implementation of biosequenceDbRefs protocol."}
+  default-biosequence-dbrefs
   {:get-db-refs return-nil})
 
 (defprotocol biosequenceDbRef
@@ -73,7 +76,8 @@
   (db-properties [this]
     "Returns properties of the reference."))
 
-(def default-biosequence-dbref
+(def ^{:doc "Default implementation of biosequenceDbRef protocol."}
+  default-biosequence-dbref
   {:database-name return-nil
    :object-id return-nil
    :db-properties return-nil})
@@ -82,7 +86,8 @@
   (notes [this]
     "Returns notes."))
 
-(def default-biosequence-notes
+(def ^{:doc "Default implementation of biosequenceNotes protocol."}
+  default-biosequence-notes
   {:notes return-nil})
 
 (defprotocol biosequenceUrl
@@ -95,7 +100,8 @@
   (post-text [this]
     "Text after anchor"))
 
-(def default-biosequence-url
+(def ^{:doc "Default implementation of biosequenceUrl protocol."}
+  default-biosequence-url
   {:url return-nil
    :pre-text return-nil
    :anchor return-nil
@@ -105,21 +111,24 @@
   (description [this]
     "Returns the description of a biosequence object."))
 
-(def default-biosequence-description
+(def ^{:doc "Default implementation of biosequenceDescription protocol."}
+  default-biosequence-description
   {:description return-nil})
 
 (defprotocol biosequenceSynonyms
   (synonyms [this]
     "Returns a list of synonyms."))
 
-(def default-biosequence-synonyms
+(def ^{:doc "Default implementation of biosequenceSynonyms protocol."}
+  default-biosequence-synonyms
   {:synonyms return-nil})
 
 (defprotocol biosequenceStatus
   (status [this]
     "Status of a biosequence."))
 
-(def default-biosequence-status
+(def ^{:doc "Default implementation of biosequenceStatus protocol."}
+  default-biosequence-status
   {:status return-nil})
 
 (defprotocol biosequenceID
@@ -138,7 +147,8 @@
   (discontinue-date [this]
     "Returns a date object."))
 
-(def default-biosequence-id
+(def ^{:doc "Default implementation of biosequenceID protocol."}
+  default-biosequence-id
   {:accession return-nil
    :accessions return-nil
    :dataset return-nil
@@ -151,7 +161,8 @@
   (tax-refs [src]
     "Returns taxonomy records."))
 
-(def default-biosequence-taxonomies
+(def ^{:doc "Default implementation of biosequenceTaxonomies protocol."}
+  default-biosequence-taxonomies
   {:tax-refs return-nil})
 
 (defprotocol biosequenceTaxonomy
@@ -164,7 +175,8 @@
   (lineage [this]
     "Returns a lineage string."))
 
-(def default-biosequence-tax
+(def ^{:doc "Default implementation of biosequenceTaxonomy protocol."}
+  default-biosequence-tax
   {:tax-name (fn [_] nil)
    :common-name (fn [_] nil)
    :mods (fn [_] nil)
@@ -174,7 +186,8 @@
   (genes [this]
     "Returns sub-seq gene records."))
 
-(def default-biosequence-genes
+(def ^{:doc "Default implementation of biosequenceGenes protocol."}
+  default-biosequence-genes
   {:genes return-nil})
 
 (defprotocol biosequenceGene
@@ -189,7 +202,8 @@
   (orf [this]
     "ORF associated with the gene."))
 
-(def default-biosequence-gene
+(def ^{:doc "Default implementation of biosequenceGene protocol."}
+  default-biosequence-gene
   {:locus return-nil
    :orf return-nil
    :map-location return-nil
@@ -200,7 +214,8 @@
   (summary [this]
     "Returns the summary of a sequence."))
 
-(def default-biosequence-summary
+(def ^{:doc "Default implementation of biosequenceSummary protocol."}
+  default-biosequence-summary
   {:summary return-nil})
 
 (defprotocol biosequenceVariant
@@ -209,7 +224,8 @@
   (variant [this]
     "Returns the variant."))
 
-(def default-biosequence-variant
+(def ^{:doc "Default implementation of biosequenceVariant protocol."}
+  default-biosequence-variant
   {:original return-nil
    :variant return-nil})
 
@@ -218,13 +234,15 @@
     "Returns evidence records."))
 
 (def default-biosequence-evidence
+  ^{:doc "Default implementation of biosequenceEvidence protocol."}
   {:evidence return-nil})
 
 (defprotocol biosequenceProteins
   (proteins [this]
     "Returns protein sub-seq records."))
 
-(def default-biosequence-proteins
+(def ^{:doc "Default implementation of biosequenceProteins protocol."}
+  default-biosequence-proteins
   {:proteins return-nil})
 
 (defprotocol biosequenceProtein
@@ -237,7 +255,8 @@
   (calc-mol-wt [this]
     "The calculated molecular weight."))
 
-(def default-biosequence-protein
+(def ^{:doc "Default implementation of biosequenceProtein protocol."}
+  default-biosequence-protein
   {:ec return-nil
    :protein-ids return-nil
    :activities return-nil
@@ -253,7 +272,8 @@
   (obj-heading [this])
   (obj-text [this]))
 
-(def default-biosequence-nameobject
+(def ^{:doc "Default implementation of biosequenceNameObject protocol."}
+  default-biosequence-nameobject
   {:obj-name return-nil
    :obj-id return-nil
    :obj-description return-nil
@@ -269,7 +289,8 @@
   (filter-comments [this value]
     "Filters comments based on the return value of obj-type."))
 
-(def default-biosequence-comments
+(def ^{:doc "Default implementation of biosequenceComments protocol."}
+  default-biosequence-comments
   {:comments return-nil
    :filter-comments (fn [this value]
                       (filter #(= value (obj-type %))
@@ -291,7 +312,8 @@
   (innnames [this]
     "Returns the innname."))
 
-(def default-biosequence-name
+(def ^{:doc "Default implementation of biosequenceName protocol."}
+  default-biosequence-name
   {:names return-nil
    :alternate-names return-nil
    :submitted-names return-nil
@@ -309,9 +331,11 @@
     "Returns the alphabet of a biosequence.")
   (moltype [this]
     "Returns the moltype of a biosequence.")
-  (keywords [this]))
+  (keywords [this]
+    "Returns a collection of keywords."))
 
-(def default-biosequence-biosequence
+(def ^{:doc "Default implementation of Biosequence protocol."}
+  default-biosequence-biosequence
   {:bs-seq return-nil
    :protein? (fn [_] false)
    :alphabet return-nil
@@ -324,7 +348,8 @@
   (citation-key [this]
     "Returns a citation key from a record."))
 
-(def default-biosequence-citations
+(def ^{:doc "Default implementation of biosequenceCitations protocol."}
+  default-biosequence-citations
   {:citations return-nil
    :citation-key return-nil})
 
@@ -350,7 +375,8 @@
   (abstract [this]
     "Returns the abstract"))
 
-(def default-biosequence-citation
+(def ^{:doc "Default implementation of biosequenceCitation protocol."}
+  default-biosequence-citation
   {:title return-nil
    :journal return-nil
    :year return-nil
@@ -373,7 +399,8 @@
   (codon-start [this]
     "The start codon."))
 
-(def default-biosequence-translation
+(def ^{:doc "Default implementation of biosequenceTranslation protocol."}
+  default-biosequence-translation
   {:frame return-nil
    :codon-start return-nil
    :trans-table return-nil
@@ -383,7 +410,8 @@
   (bs-path [this]
     "Returns the path of the file as string."))
 
-(def default-biosequence-file
+(def ^{:doc "Default implementation of biosequenceFile protocol."}
+  default-biosequence-file
   {:bs-path (fn [this] (absolute-path (:file this)))})
 
 (defprotocol biosequenceFeatures
@@ -393,7 +421,8 @@
     "Returns a list of features that return 'name' when called using
     bs/bs-name from biosequenceName protocol."))
 
-(def default-biosequence-features
+(def ^{:doc "Default implementation of biosequenceFeatures protocol."}
+  default-biosequence-features
   {:feature-seq return-nil
    :filter-features return-nil})
 
@@ -401,14 +430,16 @@
   (operator [this]
     "Returns an operator for dealing with intervals."))
 
-(def default-biosequence-feature
+(def ^{:doc "Default implementation of biosequenceFeature protocol."}
+  default-biosequence-feature
   {:operator return-nil})
 
 (defprotocol biosequenceIntervals
   (intervals [this]
     "Returns a list of intervals."))
 
-(def default-biosequence-intervals
+(def ^{:doc "Default implementation of biosequenceIntervals protocol."}
+  default-biosequence-intervals
   {:intervals return-nil})
 
 (defprotocol biosequenceInterval
@@ -422,7 +453,8 @@
     "Is the interval complementary to the biosequence
     sequence. Boolean"))
 
-(def default-biosequence-interval
+(def ^{:doc "Default implementation of biosequenceInterval protocol."}
+  default-biosequence-interval
   {:start return-nil
    :end return-nil
    :point return-nil
@@ -432,7 +464,8 @@
 (defprotocol biosequenceSubCellLocs
   (subcell-locations [this]))
 
-(def default-biosequence-subcells
+(def ^{:doc "Default implementation of biosequenceSubCellLocs protocol."}
+  default-biosequence-subcells
   {:subcell-locations return-nil})
 
 (defprotocol biosequenceSubCellLoc
@@ -440,7 +473,9 @@
   (subcell-topol [this])
   (subcell-orient [this]))
 
-(def default-biosequence-subcell
+(def
+  ^{:doc "Default implementation of biosequenceSubCellLoc protocol."}
+  default-biosequence-subcell
   {:subcell-location return-nil
    :subcell-topol return-nil
    :subcell-orient return-nil})

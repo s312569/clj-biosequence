@@ -5,9 +5,6 @@
             [clojure.string :refer [trim split upper-case]]
             [clj-biosequence.alphabet :as ala]
             [clj-biosequence.indexing :as ind]
-            [clojure.edn :as edn]
-            [clojure.data.xml :as xml]
-            [miner.tagged :as tag]
             [iota :as iot]
             [clj-time.format :refer [formatter parse unparse]]
             [clojure.core.reducers :as r])
@@ -15,31 +12,28 @@
    (org.apache.commons.compress.compressors.bzip2
     BZip2CompressorInputStream)))
 
-(declare init-fasta-store init-fasta-sequence translate init-index-file)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; protocols 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(load "protocols")
+(declare init-fasta-sequence)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; utilities
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmacro get-text
+  "Low level macro for retrieving data from xml elements."
   [obj & keys]
-  `(zf/xml1-> (zip/xml-zip (:src ~obj))
-              ~@keys zf/text))
+  `(zf/xml1-> (clojure.zip/xml-zip (:src ~obj))
+              ~@keys clojure.data.zip.xml/text))
 
 (defmacro get-list
+  "Low level macro for retrieving data from xml elements."
   [obj & keys]
-  `(zf/xml-> (zip/xml-zip (:src ~obj))
+  `(zf/xml-> (clojure.zip/xml-zip (:src ~obj))
             ~@keys))
 
 (defmacro get-one
+  "Low level macro for retrieving data from xml elements."
   [obj & keys]
-  `(zf/xml1-> (zip/xml-zip (:src ~obj))
+  `(zf/xml1-> (clojure.zip/xml-zip (:src ~obj))
               ~@keys))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -59,7 +53,15 @@
   (if d
     (unparse (formatter "yyyy-MM-dd") d)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; protocols 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(load "protocols")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; network
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def bioseq-proxy (atom {}))
 

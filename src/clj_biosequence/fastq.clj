@@ -1,8 +1,7 @@
 (ns clj-biosequence.fastq
-  (:require [clojure.java.io :as io]
-            [clojure.string :as string]
+  (:require [clojure.java.io :refer [reader writer]]
             [clj-biosequence.core :as bs]
-            [fs.core :as fs]))
+            [fs.core :refer [file? exists?]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; sequence
@@ -80,7 +79,7 @@
 (defn init-fastq-file
   "Returns a fastqFile record."
   [^String path & opts]
-  {:pre [(fs/file? path)]}
+  {:pre [(file? path)]}
   (->fastqFile path opts))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -107,14 +106,14 @@
   "Takes forward and reverse reads from paired end sequencing data and
   interleaves them in a single file."
   [^fastqFile forward ^fastqFile reverse ^String out]
-  {:pre [(fs/exists? (bs/bs-path forward))
-         (fs/exists? (bs/bs-path reverse))]}
+  {:pre [(exists? (bs/bs-path forward))
+         (exists? (bs/bs-path reverse))]}
   (with-open [^java.io.BufferedReader f
-              (io/reader (bs/bs-path forward))
+              (reader (bs/bs-path forward))
               ^java.io.BufferedReader r
-              (io/reader (bs/bs-path reverse))
+              (reader (bs/bs-path reverse))
               ^java.io.BufferedWriter o
-              (io/writer out)]
+              (writer out)]
     (loop [fl (.readLine f)]
       (when fl
         (.write o fl)
@@ -139,13 +138,13 @@
   "Takes a fastq file with interleaved paired-end sequences and
   separates forward and reverse reads into separate files."
   [^String forward-out ^String reverse-out ^fastqFile in]
-  {:pre [(fs/exists? (bs/bs-path in))]}
+  {:pre [(exists? (bs/bs-path in))]}
   (with-open [^java.io.BufferedWriter f
-              (io/writer forward-out)
+              (writer forward-out)
               ^java.io.BufferedWriter r
-              (io/writer reverse-out)
+              (writer reverse-out)
               ^java.io.BufferedReader i
-              (io/reader (bs/bs-path in))]
+              (reader (bs/bs-path in))]
     (loop [fl (.readLine i)]
       (when fl
         (.write f fl)

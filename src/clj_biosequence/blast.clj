@@ -1,13 +1,12 @@
 (ns clj-biosequence.blast
-  (:require [fs.core :as fs]
-            [clj-commons-exec :as exec]
+  (:require [fs.core :refer [file? absolute-path temp-file delete]]
+            [clj-commons-exec :refer [sh]]
             [clojure.data.zip.xml :as zf]
-            [clojure.zip :as zip]
+            [clojure.zip :refer [xml-zip node]]
             [clj-biosequence.core :as bs]
-            [clojure.pprint :as pp]
             [clojure.string :refer [split]]
-            [clojure.data.xml :as xml]
-            [clj-biosequence.alphabet :as ala])
+            [clojure.data.xml :refer [parse]]
+            [clj-biosequence.alphabet :refer [alphabet?]])
   (:import [clj_biosequence.core fastaSequence]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -46,7 +45,7 @@
     (->> (:content (:src this))
          (filter #(= (:tag %) :Hsp_midline))
          first :content first)
-    (zf/xml1-> (zip/xml-zip (:src this)) key zf/text)))
+    (zf/xml1-> (xml-zip (:src this)) key zf/text)))
 
 (defrecord blastHsp [src]
   bs/biosequenceTranslation
@@ -112,7 +111,7 @@
    :Hit_def
    :Hit_num"
   [this key]
-  (zf/xml1-> (zip/xml-zip (:src this)) key zf/text))
+  (zf/xml1-> (xml-zip (:src this)) key zf/text))
 
 (defn hit-accession
   "Returns the accession of the Blast hit."
@@ -128,8 +127,8 @@
   "Takes a blastHit object and returns a lazy list of the blastHsp 
    objects contained in the hit."
   [this]
-  (map #(->blastHsp (zip/node %))
-       (zf/xml-> (zip/xml-zip (:src this))
+  (map #(->blastHsp (node %))
+       (zf/xml-> (xml-zip (:src this))
                  :Hit_hsps
                  :Hsp)))
 
@@ -164,7 +163,7 @@
   bs/biosequenceID
   (assoc bs/default-biosequence-id
     :accession (fn [this]
-                 (-> (zf/xml1-> (zip/xml-zip (:src this))
+                 (-> (zf/xml1-> (xml-zip (:src this))
                                 :Iteration_query-def zf/text)
                      (split #"\s")
                      (first)))
@@ -175,15 +174,15 @@
   "Takes a blastIteration object and returns the query length."
   [iteration]
   (Integer/parseInt
-   (zf/xml1-> (zip/xml-zip (:src iteration))
+   (zf/xml1-> (xml-zip (:src iteration))
               :Iteration_query-len zf/text)))
 
 (defn hit-seq
   "Returns a lazy list of blastHit objects from a blastIteration
   object."
   [this]
-  (map #(->blastHit (zip/node %))
-       (zf/xml-> (zip/xml-zip (:src this))
+  (map #(->blastHit (node %))
+       (zf/xml-> (xml-zip (:src this))
                  :Iteration_hits :Hit)))
 
 (defn significant-hit-seq
@@ -217,26 +216,26 @@
    :Parameters_gap-extend
    :Parameters_filter"
   [p key]
-  (zf/xml1-> (zip/xml-zip (:src p))
+  (zf/xml1-> (xml-zip (:src p))
              key
              zf/text))
 
 (defn blast-evalue
   "Returns the evalue used from blast parameter record."
   [param]
-  (Integer/parseInt (zf/xml1-> (zip/xml-zip (:src param))
+  (Integer/parseInt (zf/xml1-> (xml-zip (:src param))
                                :Parameters_expect zf/text)))
 
 (defn blast-matrix
   "Returns the matrix used from a blast parameter record."
   [param]
-  (zf/xml1-> (zip/xml-zip (:src param))
+  (zf/xml1-> (xml-zip (:src param))
              :Parameters_matrix zf/text))
 
 (defn blast-filter
   "Returns the filter used from a blast parameter record."
   [param]
-  (zf/xml1-> (zip/xml-zip (:src param)) :Parameters_filter zf/text))
+  (zf/xml1-> (xml-zip (:src param)) :Parameters_filter zf/text))
 
 (defn blast-database
   "Returns the database used from a blast parameter record."
@@ -260,7 +259,7 @@
 (defrecord blastReader [strm parameters]
   bs/biosequenceReader
   (biosequence-seq [this]
-    (->> (:content (xml/parse (:strm this)))
+    (->> (:content (parse (:strm this)))
          (some #(if (= :BlastOutput_iterations (:tag %)) %))
          :content
          (filter #(= :Iteration (:tag %)))
@@ -285,7 +284,7 @@
    (fn [this]
      (let [p (with-open [r (apply bs/bioreader (bs/bs-path this)
                                   (:opts this))]
-               (let [x (xml/parse r)
+               (let [x (parse r)
                      pa (->> (:content x)
                              (filter #(= :BlastOutput_param (:tag %)))
                              first
@@ -319,15 +318,15 @@
 (defn init-blast-search
   "Initialises a blast search with a blast ouput file in xml format."
   [file & opts]
-  {:pre [(fs/file? file)]}
-  (->blastSearch (fs/absolute-path file) opts))
+  {:pre [(file? file)]}
+  (->blastSearch (absolute-path file) opts))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; blast db
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn- get-sequence-from-blast-db [db id]
-  (let [s @(exec/sh (list "blastdbcmd" "-entry"
+  (let [s @(sh (list "blastdbcmd" "-entry"
                           id "-db" (bs/bs-path db)))]
     (if (= 0 (:exit s))
       (:out s)
@@ -355,8 +354,8 @@
   "Initialises a blastDB object with the path and name of a blast
   database (omitting the indexed file extensions)."
   [file alphabet]
-  {:pre [(fs/file? file)]}
-  (if-not (ala/alphabet? alphabet)
+  {:pre [(file? file)]}
+  (if-not (alphabet? alphabet)
     (throw (Throwable. "Unrecognised alphabet.")))
   (->blastDB file alphabet))
 
@@ -384,7 +383,7 @@
                                    in
                                    out
                                    (bs/bs-path db))]
-    (let [bl @(exec/sh (cons prog defs))]
+    (let [bl @(sh (cons prog defs))]
       (if (= 0 (:exit bl))
         (->blastSearch out nil)
         (if (:err bl)
@@ -395,12 +394,12 @@
 
 (defn blast
   [bs program db outfile & {:keys [params] :or {params {}}}]
-  (let [i (bs/biosequence->file bs (fs/temp-file "seq-")
+  (let [i (bs/biosequence->file bs (temp-file "seq-")
                                 :append false)]
     (try
       (run-blast program db
-                 (fs/absolute-path i)
-                 (fs/absolute-path outfile)
+                 (absolute-path i)
+                 (absolute-path outfile)
                  params)
-      (finally (fs/delete i)))))
+      (finally (delete i)))))
 
