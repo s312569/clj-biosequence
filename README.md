@@ -580,6 +580,47 @@ clj_biosequence.genbank.genbankSequence
 clj-biosequence uses protocols and records to provide a uniformish
 interface to diferent formats.
 
+### Fasta
+
+```clojure
+;; initialise fasta files using `init-fasta-file` and access
+;; sequences using `bs-reader` and `biosequence-seq`
+
+user> (def ff (init-fasta-file (io/resource "test-files/toxins.fasta") :iupacAminoAcids))
+
+user> (with-open [r (bs-reader ff)]
+	(count (biosequence-seq r)))
+5135
+user> 
+
+;; records and protocols implemented by them as follows:
+
+->fastaSequence
+Implements: biosequenceID
+	    biosequenceDescription
+	    Biosequence
+```
+### fastq
+
+```clojure
+
+;; Use `init-fastq-file` and access sequences as above.
+
+user> (def ff (init-fastq-file (io/resource "test-files/fastq-test.fastq")))
+#'user/ff
+user> (with-open [r (bs-reader ff)]
+	(count (biosequence-seq r)))
+9
+user> 
+
+;; records and protocols as follows:
+
+->fastqSequence
+Implements: biosequenceID
+	    biosequenceDescription
+	    Biosequence
+```	    
+
 ### Uniprot
 
 ```clojure
@@ -608,7 +649,7 @@ Implements: Biosequence
 	    biosequenceSubcelllocs ;; returns uniprotFeature records containg sub celllar location data
 	    biosequenceGoterms ;; returns uniprotFeature records containg GO data
 	    biosequenceEvidence
-	    biosequenceProtein
+	    biosequenceProtein	
 ->uniprotComment
 Implements: biosequenceSubcellloc
 	    biosequenceSubcellloc
@@ -641,156 +682,107 @@ Implements: biosequenceInterval
 ->uniprotCitation
 Implements: biosequenceCitation
 
-user> (with-open [r (bs-reader up)]
-        (-> (biosequence-seq r) first lineage))
-("Eukaryota" "Metazoa" "Platyhelminthes" "Trematoda" "Digenea"
-"Strigeidida" "Schistosomatoidea" "Schistosomatidae" "Schistosoma")
+;; some examples
 
 user> (with-open [r (bs-reader up)]
-                 (-> (biosequence-seq r) first alternative-name))
+        (-> (biosequence-seq r) first tax-refs first lineage))
+"Eukaryota;Metazoa;Platyhelminthes;Trematoda;Digenea;Strigeidida;Schistosomatoidea;Schistosomatidae;Schistosoma"
+
+user> (with-open [r (bs-reader up)]
+                 (-> (biosequence-seq r) first alternate-names))
 "Fe-S cluster assembly protein DRE2 homolog"
-
-;; citations can be extracted from the sequence in the form of
-;; uniprotCitation objects that extend the citation protocol defined
-;; in the core module (see documentation for details)
 
 user> (with-open [r (bs-reader up)]
                  (-> (biosequence-seq r) second citations first authors))
-("Wright M.D." "Harrison R.A." "Melder A.M." "Newport G.R." "Mitchell G.F.")
+("Berriman M." "Haas B.J." "LoVerde P.T." "Wilson R.A." "Dillon G.P." "Cerqueira G.C." ...)
 
 user> (with-open [r (bs-reader up)]
-                 (-> (biosequence-seq r) second citations first ref-type))
-"journal article"
-
-user> (with-open [r (bs-reader up)]
-                 (-> (biosequence-seq r) second citations first journal))
-"Mol. Biochem. Parasitol."
-
-;; All comments can be accessed using the `comments` function which
-;; returns the XML trees describing each comment.
-
-user> (with-open [r (bs-reader up)]
-                 (-> (biosequence-seq r) first comments first))
-#clojure.data.xml.Element{:tag :comment, :attrs {:type "function"},
- :content (#clojure.data.xml.Element{:tag :text, :attrs {}, :content
- ("May be required for the maturation of extramitochondrial Fe/S
- proteins (By similarity). Has anti-apoptotic effects in the cell (By
- similarity).")})}
-
-;; A similar function, `db-references`, returns all database references.
-
-user> (with-open [r (bs-reader up)]
-                 (-> (biosequence-seq r) first db-references first))
-#clojure.data.xml.Element{:tag :dbReference, :attrs {:type "EMBL", :id
- "HE601631"}, :content (#clojure.data.xml.Element{:tag :property,
- :attrs {:type "protein sequence ID", :value "CCD81528.1"}, :content
- ()} #clojure.data.xml.Element{:tag :property, :attrs {:type "molecule
- type", :value "Genomic_DNA"}, :content ()})}
-
-;; A convenience function, `go-terms`, uses `db-references` to extract
-;; GO terms.
-
-user> (with-open [r (bs-reader up)]
-                 (-> (biosequence-seq r) first go-terms))
-("C:cytoplasm" "P:apoptotic process")
-
-;; Features and intervals can be accessed through the protocols
-;; defined in the core module.
-
-user> (with-open [r (bs-reader up)]
-                 (-> (biosequence-seq r) second feature-seq first))
-#clj_biosequence.uniprot.uniprotFeature{:src
- #clojure.data.xml.Element{:tag :feature, :attrs {:type "chain",
- :description "Glutathione S-transferase class-mu 26 kDa isozyme", :id
- "PRO_0000185811"}, :content (#clojure.data.xml.Element{:tag
- :location, :attrs {}, :content (#clojure.data.xml.Element{:tag
- :begin, :attrs {:position "1"}, :content ()}
- #clojure.data.xml.Element{:tag :end, :attrs {:position "195"},
- :content ()})})}}
-
-user> (with-open [r (bs-reader up)]
-                 (-> (biosequence-seq r) second feature-seq first feature-type))
+                 (-> (biosequence-seq r) second feature-seq first obj-type))
 "chain"
 
-user> (with-open [r (bs-reader up)]
-                 (-> (biosequence-seq r) second feature-seq first interval-seq first))
-#clj_biosequence.uniprot.uniprotInterval{:src
- #clojure.data.xml.Element{:tag :location, :attrs {}, :content
- (#clojure.data.xml.Element{:tag :begin, :attrs {:position "1"},
- :content ()} #clojure.data.xml.Element{:tag :end, :attrs {:position
- "195"}, :content ()})}}
-
-user> (with-open [r (bs-reader up)]
-                 (-> (biosequence-seq r) second feature-seq first interval-seq first start))
-1
 ```
 
-### Genbank XML
-
-`clj-biosequence` also supports Genbank XML.
+### Genbank: Geneseq xml
 
 ```clojure
 ;; initialise a genbank file in the usual way
 
-user> (use 'clj-biosequence.genbank)
-nil
 user> (def gbf (init-genbank-file (resource "test-files/nucleotide-gb.xml")))
 #'user/gbf
 
-;; Access to sequences is managed the same way as described above. As
-;; with Uniprot sequences a number of convenience accessors are
-;; defined (see the documentation for details)
+;; Access sequences as usual
 
 user> (with-open [r (bs-reader gbf)]
-                 (-> (biosequence-seq r) first created))
-"08-JUL-2013"
-user> (with-open [r (bs-reader gbf)]
-                 (-> (biosequence-seq r) first taxid))
+                 (-> (biosequence-seq r) first tax-refs first
+		     get-db-refs first object-id))
 1268274
+
+;; records and protocols as follows:
+->genbankSequence ;; the top level record for Geneseq sequences
+Implements: biosequenceGene
+	    biosequenceID
+	    biosequenceDescription
+	    Biosequence
+	    biosequenceCitations ;; returns citation records
+	    biosequenceFeatures ;; returns feature records
+	    biosequenceTaxonomies ;; returns tax-ref records
+->genbankTaxRef
+Implements: biosequenceTaxonomy
+	    biosequenceFeatures
+	    biosequenceDbrefs ;; returns db records
+->genbankFeature
+Implements: biosequenceFeature
+	    biosequenceGene
+	    biosequenceID
+	    biosequenceProtein
+	    biosequenceEvidence
+	    biosequenceNotes
+	    biosequenceNameobject
+	    biosequenceIntervals ;; returns interval records
+	    biosequenceDbrefs ;; returns db records
+->genbankDbRef
+Implements: biosequenceDbref
+->genbankQualifier
+Implements: biosequenceNameObject
+->genbankInterval
+Implements: biosequenceID
+	    biosequenceInterval
+	    biosequenceTranslation
+->genbankCitation
+Implements: biosequenceCitation
+	    biosequenceNotes
+->genbankReader
+Implements: biosequenceReader
+->genbankFile
+Implements: biosequenceIO
+	    biosequenceFile
+
+;; some examples
+
 user> (with-open [r (bs-reader gbf)]
-                 (-> (biosequence-seq r) first gb-locus))
+                 (-> (biosequence-seq r) first locus))
 "KE373594"
 
-;; The functions `feature-seq` and `interval-seq provide access to
-;; features and intervals as described above for Uniprot sequences.
-
 user> (with-open [r (bs-reader gbf)]
-                 (-> (biosequence-seq r) first feature-seq first feature-type))
+                 (-> (biosequence-seq r) first feature-seq
+		     first obj-type))
 "source"
 user> (with-open [r (bs-reader gbf)]
-                 (-> (biosequence-seq r) first feature-seq first interval-seq first start))
+                 (-> (biosequence-seq r) first feature-seq first
+		     intervals first start))
 1
 
-;; The function `qualifier-seq` is also provided for genbank features
+;; The function `qualifiers` is also provided for genbank features
 ;; and it returns a lazy list of qualifiers.
 
 user> (with-open [r (bs-reader gbf)]
-                 (-> (biosequence-seq r) first feature-seq first qualifier-seq first))
-#clj_biosequence.genbank.genbankQualifier{:src
- #clojure.data.xml.Element{:tag :GBQualifier, :attrs {}, :content
- (#clojure.data.xml.Element{:tag :GBQualifier_name, :attrs {},
- :content ("organism")} #clojure.data.xml.Element{:tag
- :GBQualifier_value, :attrs {}, :content ("Blumeria graminis f. sp.
- tritici 96224")})}}
-user> (with-open [r (bs-reader gbf)]
                  (-> (biosequence-seq r) first feature-seq first
-                     qualifier-seq first qualifier-name))
+		     qualifiers first obj-type))
 "organism"
 user> (with-open [r (bs-reader gbf)]
                  (-> (biosequence-seq r) first feature-seq first
-                     qualifier-seq first qualifier-value))
+                     qualifiers first obj-value))
 "Blumeria graminis f. sp. tritici 96224"
-
-;; For Genbank files with large sequences, for example genome files,
-;; `feature-seq` can also be called on a genbank reader to provide a
-;; lazy sequence of features without loading the entire sequence into
-;; memory. Note this will only access the first sequence in a file.
-
-user> (def big-gb (init-genbank-file "/Users/jason/Dropbox/bl-ro1/hhv-4-annotation/akata/akata-sequence.xml"))
-#'user/big-gb
-user> (with-open [r (bs-reader big-gb)]
-                 (-> (feature-seq r) first feature-type))
-"source"
 ```
 
 

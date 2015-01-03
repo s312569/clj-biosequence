@@ -111,7 +111,7 @@
 (extend genbankQualifier
   bs/biosequenceNameObject
   (assoc bs/default-biosequence-nameobject
-    :obj-name
+    :obj-type
     (fn [this]
       (bs/get-text this :GBQualifier_name))
     :obj-value
@@ -140,7 +140,7 @@
 ;; feature
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn qualifier-seq
+(defn qualifiers
   "Collection of qualifiers in a genbankFeature record."
   [feature]
   (->> (bs/get-list feature :GBFeature_quals :GBQualifier)
@@ -151,7 +151,7 @@
   function."
   [feature qname]
   (filter #(= (bs/obj-name %) qname)
-          (qualifier-seq feature)))
+          (qualifiers feature)))
 
 (defn get-qualifiers
   "Returns qualifier values from a genbankFeature record that have a
@@ -192,7 +192,7 @@
     :evidence
     (fn [this]
       (->> (filter #(re-find #"evidence" (bs/obj-name %))
-                   (qualifier-seq this))
+                   (qualifiers this))
            (map #(str (bs/obj-name %) ":" (bs/obj-value %))))))
   bs/biosequenceNotes
   (assoc bs/default-biosequence-notes
@@ -206,8 +206,8 @@
     :translation (fn [this]
                    (get-qualifiers this "translation")))
   bs/biosequenceNameObject
-  (assoc bs/default-biosequence-name
-    :obj-name (fn [this]
+  (assoc bs/default-biosequence-nameobject
+    :obj-type (fn [this]
                 (bs/get-text this :GBFeature_key)))
   bs/biosequenceIntervals
   (assoc bs/default-biosequence-intervals
@@ -231,7 +231,7 @@
   (assoc bs/default-biosequence-dbrefs
     :get-db-refs
     (fn [this]
-      (->> (qualifier-seq this)
+      (->> (qualifiers this)
            (filter #(= (bs/obj-name %) "db_xref"))
            (map #(->genbankDbRef (:src %)))))))
 
