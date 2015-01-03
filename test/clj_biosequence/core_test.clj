@@ -316,10 +316,10 @@
       (is (= (parse-date (update-date gsn)) "2013-07-08"))
       (is (= 1 (version gsn)))
       (is (= "35024" (-> (tax-refs gsn)
-                       first
-                       get-db-refs
-                       first
-                       object-id)))
+                         first
+                         get-db-refs
+                         first
+                         object-id)))
       (is (= "Eukaryota" (-> (tax-refs gsn)
                              first
                              lineage
@@ -338,7 +338,7 @@
       (is (= "Crotalus horridus" (-> (tax-refs gsn)
                                      first
                                      tax-name)))
-      (is (= "source" (-> (feature-seq gsn) first obj-name)))
+      (is (= "source" (-> (feature-seq gsn) first obj-type)))
       (is (= "1..628" (-> (feature-seq gsn) first feature-location)))
       (is (= 1 (-> (feature-seq gsn) first intervals first start)))))
   (testing "Genbank indexing"

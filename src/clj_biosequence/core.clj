@@ -141,23 +141,23 @@
              (end interval))]
      (sub-bioseq bs s e))))
 
-;; (defn get-feature-sequence
-;;   "Returns a fastaSequence object containing the sequence specified in
-;;   a feature object from a biosequence."
-;;   [feature bs]
-;;   (let [intervals (intervals feature)]
-;;     (init-fasta-sequence
-;;      (accession bs)
-;;      (str (description bs) " - Feature: " (feature-type feature)
-;;           " - [" (start (first intervals)) "-" (end (last intervals)) "]")
-;;      (alphabet bs)
-;;      (vec (mapcat #(if (comp? %)
-;;                      (apply str (subvec (ala/revcom (bs-seq bs))
-;;                                         (- (end %) 1)
-;;                                         (start %)))
-;;                      (apply str (subvec (bs-seq bs)
-;;                                         (- (start %) 1)
-;;                                         (end %)))) intervals)))))
+(defn get-feature-sequence
+  "Returns a fastaSequence object containing the sequence specified in
+  a feature object from a biosequence."
+  [feature bs]
+  (let [intervals (intervals feature)]
+    (init-fasta-sequence
+     (accession bs)
+     (str (description bs) " - Feature: " (obj-type feature)
+          " - [" (start (first intervals)) "-" (end (last intervals)) "]")
+     (alphabet bs)
+     (vec (mapcat #(if (comp? %)
+                     (apply str (subvec (ala/revcom (bs-seq bs))
+                                        (- (end %) 1)
+                                        (start %)))
+                     (apply str (subvec (bs-seq bs)
+                                        (- (start %) 1)
+                                        (end %)))) intervals)))))
 
 ;;;;;;;;;;;;;;
 ;; utilities

@@ -147,10 +147,10 @@
        (map #(->genbankQualifier (node %)))))
 
 (defn filter-qualifiers
-  "Filter qualifiers in a genbankFeature record using bs-name
+  "Filter qualifiers in a genbankFeature record using obj-type
   function."
   [feature qname]
-  (filter #(= (bs/obj-name %) qname)
+  (filter #(= (bs/obj-type %) qname)
           (qualifiers feature)))
 
 (defn get-qualifiers
@@ -191,9 +191,9 @@
   (assoc bs/default-biosequence-evidence
     :evidence
     (fn [this]
-      (->> (filter #(re-find #"evidence" (bs/obj-name %))
+      (->> (filter #(re-find #"evidence" (bs/obj-type %))
                    (qualifiers this))
-           (map #(str (bs/obj-name %) ":" (bs/obj-value %))))))
+           (map #(str (bs/obj-type %) ":" (bs/obj-value %))))))
   bs/biosequenceNotes
   (assoc bs/default-biosequence-notes
     :notes (fn [this] (get-qualifiers this "note")))
@@ -232,7 +232,7 @@
     :get-db-refs
     (fn [this]
       (->> (qualifiers this)
-           (filter #(= (bs/obj-name %) "db_xref"))
+           (filter #(= (bs/obj-type %) "db_xref"))
            (map #(->genbankDbRef (:src %)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -256,7 +256,7 @@
                            (:content (:src this))))))
     :filter-features
     (fn [this name]
-      (filter #(= (bs/obj-name %) name)
+      (filter #(= (bs/obj-type %) name)
               (bs/feature-seq this))))
   bs/biosequenceDbRefs
   (assoc bs/default-biosequence-dbrefs
@@ -353,7 +353,7 @@
                            (:content (:src this))))))
     :filter-features
     (fn [this name]
-      (filter #(= (bs/obj-name %) name)
+      (filter #(= (bs/obj-type %) name)
               (bs/feature-seq this))))
   bs/biosequenceTaxonomies
   (assoc bs/default-biosequence-taxonomies

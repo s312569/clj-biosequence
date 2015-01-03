@@ -27,12 +27,13 @@ To use in your namespace:
 ```clojure
 (ns my-app.core
   (:require [clj-biosequence.core :as cbs] ;; for base functionality and fasta
-  	        [clj-biosequence.uniprot :as up] ;; for Uniprot functionality
-	        [clj-biosequence.genbank :as gb] ;; for Genbank functionality
+  	        [clj-biosequence.uniprot :as up] ;; for Uniprot xml
+	        [clj-biosequence.genbank :as gb] ;; for Genbank gbseq xml
 	        [clj-biosequence.blast :as bl] ;; for BLAST functionality
             [clj-biosequence.fastq :as fq] ;; for fastq functionality
             [clj-biosequence.index :as ind] ;; for indexing functionality
 	        [clj-biosequence.signalp :as sp] ;; for a wrapper for signalp
+		[clj-biosequence.entrezgene :as ez] ;; for entrezgene xml
             [clj-biosequence.tmhmm :as tm])) ;; for a wrapper for TMHMM
 ```
 
