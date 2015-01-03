@@ -600,7 +600,7 @@ Implements: biosequenceID
 	    biosequenceDescription
 	    Biosequence
 ```
-### fastq
+### Fastq
 
 ```clojure
 
@@ -702,7 +702,7 @@ user> (with-open [r (bs-reader up)]
 
 ```
 
-### Genbank: Geneseq xml
+### GenBank: Geneseq xml
 
 ```clojure
 ;; initialise a genbank file in the usual way
@@ -785,7 +785,81 @@ user> (with-open [r (bs-reader gbf)]
 "Blumeria graminis f. sp. tritici 96224"
 ```
 
+### GenBank: Entrezgene xml
 
+```clojure
+
+Access sequences in the usual way:
+
+user> (use 'clj-biosequence.entrezgene)
+nil
+user> (def ef (init-entrezgene-file (io/resource "test-files/entrez-gene.xml")))
+#'user/ef
+user> (with-open [r (bs-reader ef)]
+	(-> (biosequence-seq r)
+	    first
+	    accession))
+3875
+user> 
+
+;; records and protocols as follows:
+
+->entrezGene ;; top level record for an entrez gene
+Implements: biosequenceGene
+	    biosequenceSynonyms
+	    biosequenceDescription
+	    biosequenceDbrefs ;; returns db records
+	    biosequenceComments ;; returns comment records
+	    entrezComments
+	    biosequenceTranslation
+	    biosequenceID
+	    biosequenceStatus
+	    biosequenceSummary
+	    biosequenceTaxonomies ;; returns tax-ref records
+	    biosequenceProteins ;; return protein sub-seq records
+	    Biosequence
+->entrezProtein
+Implements: biosequenceProtein
+	    biosequenceSynonyms
+	    biosequenceDescription
+	    biosequenceDbrefs ;; reurns db records
+->entrezBiosource
+->entrezPcrPrimers
+->entrezSubSource
+->entrezOrgRef
+Implements: biosequenceTaxonomy
+	    biosequenceDbrefs ;; returns db records
+	    biosequenceSynonyms
+->entrezOrgName
+->entrezGeneTrack
+Implements: biosequenceID
+	    biosequenceStatus
+->entrezMap
+->entrezGeneSource
+->entrezGeneComment
+Implements: biosequenceID
+	    entrezComments
+	    biosequenceComments ;; returns comment records
+	    biosequenceNameObject
+->entrezExtraterm
+Implements: biosequenceNameObject
+->entrezOtherSource
+Implements: biosequenceUrl
+	    biosequenceDbrefs
+->entrezDbtag
+Implements: biosequenceDbref
+->entrezSeqLocation
+Implements: biosequenceIntervals ;; returns interval records
+->entrezInterval
+Implements: biosequenceInterval
+->entrezGeneReader
+Implements: biosequenceReader
+->entrezgeneFile
+Implements: biosequenceIO
+	    biosequenceFile
+->entrezGeneConnection
+Implements: biosequenceIO
+```
 
 
 
