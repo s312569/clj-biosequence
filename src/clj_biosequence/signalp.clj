@@ -67,6 +67,10 @@
   bs/biosequenceFile
   bs/default-biosequence-file)
 
+(defn init-signalp-result
+  [file]
+  (->signalpFile file))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; run signalp
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -106,8 +110,7 @@
       (catch Exception e
         (fs/delete outfile)
         (fs/delete in)
-        (println e))
-      (finally (fs/delete in)))))
+        (println e)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; filter
@@ -127,12 +130,34 @@
                        (vector (:result %)
                                (:cpos %)))
               (bs/biosequence-seq r))
-         (into {}))))
+      (into {}))))
+
+(defn- sp-outfile
+  [p]
+  {:pre [(not (fs/exists? p))]}
+  (if p
+    (let [c (atom 0)]
+      (fn []
+        (str p "-" (swap! c inc))))
+    (fn [] (fs/temp-file "sp-"))))
+
+(defn- sp-combine-results
+  [outfile sps]
+  (with-open [w (io/writer outfile :append true)]
+    (with-open [r (io/reader (bs/bs-path (first sps)))]
+      (doseq [l (take 2 (line-seq r))]
+        (.write w (str l "\n"))))
+    (doseq [f (map bs/bs-path sps)]
+      (with-open [r (io/reader f)]
+        (dorun (map #(.write w (str % "\n"))
+                    (filter #(not (= \# (first %)))
+                            (line-seq r))))))))
 
 (defn filter-signalp
-  [bsl & {:keys [trim params] :or {trim false params {}}}]
-  (let [sps (map #(signalp % (fs/temp-file "sp-") :params params)
-                 (partition-all 10000 bsl))]
+  [bsl & {:keys [trim params outfile] :or {trim false params {} outfile nil}}]
+  (let [of (sp-outfile outfile)
+        sps (pmap #(signalp % (of) :params params)
+                  (partition-all 10000 bsl))]
     (try (let [h (->> (pmap result-hash sps)
                       (apply merge))]
            (->> (map #(let [r (get h (bs/accession %))]
@@ -143,6 +168,6 @@
                      bsl)
                 (remove nil?)))
          (finally
-           (doall (map #(fs/delete (bs/bs-path %)) sps))))))
-
-;; private
+           (if outfile
+             (sp-combine-results outfile sps))
+           (dorun (map #(fs/delete (bs/bs-path %)) sps))))))
