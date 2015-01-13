@@ -57,11 +57,11 @@ something like:
 
 user> (use 'clj-biosequence.core)
 
-;; to use test files included in library use clojure.java.io.
-;; Otherwise string or java file object can be used.
+;; To initialise a file call the relevant initialisation function,
+;; a string or java file object can be used.
 ;; For fasta an alphabet is also required to initialise a file.
 
-user> (def fa-file (init-fasta-file (resource "test-files/nuc-sequence.fasta") :iupacNucleicAcids))
+user> (def fa-file (init-fasta-file "test-files/nuc-sequence.fasta" :iupacNucleicAcids))
 #'user/fa-file
 
 ;; then `bs-reader` can be used with `with-open` and `biosequence-seq`
@@ -100,8 +100,7 @@ user> (with-open [r (bs-reader fa-file)]
 
 user> (use 'clj-biosequence.uniprot)
 nil
-user> (def uniprot-f (init-uniprotxml-file
-                       (resource "test-files/uniprot-s-mansoni-20121217.xml")))
+user> (def uniprot-f (init-uniprotxml-file "test-files/uniprot-s-mansoni-20121217.xml"))
 #'user/uniprot-f
 user> (with-open [r (bs-reader uniprot-f)]
                  (println (->> (biosequence-seq r) first fasta-string)))
@@ -243,7 +242,7 @@ Typical usage as follows:
 
 user> (use 'clj-biosequence.blast)
 nil
-user> (def toxindb (init-blast-db (resource "test-files/toxins.fasta") :iupacAminoAcids))
+user> (def toxindb (init-blast-db "test-files/toxins.fasta" :iupacAminoAcids))
 #'user/toxindb
 
 ;; The function`blast` takes a list of biosequence objects and blasts them against
@@ -587,7 +586,7 @@ interface to diferent formats.
 ;; initialise fasta files using `init-fasta-file` and access
 ;; sequences using `bs-reader` and `biosequence-seq`
 
-user> (def ff (init-fasta-file (io/resource "test-files/toxins.fasta") :iupacAminoAcids))
+user> (def ff (init-fasta-file "test-files/toxins.fasta" :iupacAminoAcids))
 
 user> (with-open [r (bs-reader ff)]
 	(count (biosequence-seq r)))
@@ -607,7 +606,7 @@ Implements: biosequenceID
 
 ;; Use `init-fastq-file` and access sequences as above.
 
-user> (def ff (init-fastq-file (io/resource "test-files/fastq-test.fastq")))
+user> (def ff (init-fastq-file "test-files/fastq-test.fastq"))
 #'user/ff
 user> (with-open [r (bs-reader ff)]
 	(count (biosequence-seq r)))
@@ -629,7 +628,7 @@ Implements: biosequenceID
 ;; initialise uniprot files using `init-uniprotxml-file` and access
 ;; sequences as described above
 
-user> (def up (init-uniprotxml-file (resource "test-files/uniprot-s-mansoni-20121217.xml")))
+user> (def up (init-uniprotxml-file "test-files/uniprot-s-mansoni-20121217.xml"))
 #'user/up
 user> (with-open [r (bs-reader up)]
                  (count (biosequence-seq r)))
@@ -708,7 +707,7 @@ user> (with-open [r (bs-reader up)]
 ```clojure
 ;; initialise a genbank file in the usual way
 
-user> (def gbf (init-genbank-file (resource "test-files/nucleotide-gb.xml")))
+user> (def gbf (init-genbank-file "test-files/nucleotide-gb.xml"))
 #'user/gbf
 
 ;; Access sequences as usual
@@ -794,7 +793,7 @@ Access sequences in the usual way:
 
 user> (use 'clj-biosequence.entrezgene)
 nil
-user> (def ef (init-entrezgene-file (io/resource "test-files/entrez-gene.xml")))
+user> (def ef (init-entrezgene-file "test-files/entrez-gene.xml"))
 #'user/ef
 user> (with-open [r (bs-reader ef)]
 	(-> (biosequence-seq r)
