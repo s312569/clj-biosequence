@@ -1,5 +1,5 @@
 (ns clj-biosequence.signalp
-  (:require [clojure.java.io :refer [reader output-stream]]
+  (:require [clojure.java.io :refer [writer reader output-stream]]
             [fs.core :as fs]
             [clj-commons-exec :refer [sh]]
             [clj-biosequence.core :as bs]
@@ -143,12 +143,12 @@
 
 (defn- sp-combine-results
   [outfile sps]
-  (with-open [w (io/writer outfile :append true)]
-    (with-open [r (io/reader (bs/bs-path (first sps)))]
+  (with-open [w (writer outfile :append true)]
+    (with-open [r (reader (bs/bs-path (first sps)))]
       (doseq [l (take 2 (line-seq r))]
         (.write w (str l "\n"))))
     (doseq [f (map bs/bs-path sps)]
-      (with-open [r (io/reader f)]
+      (with-open [r (reader f)]
         (dorun (map #(.write w (str % "\n"))
                     (filter #(not (= \# (first %)))
                             (line-seq r))))))))
