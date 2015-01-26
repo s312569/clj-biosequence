@@ -10,6 +10,7 @@
                  [org.apache.commons/commons-compress "1.9"]
                  [com.taoensso/nippy "2.7.1"]
                  [com.velisco/tagged "0.3.4"]
+                 [instaparse "1.3.5"]
                  [clj-http "1.0.1"]
                  [iota "1.1.2"]
                  [clj-time "0.9.0"]
