@@ -254,6 +254,17 @@
             (vector (bs/get-text {:src (node this)} :fullName)
                     (bs/get-text {:src (node this)} :shortName)))))
 
+(defn- all-names
+  [this]
+  (let [n (mapcat #(% this)
+                  (list bs/alternate-names
+                        bs/submitted-names
+                        bs/allergen-names
+                        bs/biotech-names
+                        bs/cd-antigen-names
+                        bs/innnames))]
+    (if (seq n) n)))
+
 (defrecord uniprotProtein [src])
 
 (extend uniprotProtein
@@ -287,7 +298,7 @@
     (fn [this]
       (let [r (get-short-full (bs/get-one this :protein
                                           :recommendedName))]
-        (or r (bs/accessions this))))
+        (or r (all-names this) (bs/accessions this))))
     :alternate-names
     (fn [this]
       (mapcat #(get-short-full %)
@@ -315,11 +326,10 @@
   bs/biosequenceDescription
   (assoc bs/default-biosequence-description
     :description (fn [this]
-                   (str (first (bs/names this)) " | "
-                        (first (bs/alternate-names this)) " ["
+                   (str (first (bs/names this)) " ["
                         (-> (bs/tax-refs this)
-                            first
-                            bs/tax-name) "]")))
+                          first
+                          bs/tax-name) "]")))
   bs/biosequenceCitations
   (assoc bs/default-biosequence-citations
     :citations
