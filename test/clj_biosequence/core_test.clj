@@ -82,7 +82,7 @@
     (is (= "C4PYP8" (accession un-seq)))
     (is (= (list "C4PYP8" "G4VQR6" "DRE2_SCHMA")
            (accessions un-seq)))
-    (is (= "Anamorsin homolog | Fe-S cluster assembly protein DRE2 homolog [Schistosoma mansoni]"
+    (is (= "Anamorsin homolog [Schistosoma mansoni]"
            (description un-seq)))
     (is (= [\M \E \Q \C \V \A]
            (subvec (bs-seq un-seq) 0 6)))
