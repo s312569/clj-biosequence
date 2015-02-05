@@ -521,17 +521,18 @@
    requires an email so an email can be supplied using the email argument."
   ([term email] (uniprot-search term email 0))
   ([term email offset]
-     (let [r (remove #(= % "")
-                     (-> (bs/get-req
-                          (str "http://www.uniprot.org/uniprot/?query="
-                               term
-                               "&format=list"
-                               (str "&offset=" offset)
-                               "&limit=1000")
-                          {:client-params {"http.useragent"
-                                           (str "clj-http " email)}})
-                         (:body)
-                         (split #"\n")))]
-       (if (empty? r)
-         nil
-         (lazy-cat r (uniprot-search term email (+ offset 1000)))))))
+   (let [r (remove #(= % "")
+                    (-> (bs/get-req
+                         (str "http://www.uniprot.org/uniprot/?query="
+                              term
+                              "&format=list"
+                              (str "&offset=" offset)
+                              "&limit=1000")
+                         {:client-params {"http.useragent"
+                                          (str "clj-http " email)}})
+                      (:body)
+                      (split #"\n")))]
+     (cond (< (count r) 1000) r
+           (not (seq r)) nil
+           :else
+           (concat r (lazy-cat (uniprot-search term email (+ offset 1000))))))))
