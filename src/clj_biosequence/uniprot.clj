@@ -287,7 +287,7 @@
     (fn [this]
       (let [r (get-short-full (bs/get-one this :protein
                                           :recommendedName))]
-        (if r r (bs/accession this))))
+        (or r (bs/accessions this))))
     :alternate-names
     (fn [this]
       (mapcat #(get-short-full %)
