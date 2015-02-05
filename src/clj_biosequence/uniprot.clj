@@ -249,9 +249,10 @@
 
 (defn- get-short-full
   [this]
-  (remove nil?
-          (vector (bs/get-text {:src (node this)} :fullName)
-                  (bs/get-text {:src (node this)} :shortName))))
+  (if this
+    (remove nil?
+            (vector (bs/get-text {:src (node this)} :fullName)
+                    (bs/get-text {:src (node this)} :shortName)))))
 
 (defrecord uniprotProtein [src])
 

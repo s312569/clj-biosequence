@@ -220,6 +220,11 @@
              key
              zf/text))
 
+(extend blastParameters
+  bs/biosequenceID
+  (assoc bs/default-biosequence-id
+         :accession (fn [_] :parameters)))
+
 (defn blast-evalue
   "Returns the evalue used from blast parameter record."
   [param]

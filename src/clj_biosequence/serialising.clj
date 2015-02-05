@@ -43,21 +43,26 @@
   [_]
   :parameters)
 
-(defn index-biosequence-file
-  [file & {:keys [func] :or {func accession}}]
+(defn index-biosequence-collection
+  [collection file & {:keys [func] :or {func accession}}]
   (try
-    (let [index (->biosequenceIndex {} (bs-path file))
-          i (with-open [w (ind/index-writer (bs-path index))
-                        r (bs-reader file)]
+    (let [index (->biosequenceIndex {} file)
+          i (with-open [w (ind/index-writer (bs-path index))]
               (assoc index :index
-                     (merge (ind/index-objects w (biosequence-seq r) func)
-                            (if-let [p (parameters? r)]
-                              (ind/index-objects w (list p) p-key)))))]
-      (ind/save-index (bs-path file) (:index i))
+                     (ind/index-objects w collection func)))]
+      (ind/save-index file (:index i))
       i)
     (catch Exception e
-      (ind/delete-index (bs-path file))
+      (ind/delete-index file)
       (println (str "Exception: " (.getMessage e))))))
+
+(defn index-biosequence-file
+  [file & {:keys [func] :or {func accession}}]
+  (with-open [r (bs-reader file)]
+    (-> (if-let [p (parameters? r)]
+          (cons p (biosequence-seq r))
+          (biosequence-seq r))
+      (index-biosequence-collection (bs-path file)))))
 
 (defn load-biosequence-index
   [path]
