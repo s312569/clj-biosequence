@@ -70,8 +70,9 @@
   (reset! bioseq-proxy params))
 
 (defn get-req
-  [a param]
-  (client/get a (merge param @bioseq-proxy)))
+  ([a] (get-req a {}))
+  ([a param]
+   (client/get a (merge param @bioseq-proxy))))
 
 (defn post-req
   [a param]
