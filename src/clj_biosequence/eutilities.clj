@@ -50,3 +50,21 @@
                                  (if retmode {:retmode retmode} {}))
                           :as :stream})]
       (:body r))))
+
+(defn- e-link-helper
+  [acc idb tdb]
+  (let [r (post-req "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi"
+                    {:query-params
+                     (merge {:dbfrom (name idb)
+                             :db (name tdb)
+                             :id acc})})]
+    (:body r)))
+
+(defn e-link
+  [acc idb tdb]
+  (let [x (parse-str (e-link-helper acc idb tdb))
+        p (xml-> (xml-zip x) :LinkSet :LinkSetDb)]
+    (into {}
+          (map #(vector (xml1-> % :LinkName text)
+                        (xml-> % :Link :Id text))
+               p))))
