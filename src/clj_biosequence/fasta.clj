@@ -36,7 +36,9 @@
 
 (defn- parse-fasta
   [this]
-  (let [l (line-seq (:strm this))]
+  (let [l (if (:junk this)
+            (drop-while #(not (= \> (first %))) (line-seq (:strm this)))
+            (line-seq (:strm this)))]
     (map (fn [[d s]]
            (let [seqs (apply str (map trim s))]
              (cond (not (re-find #"^>" (first d)))
@@ -62,21 +64,23 @@
   (close [this] (.close ^java.io.BufferedReader (:strm this))))
 
 (defn init-fasta-reader
-  [strm alphabet]
-  (->fastaReader strm alphabet))
+  [strm alphabet & {:keys [junk] :or {junk false}}]
+  (assoc (->fastaReader strm alphabet)
+         :junk junk))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; fasta files
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord fastaFile [file alphabet encoding])
+(defrecord fastaFile [file alphabet opts])
 
 (extend fastaFile
   biosequenceIO
   {:bs-reader
    (fn [this]
-     (->fastaReader (apply bioreader (bs-path this) (:opts this))
-                    (:alphabet this)))}
+     (init-fasta-reader (apply bioreader (bs-path this) (:opts this))
+                        (:alphabet this)
+                        :junk (apply hash-map (:opts this))))}
   biosequenceFile
   default-biosequence-file
   fastaReduce

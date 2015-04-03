@@ -449,6 +449,9 @@
     "Returns the end position of an interval as an integer.")
   (point [this]
     "Returns a point interval.")
+  (strand [this]
+    "Returns '+', '-', '.' or '?' for positive, minus, not stranded or
+    unknwon respectively.")
   (comp? [this]
     "Is the interval complementary to the biosequence
     sequence. Boolean"))
