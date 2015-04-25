@@ -31,4 +31,8 @@
  \N {:longname "Any base (A, C, G, T, or U)"
      :complement \N}
  \X {:longname "Any base (A, C, G, T, or U)"
-     :complement \X}}
+     :complement \X}
+ \- {:longname "Gap (dash)"
+     :complement \-}
+ \. {:longname "Gap (dot)"
+     :complement \.}}
