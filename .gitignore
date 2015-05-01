@@ -19,3 +19,18 @@ resources/test-files/nuc-sequence.fasta.idx
 resources/test-files/toxins.fasta.bin
 resources/test-files/toxins.fasta.idx
 .nrepl-port
+resources/test-files/go-basic.obo
+resources/test-files/gbgene.xml
+TAGS
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iQEcBAABAgAGBQJUp21YAAoJEAoafkp1Pd33lVgH/jrIIpJhmTvBXuTGKLjpJXLd
+Zo+GUJkPtBaIUJnX3/Dtw8sxM9++5H4v9XEMNvyjMyDwd1ZLZztv/hv0+GfKw9Pj
+3CxbmkMazvnCy/QleKU6t+aKeOi5LdyF4o+rpuobvU+hUmzxZv/Uw2wMSWtTb2dE
+lHP+Dg8r8rGoB81BTgNBM1Jy/5bdiKxlcoKjUJe/hjjaMkJ8wZ39PMRtNCRhWfHI
+DvkMveQC9WttQEuEuR7vf8r7Z3Z5Iqf8DZ8B5IihIai2gPMpyrhth+03vQZZ/aMh
+ZXpX8KQ+r3FvE1I3bbW87a/6YT775et+TBX6Y6tUZgQKJfMPLtJ6KLD8lwTJN3E=
+=iFZo
+-----END PGP SIGNATURE-----
+pom.xml.asc

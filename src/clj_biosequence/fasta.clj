@@ -1,129 +1,119 @@
 (in-ns 'clj-biosequence.core)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; an implementation of biosequence for fasta sequences
+;; sequence
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord fastaSequence [acc description alphabet sequence]
+(defrecord fastaSequence [acc description alphabet sequence])
 
+(extend fastaSequence
+  biosequenceID
+  (assoc default-biosequence-id
+    :accession (fn [this] (:acc this))
+    :accessions (fn [this] (list (accession this))))
+  biosequenceDescription
+  (assoc default-biosequence-description
+    :description (fn [this] (:description this)))
   Biosequence
-  
-  (accession [this]
-    (:acc this))
-  
-  (accessions [this]
-    (list (:acc this)))
-  
-  (bs-seq [this]
-    (:sequence this))
-
-  (def-line [this]
-    (:description this))
-  
-  (protein? [this]
-    (ala/alphabet-is-protein (:alphabet this)))
-  
-  (fasta-string [this]
-    (str ">" (accession this) " " (def-line this) "\n" (bioseq->string this) "\n"))
-  
-  (alphabet [this]
-    (:alphabet this)))
+  (assoc default-biosequence-biosequence
+    :bs-seq (fn [this] (:sequence this))
+    :protein? (fn [this]
+                (ala/alphabet-is-protein (:alphabet this)))
+    :alphabet (fn [this] (:alphabet this))
+    :moltype
+    (fn [this] (if (protein? this) "AA" "Nucleic acid"))))
 
 (defn init-fasta-sequence
   "Returns a new fastaSequence. Currently :iupacNucleicAcids
   and :iupacAminoAcids are supported alphabets."
   [accession description alphabet sequence]
-  (->fastaSequence accession description alphabet (clean-sequence sequence alphabet)))
+  (->fastaSequence accession description alphabet
+                   (clean-sequence sequence alphabet)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; IO
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- parse-fasta
+  [this]
+  (let [l (if (:junk this)
+            (drop-while #(not (= \> (first %))) (line-seq (:strm this)))
+            (line-seq (:strm this)))]
+    (map (fn [[d s]]
+           (let [seqs (apply str (map trim s))]
+             (cond (not (re-find #"^>" (first d)))
+                   (throw
+                    (Throwable. (str "Data corrupted at "
+                                     (first d))))
+                   (> (count d) 1)
+                   (throw
+                    (Throwable. (str "No sequence for entry "
+                                     (first d))))
+                   :else
+                   (init-fasta-sequence
+                    (second (re-find #"^>([^\s]+)" (first d)))
+                    (second (re-find #">[^\s]+\s+(.+)" (first d)))
+                    (:alphabet this)
+                    seqs))))
+         (partition 2 (partition-by #(re-find #"^>" %) l)))))
 
 (defrecord fastaReader [strm alphabet]
-
   biosequenceReader
-  
-  (biosequence-seq [this]
-    (let [l (line-seq (:strm this))]
-      (map (fn [[d s]]
-             (let [seqs (apply str (map trim s))]
-               (cond (not (re-find #"^>" (first d)))
-                     (throw (Throwable. (str "Data corrupted at " (first d))))
-                     (> (count d) 1)
-                     (throw (Throwable. (str "No sequence for entry " (first d))))
-                     :else
-                     (init-fasta-sequence (second (re-find #"^>([^\s]+)" (first d)))
-                                          (second (re-find #">[^\s]+\s+(.+)" (first d)))
-                                          (:alphabet this)
-                                          (clean-sequence seqs (:alphabet this))))))
-           (partition 2 (partition-by #(re-find #"^>" %) l)))))
-
+  (biosequence-seq [this] (parse-fasta this))
   java.io.Closeable
-
-  (close [this]
-    (.close ^java.io.BufferedReader (:strm this))))
+  (close [this] (.close ^java.io.BufferedReader (:strm this))))
 
 (defn init-fasta-reader
-  [strm alphabet]
-  (->fastaReader strm alphabet))
+  [strm alphabet & {:keys [junk] :or {junk false}}]
+  (assoc (->fastaReader strm alphabet)
+         :junk junk))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; fasta files
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defprotocol fastaReduce
-  (fasta-reduce [this func fold]
-    "Applies a function to sequence data streamed line-by-line and
-    reduces the results using the supplied `fold` function. Uses the
-    core reducers library so the fold function needs to have an
-    'identity' value that is returned when the function is called with
-    no arguments."))
+(defrecord fastaFile [file alphabet opts])
 
-(defrecord fastaFile [file alphabet]
-
+(extend fastaFile
   biosequenceIO
-
-  (bs-reader [this]
-    (init-fasta-reader (reader (:file this))
-                       (:alphabet this)))
-
+  {:bs-reader
+   (fn [this]
+     (init-fasta-reader (apply bioreader (bs-path this) (:opts this))
+                        (:alphabet this)
+                        :junk (apply hash-map (:opts this))))}
   biosequenceFile
-
-  (bs-path [this]
-    (absolute-path (:file this)))
-
-  (index-file [this]
-    (init-indexed-fasta (bs-path this) (:alphabet this)))
-
-  (index-file [this ofile]
-    (init-indexed-fasta ofile (:alphabet this)))
-
+  default-biosequence-file
   fastaReduce
-
-  (fasta-reduce
-    [this func fold]
-    (->> (iot/seq (:file this))
-         (r/filter #(not (= \> (first %))))
-         (r/map #(clean-sequence % (:alphabet this)))
-         (r/map func)
-         (r/fold fold))))
+  {:fasta-reduce
+   (fn [this func fold]
+     (->> (iot/seq (:file this))
+          (r/filter #(not (= \> (first %))))
+          (r/map #(clean-sequence % (:alphabet this)))
+          (r/map func)
+          (r/fold fold)))})
 
 (defn init-fasta-file
-  "Initialises fasta protein file. Accession numbers and description are 
-   processed by splitting the string on the first space, the accession 
-   being the first value and description the second."
-  [path alphabet]
+  "Initialises fasta protein file. Accession numbers and description
+  are processed by splitting the string on the first space, the
+  accession being the first value and description the second. Encoding
+  can be specified using the :encoding keyword, defaults to UTF-8."
+  [path alphabet & opts]
   (if-not (ala/alphabet? alphabet)
     (throw (Throwable. "Unrecognised alphabet keyword. Currently :iupacNucleicAcids :iupacAminoAcids are allowed."))
     (if (file? path)
-      (->fastaFile path alphabet)
+      (->fastaFile path alphabet opts)
       (throw (Throwable. (str "File not found: " path))))))
 
-;; strings
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; fasta string
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defrecord fastaString [str alphabet]
-
   biosequenceIO
-
   (bs-reader [this]
-    (init-fasta-reader (java.io.BufferedReader. (java.io.StringReader. (:str this)))
-                       (:alphabet this))))
+    (->fastaReader (java.io.BufferedReader.
+                    (java.io.StringReader. (:str this)))
+                   (:alphabet this))))
 
 (defn init-fasta-string
   "Initialises a fasta string. Accession numbers and description are
@@ -133,36 +123,3 @@
   (if-not (ala/alphabet? alphabet)
     (throw (Throwable. "Unrecognised alphabet keyword. Currently :iupacNucleicAcids :iupacAminoAcids are allowed."))
     (->fastaString str alphabet)))
-
-;; indexed files
-
-(defrecord indexedFastaFile [index path alphabet]
-
-  biosequenceFile
-
-  (bs-path [this]
-    (absolute-path (:path this)))
-
-  indexFileIO
-
-  (bs-writer [this]
-    (init-index-writer this))
-
-  biosequenceReader
-
-  (biosequence-seq [this]
-    (map (fn [[o l]]
-           (map->fastaSequence (read-one o l (str (bs-path this) ".bin"))))
-         (vals (:index this))))
-
-  (get-biosequence [this accession]
-    (let [[o l] (get (:index this) accession)]
-      (if o
-        (map->fastaSequence (read-one o l (str (bs-path this) ".bin")))))))
-
-(defn init-indexed-fasta [file alphabet]
-  (->indexedFastaFile {} file alphabet))
-
-(defmethod print-method clj_biosequence.core.indexedFastaFile
-  [this w]
-  (print-tagged this w))

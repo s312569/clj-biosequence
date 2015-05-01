@@ -19,7 +19,7 @@ Available from [Clojars](https://clojars.org/clj-biosequence). For the
 current version add the following to your project.clj file:
 
 ```clojure
-[clj-biosequence "0.1.4-SNAPSHOT"]
+[clj-biosequence "0.2.7"]
 ```
 
 To use in your namespace:
@@ -27,12 +27,13 @@ To use in your namespace:
 ```clojure
 (ns my-app.core
   (:require [clj-biosequence.core :as cbs] ;; for base functionality and fasta
-  	        [clj-biosequence.uniprot :as up] ;; for Uniprot functionality
-	        [clj-biosequence.genbank :as gb] ;; for Genbank functionality
+  	        [clj-biosequence.uniprot :as up] ;; for Uniprot xml
+	        [clj-biosequence.genbank :as gb] ;; for Genbank gbseq xml
 	        [clj-biosequence.blast :as bl] ;; for BLAST functionality
             [clj-biosequence.fastq :as fq] ;; for fastq functionality
             [clj-biosequence.index :as ind] ;; for indexing functionality
 	        [clj-biosequence.signalp :as sp] ;; for a wrapper for signalp
+		[clj-biosequence.entrezgene :as ez] ;; for entrezgene xml
             [clj-biosequence.tmhmm :as tm])) ;; for a wrapper for TMHMM
 ```
 
@@ -56,11 +57,11 @@ something like:
 
 user> (use 'clj-biosequence.core)
 
-;; to use test files included in library use clojure.java.io.
-;; Otherwise string or java file object can be used.
+;; To initialise a file call the relevant initialisation function,
+;; a string or java file object can be used.
 ;; For fasta an alphabet is also required to initialise a file.
 
-user> (def fa-file (init-fasta-file (resource "test-files/nuc-sequence.fasta") :iupacNucleicAcids))
+user> (def fa-file (init-fasta-file "test-files/nuc-sequence.fasta" :iupacNucleicAcids))
 #'user/fa-file
 
 ;; then `bs-reader` can be used with `with-open` and `biosequence-seq`
@@ -75,11 +76,8 @@ user> (with-open [r (bs-reader fa-file)]
 ```
 
 And thats just about it. The same pattern is used for all sequence
-formats supported (at the moment this includes Genbank xml, Uniprot
-xml, fasta, fastq, bed and arf formats) and each format has a number
-of accessor functions providing access to information contained in the
-format. `clj-biosequence.core` also defines a set of functions
-supported by all formats as outlined here.
+formats supported (at the moment this includes Geneseq xml, Entrezgene
+xml, Uniprot xml, fasta and fastq formats).
 
 Some examples:
 
@@ -102,8 +100,7 @@ user> (with-open [r (bs-reader fa-file)]
 
 user> (use 'clj-biosequence.uniprot)
 nil
-user> (def uniprot-f (init-uniprotxml-file
-                       (resource "test-files/uniprot-s-mansoni-20121217.xml")))
+user> (def uniprot-f (init-uniprotxml-file "test-files/uniprot-s-mansoni-20121217.xml"))
 #'user/uniprot-f
 user> (with-open [r (bs-reader uniprot-f)]
                  (println (->> (biosequence-seq r) first fasta-string)))
@@ -130,12 +127,15 @@ user> (with-open [r (bs-reader fa-file)]
 ;; a Uniprot to fasta converter is thus:
 
 user> (with-open [r (bs-reader uniprot-f)]
-                 (biosequence->file (biosequence-seq r) "/tmp/fasta.fa"))
+                 (biosequence->file (biosequence-seq r)
+		                     "/tmp/fasta.fa"))
 "/tmp/fasta.fa"
-user> (with-open [r (bs-reader (init-fasta-file "/tmp/fasta.fa" :iupacAminoAcids))]
+user> (with-open [r (bs-reader (init-fasta-file "/tmp/fasta.fa"
+                               :iupacAminoAcids))]
                  (count (biosequence-seq r)))
 2
-user> (with-open [r (bs-reader (init-fasta-file "/tmp/fasta.fa" :iupacAminoAcids))]
+user> (with-open [r (bs-reader (init-fasta-file "/tmp/fasta.fa"
+                                                :iupacAminoAcids))]
                  (class (first (biosequence-seq r))))
 clj_biosequence.core.fastaSequence
 
@@ -168,31 +168,29 @@ servers (see below).
 
 ## Indexing
 
-It can get tedious using `with-open` and random access to particular biosequences
-is also slow as it relies on filtering the lazy sequences for accession numbers.
-So `clj-biosequence.index` provides a simple mechanism for indexing biosequence files.
+For random access to biosequences each supported file format also has
+an indexed version.
 
 Typical usage as follows:
 
 ```clojure
 ;; calling `index-biosequence-file` on any biosequence file returns a
-;; biosequence index. This index can be used in calls to `biosequence-seq`
-;; and `get-biosequence` (amongst others) without the `with-open` construct
+;; biosequence index. Which is accessed using `with-open` just like 
+;; other readers but with faster retrieval of specific biosequences.
 
 user> (use 'clj-biosequence.index)
 nil
 user> (def fasta-in (index-biosequence-file fa-file))
 #'user/fasta-in
-user> (count (biosequence-seq fasta-in))
+user> (with-open [r (bs-reader fasta-in)]
+        (count (biosequence-seq r))
 6
-user> (first (biosequence-seq fasta-in))
+user> (with-open [r (bs-reader fasta-in)]
+        (first (biosequence-seq r))
 #clj_biosequence.core.fastaSequence{:acc "gi|116025203|gb|EG339215.1|EG339215", :description "KAAN-aaa29f08.b1 ... etc"
 
-;; Indexed files also offer random access to the biosequences,
-;; this is many times faster than using `get-biosequence` with
-;; a biosequence file opened with `bs-reader`.
-
-user> (accession (get-biosequence fasta-in "gi|114311762|gb|EE738912.1|EE738912"))
+user> (with-open [r (bs-reader fasta-in)]
+        (accession (get-biosequence r "gi|114311762|gb|EE738912.1|EE738912"))
 "gi|114311762|gb|EE738912.1|EE738912"
 
 ;; when a file is indexed two additional files are created with the same
@@ -204,17 +202,18 @@ user> (accession (get-biosequence fasta-in "gi|114311762|gb|EE738912.1|EE738912"
 
 user> (def fa-ind-2 (load-biosequence-index "/Users/jason/Dropbox/clj-biosequence/resources/test-files/nuc-sequence.fasta"))
 #'user/fa-ind-2
-user> (accession (get-biosequence fa-ind-2 "gi|114311762|gb|EE738912.1|EE738912"))
+user> (with-open [r (bs-reader fa-ind-2)]
+        (accession (get-biosequence r "gi|114311762|gb|EE738912.1|EE738912"))
 "gi|114311762|gb|EE738912.1|EE738912"
 
-;; biosequence collections can be indexed using `index-biosequence-list` but the
-;; base name of the index needs to be supplied
+;; biosequence collections can be indexed using `index-biosequence-list`.
 
 user> (def fa-ind-3 (with-open [r (bs-reader fa-file)]
-                               (index-biosequence-list (biosequence-seq r)
-                                                       "/tmp/fasta-ind")))
+                      (index-biosequence-list (biosequence-seq r)
+                                              "/tmp/fasta-ind")))
 #'user/fa-ind-3
-user> (accession (get-biosequence fa-ind-3 "gi|114311762|gb|EE738912.1|EE738912"))
+user> (with-open [r (bs-reader fa-ind-3)]
+        (accession (get-biosequence r "gi|114311762|gb|EE738912.1|EE738912"))
 "gi|114311762|gb|EE738912.1|EE738912"
 
 ;; this can be handy when filtering biosequences. For example secreted proteins
@@ -225,12 +224,9 @@ user> (def secreted (with-open [r (bs-reader toxins)]
                                                            (filter-signalp :trim true))
                                                        "/tmp/secreted-ind")))
 #'user/secreted
-user> (count (biosequence-seq secreted))
+user> (with-open [r (bs-reader fa-ind-3)]
+        (count (biosequence-seq r))
 6
-
-;; Finally, multi biosequence files can be merged into a single index using.
-;; `index-biosequence-multi-file`. Once again the path and basename of the index
-;; files needs to be supplied.
 ```
 ## BLAST
 
@@ -246,7 +242,7 @@ Typical usage as follows:
 
 user> (use 'clj-biosequence.blast)
 nil
-user> (def toxindb (init-blast-db (resource "test-files/toxins.fasta") :iupacAminoAcids))
+user> (def toxindb (init-blast-db "test-files/toxins.fasta" :iupacAminoAcids))
 #'user/toxindb
 
 ;; The function`blast` takes a list of biosequence objects and blasts them against
@@ -311,10 +307,14 @@ user> (with-open [r (bs-reader tox-bl)]
 ;; This can be combined with indexes or biosequence files to obtain the original
 ;; query biosequences.
 
-user> (with-open [r (bs-reader tox-bl)]
+user> (def toxin-index (index-biosequence-file toxins))
+#'user/toxin-index
+
+user> (with-open [r (bs-reader tox-bl)
+                  i (bs-reader toxin-index)]
                  (->> (biosequence-seq r)
                       (filter #(>= (-> (hit-seq %) second hit-bit-scores first) 50))
-                      (map #(get-biosequence toxin-index (accession %)))
+                      (map #(get-biosequence i (accession %)))
                       first))
 #clj_biosequence.core.fastaSequence{:acc "sp|P84001|29C0_ANCSP", :description
 "U3-ctenitoxin-Asp1a (Fragment) OS=Ancylometes sp. PE=1 SV=1", :alphabet :iupacAminoAcids,
@@ -323,11 +323,12 @@ user> (with-open [r (bs-reader tox-bl)]
 
 ;; or sent off to a file.
 
-user> (with-open [r (bs-reader tox-bl)]
+user> (with-open [r (bs-reader tox-bl)
+                  i (bs-reader toxin-index)]
                  (biosequence->file
                   (->> (biosequence-seq r)
                        (filter #(>= (-> (hit-seq %) second hit-bit-scores first) 50))
-                       (map #(get-biosequence toxin-index (accession %))))
+                       (map #(get-biosequence i (accession %))))
                   "/tmp/blast.fa"))
 "/tmp/blast.fa"
 
@@ -335,14 +336,13 @@ user> (with-open [r (bs-reader tox-bl)]
 ;; can be thrown at them (hopefully). So one could annotate a large fasta file
 ;; starting with a fasta index and a blast DB by:
 
-user> (def toxin-index (index-biosequence-file toxins))
-#'user/toxin-index
 user> (with-open [r (bs-reader (blast (biosequence-seq toxin-index) "blastp" toxindb
-                                      "/tmp/outfile.xml"))]
+                                      "/tmp/outfile.xml"))
+	          i (bs-reader toxin-index)]
                  (biosequence->file
                   (->> (biosequence-seq r)
                        (filter #(>= (-> (hit-seq %) second hit-bit-scores first) 50))
-                       (map #(let [s (get-biosequence toxin-index (accession %))
+                       (map #(let [s (get-biosequence i (accession %))
                                    h (-> (hit-seq %) first)]
                                (assoc s :description
                                       (str (def-line s) " - "
@@ -577,6 +577,50 @@ clj_biosequence.genbank.genbankSequence
 
 ## Supported formats
 
+clj-biosequence uses protocols and records to provide a uniformish
+interface to diferent formats.
+
+### Fasta
+
+```clojure
+;; initialise fasta files using `init-fasta-file` and access
+;; sequences using `bs-reader` and `biosequence-seq`
+
+user> (def ff (init-fasta-file "test-files/toxins.fasta" :iupacAminoAcids))
+
+user> (with-open [r (bs-reader ff)]
+	(count (biosequence-seq r)))
+5135
+user> 
+
+;; records and protocols implemented by them as follows:
+
+->fastaSequence
+Implements: biosequenceID
+	    biosequenceDescription
+	    Biosequence
+```
+### Fastq
+
+```clojure
+
+;; Use `init-fastq-file` and access sequences as above.
+
+user> (def ff (init-fastq-file "test-files/fastq-test.fastq"))
+#'user/ff
+user> (with-open [r (bs-reader ff)]
+	(count (biosequence-seq r)))
+9
+user> 
+
+;; records and protocols as follows:
+
+->fastqSequence
+Implements: biosequenceID
+	    biosequenceDescription
+	    Biosequence
+```	    
+
 ### Uniprot
 
 ```clojure
@@ -584,173 +628,238 @@ clj_biosequence.genbank.genbankSequence
 ;; initialise uniprot files using `init-uniprotxml-file` and access
 ;; sequences as described above
 
-user> (def up (init-uniprotxml-file (resource "test-files/uniprot-s-mansoni-20121217.xml")))
+user> (def up (init-uniprotxml-file "test-files/uniprot-s-mansoni-20121217.xml"))
 #'user/up
 user> (with-open [r (bs-reader up)]
                  (count (biosequence-seq r)))
 2
 
-;; In addition to the accessors defined in the core module there are a
-;; number of convenience functions (see documentation for full
-;; details).
+;; records and protocols implemented by them are as follows:
+
+->uniprotProtein ;; top level record for uniprot sequences
+Implements: Biosequence
+	    biosequenceID
+	    biosequenceName
+	    biosequenceDescription
+	    biosequenceCitations ;; returns uniprotCitation records
+	    biosequenceFeatures ;; returns uniprotFeature records
+	    biosequenceTaxonomies ;; returns uniprotTaxref records
+	    biosequenceGenes ;; returns uniprotGene records
+	    biosequenceComments ;; returns uniprotComment records
+	    biosequenceSubcelllocs ;; returns uniprotFeature records containg sub celllar location data
+	    biosequenceGoterms ;; returns uniprotFeature records containg GO data
+	    biosequenceEvidence
+	    biosequenceProtein	
+->uniprotComment
+Implements: biosequenceSubcellloc
+	    biosequenceSubcellloc
+->uniprotGene
+Implements: biosequenceGene
+	    biosequenceID
+	    biosequenceSynonyms
+->uniprotTaxref
+Implements: biosequenceTaxonomy
+	    biosequenceDbrefs
+	    biosequenceEvidence
+->uniprotDbref
+Implements: biosequenceDbref
+	    biosequenceGoterm
+	    biosequenceEvidence
+->uniprotFeature
+Implements: biosequenceNameobject
+	    biosequenceID
+	    biosequenceStatus
+	    biosequenceDescription
+	    biosequenceEvidence
+	    biosequenceCitations
+	    biosequenceIntervals
+	    Biosequence
+	    biosequenceVariant
+->uniprotInterval
+Implements: biosequenceInterval
+	    biosequenceStatus
+	    biosequenceEvidence
+->uniprotCitation
+Implements: biosequenceCitation
+
+;; some examples
 
 user> (with-open [r (bs-reader up)]
-        (-> (biosequence-seq r) first sequence-info))
-{:length 272, :mass 29662.0, :checksum "11A38702F71B84D8", :modified "2010-03-23", :version 2}
+        (-> (biosequence-seq r) first tax-refs first lineage))
+"Eukaryota;Metazoa;Platyhelminthes;Trematoda;Digenea;Strigeidida;Schistosomatoidea;Schistosomatidae;Schistosoma"
 
 user> (with-open [r (bs-reader up)]
-        (-> (biosequence-seq r) first lineage))
-("Eukaryota" "Metazoa" "Platyhelminthes" "Trematoda" "Digenea"
-"Strigeidida" "Schistosomatoidea" "Schistosomatidae" "Schistosoma")
-
-user> (with-open [r (bs-reader up)]
-                 (-> (biosequence-seq r) first alternative-name))
+                 (-> (biosequence-seq r) first alternate-names))
 "Fe-S cluster assembly protein DRE2 homolog"
-
-;; citations can be extracted from the sequence in the form of
-;; uniprotCitation objects that extend the citation protocol defined
-;; in the core module (see documentation for details)
 
 user> (with-open [r (bs-reader up)]
                  (-> (biosequence-seq r) second citations first authors))
-("Wright M.D." "Harrison R.A." "Melder A.M." "Newport G.R." "Mitchell G.F.")
+("Berriman M." "Haas B.J." "LoVerde P.T." "Wilson R.A." "Dillon G.P." "Cerqueira G.C." ...)
 
 user> (with-open [r (bs-reader up)]
-                 (-> (biosequence-seq r) second citations first ref-type))
-"journal article"
-
-user> (with-open [r (bs-reader up)]
-                 (-> (biosequence-seq r) second citations first journal))
-"Mol. Biochem. Parasitol."
-
-;; All comments can be accessed using the `comments` function which
-;; returns the XML trees describing each comment.
-
-user> (with-open [r (bs-reader up)]
-                 (-> (biosequence-seq r) first comments first))
-#clojure.data.xml.Element{:tag :comment, :attrs {:type "function"},
- :content (#clojure.data.xml.Element{:tag :text, :attrs {}, :content
- ("May be required for the maturation of extramitochondrial Fe/S
- proteins (By similarity). Has anti-apoptotic effects in the cell (By
- similarity).")})}
-
-;; A similar function, `db-references`, returns all database references.
-
-user> (with-open [r (bs-reader up)]
-                 (-> (biosequence-seq r) first db-references first))
-#clojure.data.xml.Element{:tag :dbReference, :attrs {:type "EMBL", :id
- "HE601631"}, :content (#clojure.data.xml.Element{:tag :property,
- :attrs {:type "protein sequence ID", :value "CCD81528.1"}, :content
- ()} #clojure.data.xml.Element{:tag :property, :attrs {:type "molecule
- type", :value "Genomic_DNA"}, :content ()})}
-
-;; A convenience function, `go-terms`, uses `db-references` to extract
-;; GO terms.
-
-user> (with-open [r (bs-reader up)]
-                 (-> (biosequence-seq r) first go-terms))
-("C:cytoplasm" "P:apoptotic process")
-
-;; Features and intervals can be accessed through the protocols
-;; defined in the core module.
-
-user> (with-open [r (bs-reader up)]
-                 (-> (biosequence-seq r) second feature-seq first))
-#clj_biosequence.uniprot.uniprotFeature{:src
- #clojure.data.xml.Element{:tag :feature, :attrs {:type "chain",
- :description "Glutathione S-transferase class-mu 26 kDa isozyme", :id
- "PRO_0000185811"}, :content (#clojure.data.xml.Element{:tag
- :location, :attrs {}, :content (#clojure.data.xml.Element{:tag
- :begin, :attrs {:position "1"}, :content ()}
- #clojure.data.xml.Element{:tag :end, :attrs {:position "195"},
- :content ()})})}}
-
-user> (with-open [r (bs-reader up)]
-                 (-> (biosequence-seq r) second feature-seq first feature-type))
+                 (-> (biosequence-seq r) second feature-seq first obj-type))
 "chain"
 
-user> (with-open [r (bs-reader up)]
-                 (-> (biosequence-seq r) second feature-seq first interval-seq first))
-#clj_biosequence.uniprot.uniprotInterval{:src
- #clojure.data.xml.Element{:tag :location, :attrs {}, :content
- (#clojure.data.xml.Element{:tag :begin, :attrs {:position "1"},
- :content ()} #clojure.data.xml.Element{:tag :end, :attrs {:position
- "195"}, :content ()})}}
-
-user> (with-open [r (bs-reader up)]
-                 (-> (biosequence-seq r) second feature-seq first interval-seq first start))
-1
 ```
 
-### Genbank XML
-
-`clj-biosequence` also supports Genbank XML.
+### GenBank: Geneseq xml
 
 ```clojure
 ;; initialise a genbank file in the usual way
 
-user> (use 'clj-biosequence.genbank)
-nil
-user> (def gbf (init-genbank-file (resource "test-files/nucleotide-gb.xml")))
+user> (def gbf (init-genbank-file "test-files/nucleotide-gb.xml"))
 #'user/gbf
 
-;; Access to sequences is managed the same way as described above. As
-;; with Uniprot sequences a number of convenience accessors are
-;; defined (see the documentation for details)
+;; Access sequences as usual
 
 user> (with-open [r (bs-reader gbf)]
-                 (-> (biosequence-seq r) first created))
-"08-JUL-2013"
-user> (with-open [r (bs-reader gbf)]
-                 (-> (biosequence-seq r) first taxid))
+                 (-> (biosequence-seq r) first tax-refs first
+		     get-db-refs first object-id))
 1268274
+
+;; records and protocols as follows:
+->genbankSequence ;; the top level record for Geneseq sequences
+Implements: biosequenceGene
+	    biosequenceID
+	    biosequenceDescription
+	    Biosequence
+	    biosequenceCitations ;; returns citation records
+	    biosequenceFeatures ;; returns feature records
+	    biosequenceTaxonomies ;; returns tax-ref records
+->genbankTaxRef
+Implements: biosequenceTaxonomy
+	    biosequenceFeatures
+	    biosequenceDbrefs ;; returns db records
+->genbankFeature
+Implements: biosequenceFeature
+	    biosequenceGene
+	    biosequenceID
+	    biosequenceProtein
+	    biosequenceEvidence
+	    biosequenceNotes
+	    biosequenceNameobject
+	    biosequenceIntervals ;; returns interval records
+	    biosequenceDbrefs ;; returns db records
+->genbankDbRef
+Implements: biosequenceDbref
+->genbankQualifier
+Implements: biosequenceNameObject
+->genbankInterval
+Implements: biosequenceID
+	    biosequenceInterval
+	    biosequenceTranslation
+->genbankCitation
+Implements: biosequenceCitation
+	    biosequenceNotes
+->genbankReader
+Implements: biosequenceReader
+->genbankFile
+Implements: biosequenceIO
+	    biosequenceFile
+
+;; some examples
+
 user> (with-open [r (bs-reader gbf)]
-                 (-> (biosequence-seq r) first gb-locus))
+                 (-> (biosequence-seq r) first locus))
 "KE373594"
 
-;; The functions `feature-seq` and `interval-seq provide access to
-;; features and intervals as described above for Uniprot sequences.
-
 user> (with-open [r (bs-reader gbf)]
-                 (-> (biosequence-seq r) first feature-seq first feature-type))
+                 (-> (biosequence-seq r) first feature-seq
+		     first obj-type))
 "source"
 user> (with-open [r (bs-reader gbf)]
-                 (-> (biosequence-seq r) first feature-seq first interval-seq first start))
+                 (-> (biosequence-seq r) first feature-seq first
+		     intervals first start))
 1
 
-;; The function `qualifier-seq` is also provided for genbank features
+;; The function `qualifiers` is also provided for genbank features
 ;; and it returns a lazy list of qualifiers.
 
 user> (with-open [r (bs-reader gbf)]
-                 (-> (biosequence-seq r) first feature-seq first qualifier-seq first))
-#clj_biosequence.genbank.genbankQualifier{:src
- #clojure.data.xml.Element{:tag :GBQualifier, :attrs {}, :content
- (#clojure.data.xml.Element{:tag :GBQualifier_name, :attrs {},
- :content ("organism")} #clojure.data.xml.Element{:tag
- :GBQualifier_value, :attrs {}, :content ("Blumeria graminis f. sp.
- tritici 96224")})}}
-user> (with-open [r (bs-reader gbf)]
                  (-> (biosequence-seq r) first feature-seq first
-                     qualifier-seq first qualifier-name))
+		     qualifiers first obj-type))
 "organism"
 user> (with-open [r (bs-reader gbf)]
                  (-> (biosequence-seq r) first feature-seq first
-                     qualifier-seq first qualifier-value))
+                     qualifiers first obj-value))
 "Blumeria graminis f. sp. tritici 96224"
-
-;; For Genbank files with large sequences, for example genome files,
-;; `feature-seq` can also be called on a genbank reader to provide a
-;; lazy sequence of features without loading the entire sequence into
-;; memory. Note this will only access the first sequence in a file.
-
-user> (def big-gb (init-genbank-file "/Users/jason/Dropbox/bl-ro1/hhv-4-annotation/akata/akata-sequence.xml"))
-#'user/big-gb
-user> (with-open [r (bs-reader big-gb)]
-                 (-> (feature-seq r) first feature-type))
-"source"
 ```
 
+### GenBank: Entrezgene xml
 
+```clojure
+
+Access sequences in the usual way:
+
+user> (use 'clj-biosequence.entrezgene)
+nil
+user> (def ef (init-entrezgene-file "test-files/entrez-gene.xml"))
+#'user/ef
+user> (with-open [r (bs-reader ef)]
+	(-> (biosequence-seq r)
+	    first
+	    accession))
+3875
+user> 
+
+;; records and protocols as follows:
+
+->entrezGene ;; top level record for an entrez gene
+Implements: biosequenceGene
+	    biosequenceSynonyms
+	    biosequenceDescription
+	    biosequenceDbrefs ;; returns db records
+	    biosequenceComments ;; returns comment records
+	    entrezComments
+	    biosequenceTranslation
+	    biosequenceID
+	    biosequenceStatus
+	    biosequenceSummary
+	    biosequenceTaxonomies ;; returns tax-ref records
+	    biosequenceProteins ;; return protein sub-seq records
+	    Biosequence
+->entrezProtein
+Implements: biosequenceProtein
+	    biosequenceSynonyms
+	    biosequenceDescription
+	    biosequenceDbrefs ;; reurns db records
+->entrezBiosource
+->entrezPcrPrimers
+->entrezSubSource
+->entrezOrgRef
+Implements: biosequenceTaxonomy
+	    biosequenceDbrefs ;; returns db records
+	    biosequenceSynonyms
+->entrezOrgName
+->entrezGeneTrack
+Implements: biosequenceID
+	    biosequenceStatus
+->entrezMap
+->entrezGeneSource
+->entrezGeneComment
+Implements: biosequenceID
+	    entrezComments
+	    biosequenceComments ;; returns comment records
+	    biosequenceNameObject
+->entrezExtraterm
+Implements: biosequenceNameObject
+->entrezOtherSource
+Implements: biosequenceUrl
+	    biosequenceDbrefs
+->entrezDbtag
+Implements: biosequenceDbref
+->entrezSeqLocation
+Implements: biosequenceIntervals ;; returns interval records
+->entrezInterval
+Implements: biosequenceInterval
+->entrezGeneReader
+Implements: biosequenceReader
+->entrezgeneFile
+Implements: biosequenceIO
+	    biosequenceFile
+->entrezGeneConnection
+Implements: biosequenceIO
+```
 
 
 
