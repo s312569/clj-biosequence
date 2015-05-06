@@ -98,9 +98,10 @@
 
 (defn sub-bioseq
   "Returns a new fasta sequence object with the sequence corresponding
-   to 'beg' (inclusive) and 'end' (exclusive) of 'bs'. If no 'end'
-   argument returns from 'start' to the end of the sequence. Zero
-   based index."
+  to 'beg' (inclusive) and 'end' (exclusive) of 'bs'. If no 'end'
+  argument returns from 'start' to the end of the sequence. Unlike
+  vectors assumes NOT a zero based index to correlate with common
+  intervals in annotation files."
   ([bs beg] (sub-bioseq bs beg nil))
   ([bs beg end]
      (init-fasta-sequence (accession bs)
@@ -109,8 +110,8 @@
                                (if end end "End") "]")
                           (alphabet bs)
                           (if end
-                            (apply str (subvec (bs-seq bs) beg end))
-                            (apply str (subvec (bs-seq bs) beg))))))
+                            (apply str (subvec (bs-seq bs) (- beg 1) end))
+                            (apply str (subvec (bs-seq bs) (- beg 1)))))))
 
 (defn get-interval-sequence
   "Returns a fasta sequence corresponding to the provided interval."
@@ -119,7 +120,7 @@
    ;; circular DNA spanning origin not comp
    (and (> (start interval) (end interval))
         (not (comp? interval))) 
-   (let [o (sub-bioseq bs (- (start interval) 1))
+   (let [o (sub-bioseq bs (start interval))
          t (sub-bioseq bs 0 (end interval))]
      (assoc o :sequence (vec (concat (bs-seq o) (bs-seq t)))
             :description (str (second (re-find #"^(.+)\s[^\[]+\]$"))
@@ -127,7 +128,7 @@
    ;; circular DNA spanning origin comp direction
    (and (comp? interval)
         (> (end interval) (start interval)))
-   (let [o (sub-bioseq bs (- (end interval) 1))
+   (let [o (sub-bioseq bs (end interval))
          t (sub-bioseq bs 0 (start interval))]
      (assoc o :sequence (vec (concat (bs-seq o) (bs-seq t)))
             :description (str (second (re-find #"^(.+)\s[^\[]+\]$"))
@@ -135,8 +136,8 @@
    ;; otherwise as usual
    :else
    (let [s (if (comp? interval)
-             (- (end interval) 1)
-             (- (start interval) 1))
+             (end interval)
+             (start interval))
          e (if (comp? interval)
              (start interval)
              (end interval))]
@@ -154,10 +155,10 @@
      (alphabet bs)
      (vec (mapcat #(if (comp? %)
                      (apply str (subvec (ala/revcom (bs-seq bs))
-                                        (- (end %) 1)
+                                        (end %)
                                         (start %)))
                      (apply str (subvec (bs-seq bs)
-                                        (- (start %) 1)
+                                        (start %) 1
                                         (end %)))) intervals)))))
 
 ;;;;;;;;;;;;;;
