@@ -114,18 +114,16 @@
                             (apply str (subvec (bs-seq bs) (- beg 1)))))))
 
 (defn interval-complete?
-  "Returns true if interval has a start and end value or a point value."
+  "Returns the interval if it has a start and end value or a point
+  value, nil otherwise."
   [interval]
-  (or (and (start interval) (end interval))
-      (point interval)))
+  (and (or (and (start interval) (end interval))
+           (point interval))
+       interval))
 
 (defn get-interval-sequence
   "Returns a fasta sequence corresponding to the provided interval."
   [interval bs]
-  (if (not (interval-complete? interval))
-    (throw (Throwable. (str "Interval from sequence "
-                            (accession bs)
-                            " incomplete."))))
   (cond
     ;; circular DNA spanning origin not comp
     (and (> (start interval) (end interval))
