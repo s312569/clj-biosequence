@@ -93,7 +93,7 @@
   (assoc bs/default-biosequence-description
     :description
     (fn [this]
-      (:status (:attrs (:src this)))))
+      (:description (:attrs (:src this)))))
   bs/biosequenceEvidence
   (assoc bs/default-biosequence-evidence
     :evidence
