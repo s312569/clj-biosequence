@@ -84,14 +84,16 @@
     (fn [this]
       (let [r (or (bs/get-text this :GBInterval_from)
                   (bs/get-text this :GBInterval_point))]
-        (if r (Integer/parseInt r)
-            (throw (Throwable. "No start value in interval!")))))
+        (Integer/parseInt r)))
     :end
     (fn [this]
-      (let [r (or (bs/get-text this :GBInterval_to)
+      (if-let [r (or (bs/get-text this :GBInterval_to)
                   (bs/get-text this :GBInterval_point))]
-        (if r (Integer/parseInt r)
-            (throw (Throwable. "No end value in interval!")))))
+        (Integer/parseInt r)))
+    :point
+    (fn [this]
+      (if-let [r (bs/get-text this :GBInterval_point)]
+        (Integer/parseInt r)))
     :comp?
     (fn [this]
       (let [c (bs/get-one this :GBInterval_iscomp (zf/attr :value))]

@@ -8,10 +8,6 @@
             [clj-biosequence.eutilities :refer [e-fetch]]
             [clj-biosequence.core :as bs]))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; entrez interval
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (defprotocol entrezComments
   (entrez-comments [this]
     "Returns entrezComment record.")

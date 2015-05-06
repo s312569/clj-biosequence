@@ -125,7 +125,7 @@
 
 (defprotocol biosequenceStatus
   (status [this]
-    "Status of a biosequence."))
+    "Status of an object."))
 
 (def ^{:doc "Default implementation of biosequenceStatus protocol."}
   default-biosequence-status

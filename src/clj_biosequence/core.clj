@@ -113,53 +113,45 @@
                             (apply str (subvec (bs-seq bs) (- beg 1) end))
                             (apply str (subvec (bs-seq bs) (- beg 1)))))))
 
+(defn interval-complete?
+  "Returns true if interval has a start and end value or a point value."
+  [interval]
+  (or (and (start interval) (end interval))
+      (point interval)))
+
 (defn get-interval-sequence
   "Returns a fasta sequence corresponding to the provided interval."
   [interval bs]
+  (if (not (interval-complete? interval))
+    (throw (Throwable. (str "Interval from sequence "
+                            (accession bs)
+                            " incomplete."))))
   (cond
-   ;; circular DNA spanning origin not comp
-   (and (> (start interval) (end interval))
-        (not (comp? interval))) 
-   (let [o (sub-bioseq bs (start interval))
-         t (sub-bioseq bs 0 (end interval))]
-     (assoc o :sequence (vec (concat (bs-seq o) (bs-seq t)))
-            :description (str (second (re-find #"^(.+)\s[^\[]+\]$"))
-                              " [" (start interval) " - " (end interval) "]")))
-   ;; circular DNA spanning origin comp direction
-   (and (comp? interval)
-        (> (end interval) (start interval)))
-   (let [o (sub-bioseq bs (end interval))
-         t (sub-bioseq bs 0 (start interval))]
-     (assoc o :sequence (vec (concat (bs-seq o) (bs-seq t)))
-            :description (str (second (re-find #"^(.+)\s[^\[]+\]$"))
-                              " [" (end interval) " - " (start interval) "]")))
-   ;; otherwise as usual
-   :else
-   (let [s (if (comp? interval)
-             (end interval)
-             (start interval))
-         e (if (comp? interval)
-             (start interval)
-             (end interval))]
-     (sub-bioseq bs s e))))
-
-(defn get-feature-sequence
-  "Returns a fastaSequence object containing the sequence specified in
-  a feature object from a biosequence."
-  [feature bs]
-  (let [intervals (intervals feature)]
-    (init-fasta-sequence
-     (accession bs)
-     (str (description bs) " - Feature: " (obj-type feature)
-          " - [" (start (first intervals)) "-" (end (last intervals)) "]")
-     (alphabet bs)
-     (vec (mapcat #(if (comp? %)
-                     (apply str (subvec (ala/revcom (bs-seq bs))
-                                        (end %)
-                                        (start %)))
-                     (apply str (subvec (bs-seq bs)
-                                        (start %) 1
-                                        (end %)))) intervals)))))
+    ;; circular DNA spanning origin not comp
+    (and (> (start interval) (end interval))
+         (not (comp? interval)))
+    (let [o (sub-bioseq bs (start interval))
+          t (sub-bioseq bs 0 (end interval))]
+      (assoc o :sequence (vec (concat (bs-seq o) (bs-seq t)))
+             :description (str (second (re-find #"^(.+)\s[^\[]+\]$"))
+                               " [" (start interval) " - " (end interval) "]")))
+    ;; circular DNA spanning origin comp direction
+    (and (comp? interval)
+         (> (end interval) (start interval)))
+    (let [o (sub-bioseq bs (end interval))
+          t (sub-bioseq bs 0 (start interval))]
+      (assoc o :sequence (vec (concat (bs-seq o) (bs-seq t)))
+             :description (str (second (re-find #"^(.+)\s[^\[]+\]$"))
+                               " [" (end interval) " - " (start interval) "]")))
+    ;; otherwise as usual
+    :else
+    (let [s (if (comp? interval)
+              (end interval)
+              (start interval))
+          e (if (comp? interval)
+              (start interval)
+              (end interval))]
+      (sub-bioseq bs s e))))
 
 ;;;;;;;;;;;;;;
 ;; utilities

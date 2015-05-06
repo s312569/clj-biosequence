@@ -38,12 +38,14 @@
   (assoc bs/default-biosequence-interval
     :start
     (fn [this]
-      (Integer/parseInt
-       (bs/get-one this :begin (zf/attr :position))))
+      (if-let [s (Integer/parseInt
+                  (bs/get-one this :begin (zf/attr :position)))]
+        s (bs/point this)))
     :end
     (fn [this]
-      (Integer/parseInt
-       (bs/get-one this :end (zf/attr :position))))
+      (if-let [e (Integer/parseInt
+                  (bs/get-one this :end (zf/attr :position)))]
+        e (bs/point this)))
     :point
     (fn [this]
       (Integer/parseInt
