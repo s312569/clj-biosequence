@@ -134,7 +134,6 @@
 
 (defn- sp-outfile
   [p]
-  {:pre [(not (fs/exists? p))]}
   (if p
     (let [c (atom 0)]
       (fn []

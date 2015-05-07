@@ -1,4 +1,4 @@
-(defproject clj-biosequence "0.3.2"
+(defproject clj-biosequence "0.3.3"
   :description "Library for the manipulation of biological sequences."
   :url ""
   :license {:name "Eclipse Public License"
