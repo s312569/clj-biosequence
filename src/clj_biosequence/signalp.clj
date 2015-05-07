@@ -118,10 +118,7 @@
 
 (defn- trimmed-fasta
   [s c]
-  (bs/init-fasta-sequence (bs/accession s)
-                          (bs/description s)
-                          :iupacAminoAcids
-                          (subvec (bs/bs-seq s) (+ 1 c))))
+  (bs/sub-bioseq s c))
 
 (defn- result-hash
   [file]
@@ -162,7 +159,7 @@
            (->> (map #(let [r (get h (bs/accession %))]
                         (if (= "Y" (first r))
                           (if trim
-                            (trimmed-fasta % (second r))
+                            (bs/sub-bioseq % (second r))
                             %)))
                      bsl)
                 (remove nil?)))

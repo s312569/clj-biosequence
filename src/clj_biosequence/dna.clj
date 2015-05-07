@@ -18,25 +18,29 @@
                        (alphabet this) 
                        (apply str (reverse (bs-seq this)))))
 
+(defn normalise-frame
+  "Takes a frame in the 'minus' format and returns it as a 1-6
+  frame."
+  [frame]
+  (or ({1 1 2 2 3 3 4 4 5 5 6 6 -1 4 -2 5 -3 6} frame)
+      (throw (IllegalArgumentException.
+              (str "Invalid frame: " frame)))))
+
 (defn translate
   "Returns a fastaSequence sequence representing the translation of
   the specified biosequence in the specified frame."
-  [bs frame & {:keys [table id-alter] :or {table (ala/codon-tables 1)
-                                           id-alter true}}]
+  [bs frame & {:keys [table] :or {table (ala/codon-tables 1)}}]
   {:pre [(not (protein? bs))]}
-  (let [f ({1 1 2 2 3 3 4 4 5 5 6 6 -1 4 -2 5 -3 6} frame)]
-    (if (not (#{1 2 3 4 5 6} f))
-      (throw (IllegalArgumentException.
-              (str "Invalid frame: " frame))))
+  (let [f (normalise-frame frame)]
     (init-fasta-sequence
-     (if id-alter (str (accession bs) "-" f) (accession bs))
+     (accession bs)
      (str (description bs) " - Translated frame: " f)
      :iupacAminoAcids
      (let [v (cond (#{1 2 3} f)
-                   (sub-bioseq bs (- f 1))
+                   (sub-bioseq bs f)
                    (#{4 5 6} f)
                    (-> (reverse-comp bs)
-                       (sub-bioseq ( - f 4))))]
+                       (sub-bioseq ( - f 3))))]
        (apply str (map #(ala/codon->aa % table)
                        (partition-all 3 (bs-seq v))))))))
 
