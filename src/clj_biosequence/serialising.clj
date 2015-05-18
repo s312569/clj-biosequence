@@ -43,6 +43,14 @@
   [_]
   :parameters)
 
+(defn is-indexed?
+  [file]
+  (exists? (str (bs-path file) ".ind")))
+
+(defn load-biosequence-index
+  [path]
+  (->biosequenceIndex (ind/load-indexed-file path) (absolute-path path)))
+
 (defn index-biosequence-collection
   [collection file & {:keys [func] :or {func accession}}]
   (try
@@ -58,15 +66,13 @@
 
 (defn index-biosequence-file
   [file & {:keys [func] :or {func accession}}]
-  (with-open [r (bs-reader file)]
-    (-> (if-let [p (parameters? r)]
-          (cons p (biosequence-seq r))
-          (biosequence-seq r))
-      (index-biosequence-collection (bs-path file)))))
-
-(defn load-biosequence-index
-  [path]
-  (->biosequenceIndex (ind/load-indexed-file path) (absolute-path path)))
+  (if (is-indexed? file)
+    (load-biosequence-index (bs-path file))
+    (with-open [r (bs-reader file)]
+      (-> (if-let [p (parameters? r)]
+            (cons p (biosequence-seq r))
+            (biosequence-seq r))
+          (index-biosequence-collection (bs-path file))))))
 
 (defn delete-indexed-biosequence
   [index-file]

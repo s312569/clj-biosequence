@@ -1,6 +1,6 @@
 (ns clj-biosequence.core
   (:require [clojure.java.io :refer [writer reader input-stream]]
-            [fs.core :refer [file? absolute-path extension]]
+            [fs.core :refer [file? absolute-path extension exists?]]
             [clj-http.client :as client]
             [clojure.string :refer [trim split upper-case]]
             [clj-biosequence.alphabet :as ala]

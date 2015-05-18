@@ -116,10 +116,6 @@
 ;; filter
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn- trimmed-fasta
-  [s c]
-  (bs/sub-bioseq s c))
-
 (defn- result-hash
   [file]
   (with-open [r (bs/bs-reader file)]
