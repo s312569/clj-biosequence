@@ -45,7 +45,7 @@
 
 (defn is-indexed?
   [file]
-  (exists? (str (bs-path file) ".ind")))
+  (exists? (str (bs-path file) ".idx")))
 
 (defn load-biosequence-index
   [path]
