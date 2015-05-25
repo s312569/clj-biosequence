@@ -37,7 +37,9 @@
 
 (defn index-writer
   [path]
-  (RandomAccessFile. (str path ".bin") "rw"))
+  (let [w (RandomAccessFile. (str path ".bin") "rw")]
+    (.seek w (.length w))
+    w))
 
 (defn object-seq
   [reader indexes]
