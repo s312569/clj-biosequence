@@ -75,22 +75,23 @@
   (if (is-indexed? file)
     (load-biosequence-index (bs-path file))
     (with-open [r (bs-reader file)]
-      (-> (if-let [p (parameters? r)]
-            (cons p (biosequence-seq r))
-            (biosequence-seq r))
-          (index-biosequence-collection (bs-path file)
-                                        :index (if index index))))))
+      (index-biosequence-collection (if-let [p (parameters? r)]
+                                      (cons p (biosequence-seq r))
+                                      (biosequence-seq r))
+                                    (bs-path file)
+                                    :index (if index index)))))
 
 (defn index-combine-files
   "Takes a collection of biosequence files and generates an index
   combining all the files. If files have parameters only the parameter
   object from the last file will be retained."
   [files outpath]
-  (loop [f files
-         i (init-biosequence-index outpath)]
-    (if-not (seq f)
-      i
-      (recur (rest f) (index-biosequence-file (first f) :index i)))))
+  (let [i (atom (init-biosequence-index outpath))]
+    (doseq [f files]
+      (println (str "Indexing " (bs-path f)))
+      (reset! i (index-biosequence-file f :index @i))
+      (println "Done."))
+    @i))
 
 (defn delete-indexed-biosequence
   [index-file]
