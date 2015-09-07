@@ -86,6 +86,15 @@
         vec
         (conj (fs/absolute-path infile)))))
 
+(defn- remove-stops
+  [bs]
+  (-> (bs/init-fasta-sequence (bs/accession bs)
+                              (bs/description bs)
+                              :iupacAminoAcids
+                              (replace {\* \X}
+                                       (bs/bs-seq bs)))
+      bs/fasta-string))
+
 (defn signalp
   "Runs signalp on a collection of biosequences and returns a signalp
   result file. Only the first 10,000 biosequences will be
@@ -95,7 +104,8 @@
   {:pre [(not (some false? (map bs/protein? bs)))]}
   (let [in (bs/biosequence->file (take 10000 bs)
                                  (fs/temp-file "sp-in")
-                                 :append false)]
+                                 :append false
+                                 :func remove-stops)]
     (try
       (with-open [out (output-stream outfile)]
         (let [sp @(sh (signal-command params in) {:out out}
