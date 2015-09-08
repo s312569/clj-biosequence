@@ -33,7 +33,7 @@
   {:pre [(not (protein? bs))]}
   (let [f (normalise-frame frame)]
     (init-fasta-sequence
-     (accession bs)
+     (str (accession bs) "-" f)
      (str (description bs) " - Translated frame: " f)
      :iupacAminoAcids
      (let [v (cond (#{1 2 3} f)
