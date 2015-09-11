@@ -110,8 +110,8 @@
                                (if end end "End") "]")
                           (alphabet bs)
                           (if end
-                            (apply str (subvec (bs-seq bs) (- beg 1) end))
-                            (apply str (subvec (bs-seq bs) (- beg 1)))))))
+                            (subvec (bs-seq bs) (- beg 1) end)
+                            (subvec (bs-seq bs) (- beg 1))))))
 
 (defn interval-complete?
   "Returns the interval if it has a start and end value or a point
@@ -169,22 +169,29 @@
                 bs)))
   file)
 
-(defn clean-sequence
+(defn- clean-sequence
   "Removes spaces and newlines and checks that all characters are
    legal characters for the supplied alphabet. Replaces non-valid
    characters with \\X. If `a' is not a defined alphabet throws an
    exception."
-  [s a]
-  (let [k (ala/get-alphabet a)
-        w #{\space \newline}
-        t (if (string? s) (upper-case s) s)]
-    (loop [l t a []]
+  [s ala]
+  (let [w #{\space \newline}]
+    (loop [l s a []]
       (if-not (seq l)
         a
         (let [c (first l)]
           (if (not (w c))
-            (recur (rest l) (conj a (if (k c) c \X)))
+            (recur (rest l) (conj a
+                                  (if (ala/allowed-character? ala c) c \X)))
             (recur (rest l) a)))))))
+
+(defn clean-sequences
+  [alphabet coll]
+  (let [a (ala/get-alphabet alphabet)]
+    (if (ala/checked? a)
+      (map #(assoc % :sequence
+                   (clean-sequence (:sequence %) a)) coll)
+      coll)))
 
 (defn object->file
   "Spits an object to file after making sure *print-length* is
