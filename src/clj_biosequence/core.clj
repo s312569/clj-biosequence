@@ -93,11 +93,15 @@
        (apply str)))
 
 (defn fasta-string
-  [bioseq]
-  "Returns the biosequence as a fasta formatted string."
-  (str ">" (accession bioseq) " "
-       (description bioseq) "\n"
-       (bioseq->string bioseq) "\n"))
+  "Returns the biosequence as a fasta formatted string. If newlines?
+  is true then the sequence is formatted into 80 character rows."
+  ([bioseq] (fasta-string bioseq true))
+  ([bioseq newlines?]
+   (str ">" (accession bioseq) " "
+        (description bioseq) "\n"
+        (if newlines?
+          (bioseq->string bioseq)
+          (:sequence bioseq)))))
 
 (defn sub-bioseq
   "Returns a new fasta sequence object with the sequence corresponding
