@@ -6,7 +6,8 @@
             [clojure.java.io :refer [reader]]
             [fs.core :refer [file?]]
             [clj-biosequence.core :as bs]
-            [clj-biosequence.eutilities :refer [e-search e-fetch]]))
+            [clj-biosequence.eutilities :refer [e-search e-fetch]]
+            [clj-biosequence.alphabet :refer [alphabet-is-protein?]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; genbank citation
@@ -281,7 +282,7 @@
   (fn [this]
     (bs/get-list this :GBSeq_comment zf/text)))
 
-(defrecord genbankSequence [src])
+(defrecord genbankSequence [src alphabet])
 
 (extend genbankSequence
   bs/biosequenceGene
@@ -317,22 +318,12 @@
   (assoc bs/default-biosequence-biosequence
     :bs-seq
     (fn [this]
-      (if-let [s (bs/get-text this :GBSeq_sequence)]
-        (bs/clean-sequence s (bs/alphabet this))))
+      (vec (:sequence this)))
     :protein?
-    (fn [this] (= (bs/alphabet this) :iupacAminoAcids))
+    (fn [this] (if (alphabet-is-protein? (bs/alphabet this))
+                 true false))
     :alphabet
-    (fn [this]
-      (let [m (bs/moltype this)]
-        (cond (#{"genomic" "precursor RNA" "mRNA" "rRNA" "tRNA"
-                 "snRNA" "scRNA" "other-genetic" "DNA" "cRNA"
-                 "snoRNA" "transcribed RNA"} m)
-              :iupacNucleicAcids
-              (#{"AA"} m)
-              :iupacAminoAcids
-              :else
-              (throw (Throwable.
-                      (str "Unknown moltype: " m))))))
+    (fn [this] (:alphabet this))
     :moltype
     (fn [this]
       (bs/get-text this :GBSeq_moltype))
@@ -365,63 +356,66 @@
 ;; IO
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord genbankReader [strm]
+(defrecord genbankReader [strm alphabet]
   bs/biosequenceReader
   (biosequence-seq [this]
     (let [xml (parse (:strm this) :support-dtd false)]
-      (map (fn [x]
-             (vec x) ;; realising all the laziness
-             (->genbankSequence x))
-           (filter #(= (:tag %) :GBSeq)
-                   (:content xml)))))
+      (->> (map (fn [x]
+                  (vec x) ;; realising all the laziness
+                  (->genbankSequence x (:alphabet this)))
+                (filter #(= (:tag %) :GBSeq)
+                        (:content xml)))
+           (map #(assoc % :sequence
+                        (bs/get-text this :GBSeq_sequence)))
+           (bs/clean-sequences (:alphabet this)))))
   java.io.Closeable
   (close [this]
     (.close (:strm this))))
-
-(defn init-genbank-reader
-  "Initializes a genbankReader."
-  [strm]
-  (->genbankReader strm))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; file
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord genbankFile [file])
+(defrecord genbankFile [file opts alphabet])
 
 (extend genbankFile
   bs/biosequenceIO
   {:bs-reader
    (fn [this]
-     (init-genbank-reader (reader (:file this))))}
+     (->genbankReader (apply bs/bioreader (bs/bs-path this)
+                             (:opts this))
+                      (:alphabet this)))}
   bs/biosequenceFile
   bs/default-biosequence-file)
 
 (defn init-genbank-file
   "Initializes a genbankFile record."
-  [file]
+  [file alphabet & opts]
   {:pre [(file? file)]}
-  (->genbankFile file))
+  (->genbankFile file opts alphabet))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; string
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord genbankString [str]
+(defrecord genbankString [str opts alphabet]
   bs/biosequenceIO
   (bs-reader [this]
-    (init-genbank-reader (reader (:str this)))))
+    (->genbankReader (apply bs/bioreader (:str this)
+                            (:opts this))
+                     (:alphabet this))))
 
 (defn init-genbank-string
   "Initializes a genbankString record."
-  [str]
-  (->genbankString str))
+  [str & {:keys [alphabet opts] :or {alphabet :iupacAminoAcids
+                                     opts ()}}]
+  (->genbankString str opts alphabet))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; connection
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord genbankConnection [acc-list db retype]
+(defrecord genbankConnection [acc-list db retype alphabet opts]
   bs/biosequenceIO
   (bs-reader [this]
     (let [s (e-fetch (:acc-list this)
@@ -431,20 +425,18 @@
                         (condp = (:retype this)
                           :xml "xml" :fasta "text"))]
       (condp = (:retype this)
-        :xml (init-genbank-reader (reader s))
+        :xml (->genbankReader (apply bs/bioreader s (:opts this))
+                              (:alphabet this))
         :fasta (bs/init-fasta-reader
-                (reader s)
-                (cond (#{:nucest :nuccore :nucgss :popset} db)
-                      :iupacNucleicAcids
-                      (= :protein db)
-                      :iupacAminoAcids))))))
+                (apply bs/bioreader s (:opts this))
+                (:alphabet this))))))
 
 (defn init-genbank-connection
   "Initializes a genbankConnection record."
-  [accessions db format]
+  [accessions db format alphabet & opts]
   {:pre [(#{:xml :fasta} format)
          (#{:nucest :nuccore :nucgss :popset :protein} db)]}
-  (->genbankConnection accessions db format))
+  (->genbankConnection accessions db format alphabet opts))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; web

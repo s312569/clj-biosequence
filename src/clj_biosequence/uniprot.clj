@@ -115,7 +115,7 @@
   (assoc bs/default-biosequence-biosequence
     :bs-seq
     (fn [this]
-      (vec (bs/get-one this :location (zf/attr :sequence)))))
+      (vec (:sequence this))))
   bs/biosequenceVariant
   (assoc bs/default-biosequence-variant
     :original (fn [this] (bs/get-text this :original))
@@ -265,147 +265,151 @@
                         bs/innnames))]
     (if (seq n) n)))
 
-(defrecord uniprotProtein [src])
+(defrecord uniprotProtein [src alphabet])
 
 (extend uniprotProtein
   bs/Biosequence
   (assoc bs/default-biosequence-biosequence
-    :bs-seq (fn [this] (bs/clean-sequence
-                        (bs/get-text this :sequence)
-                        :iupacAminoAcids))
-    :protein? (fn [this] true)
-    :alphabet (fn [this] :iupacAminoAcids)
-    :moltype (fn [this] "AA")
-    :keywords (fn [this]
-                (map #(vector (zf/attr % :id)
-                              (zf/text %))
-                     (bs/get-list this :keyword))))
+         :bs-seq (fn [this] (vec (:sequence this)))
+         :protein? (fn [this] true)
+         :alphabet (fn [this] (:alphabet this))
+         :moltype (fn [this] "AA")
+         :keywords (fn [this]
+                     (map #(vector (zf/attr % :id)
+                                   (zf/text %))
+                          (bs/get-list this :keyword))))
   bs/biosequenceID
   (assoc bs/default-biosequence-id
-    :accessions (fn [this]
-                  (concat (bs/get-list this :accession zf/text)
-                          (list (bs/get-text this :name))))
-    :accession (fn [this] (first (bs/accessions this)))
-    :version (fn [this] (:version (:attrs (:src this))))
-    :creation-date (fn [this]
-                     (u-date (:created (:attrs (:src this)))))
-    :update-date (fn [this]
-                   (u-date (:modified (:attrs (:src this)))))
-    :dataset (fn [this] (:dataset (:attrs (:src this)))))
+         :accessions (fn [this]
+                       (concat (bs/get-list this :accession zf/text)
+                               (list (bs/get-text this :name))))
+         :accession (fn [this] (first (bs/accessions this)))
+         :version (fn [this] (:version (:attrs (:src this))))
+         :creation-date (fn [this]
+                          (u-date (:created (:attrs (:src this)))))
+         :update-date (fn [this]
+                        (u-date (:modified (:attrs (:src this)))))
+         :dataset (fn [this] (:dataset (:attrs (:src this)))))
   bs/biosequenceName
   (assoc bs/default-biosequence-name
-    :names
-    (fn [this]
-      (let [r (get-short-full (bs/get-one this :protein
-                                          :recommendedName))]
-        (or r (all-names this) (bs/accessions this))))
-    :alternate-names
-    (fn [this]
-      (mapcat #(get-short-full %)
-              (bs/get-list this :protein :alternativeName)))
-    :submitted-names
-    (fn [this]
-      (mapcat #(get-short-full %)
-              (bs/get-list this :protein :submittedName)))
-    :allergen-names
-    (fn [this]
-      (mapcat #(get-short-full %)
-              (bs/get-list this :protein :allergenName)))
-    :biotech-names
-    (fn [this]
-      (mapcat #(get-short-full %)
-              (bs/get-list this :protein :biotechName)))
-    :cd-antigen-names
-    (fn [this]
-      (mapcat #(get-short-full %)
-              (bs/get-list this :protein :cdAntigenName)))
-    :innnames
-    (fn [this]
-      (mapcat #(get-short-full %)
-              (bs/get-list this :protein :innName))))
+         :names
+         (fn [this]
+           (let [r (get-short-full (bs/get-one this :protein
+                                               :recommendedName))]
+             (or r (all-names this) (bs/accessions this))))
+         :alternate-names
+         (fn [this]
+           (mapcat #(get-short-full %)
+                   (bs/get-list this :protein :alternativeName)))
+         :submitted-names
+         (fn [this]
+           (mapcat #(get-short-full %)
+                   (bs/get-list this :protein :submittedName)))
+         :allergen-names
+         (fn [this]
+           (mapcat #(get-short-full %)
+                   (bs/get-list this :protein :allergenName)))
+         :biotech-names
+         (fn [this]
+           (mapcat #(get-short-full %)
+                   (bs/get-list this :protein :biotechName)))
+         :cd-antigen-names
+         (fn [this]
+           (mapcat #(get-short-full %)
+                   (bs/get-list this :protein :cdAntigenName)))
+         :innnames
+         (fn [this]
+           (mapcat #(get-short-full %)
+                   (bs/get-list this :protein :innName))))
   bs/biosequenceDescription
   (assoc bs/default-biosequence-description
-    :description (fn [this]
-                   (str (first (bs/names this)) " ["
-                        (-> (bs/tax-refs this)
-                          first
-                          bs/tax-name) "]")))
+         :description (fn [this]
+                        (str (first (bs/names this)) " ["
+                             (-> (bs/tax-refs this)
+                                 first
+                                 bs/tax-name) "]")))
   bs/biosequenceCitations
   (assoc bs/default-biosequence-citations
-    :citations
-    (fn [this]
-      (->> (bs/get-list this :reference)
-           (map #(->uniprotCitation (node %))))))
+         :citations
+         (fn [this]
+           (->> (bs/get-list this :reference)
+                (map #(->uniprotCitation (node %))))))
   bs/biosequenceFeatures
   (assoc bs/default-biosequence-features
-    :feature-seq
-    (fn [this]
-      (->> (bs/get-list this :feature)
-           (map #(->uniprotFeature (node %))))))
+         :feature-seq
+         (fn [this]
+           (->> (bs/get-list this :feature)
+                (map #(->uniprotFeature (node %)))
+                (map #(assoc % :sequence
+                             (bs/get-one % :location (zf/attr :sequence))))
+                (bs/clean-sequences (:alphabet this)))))
   bs/biosequenceTaxonomies
   (assoc bs/default-biosequence-taxonomies
-    :tax-refs
-    (fn [this] (->> (bs/get-list this :organism)
-                    (map #(->uniprotTaxRef (node %))))))
+         :tax-refs
+         (fn [this] (->> (bs/get-list this :organism)
+                         (map #(->uniprotTaxRef (node %))))))
   bs/biosequenceGenes
   (assoc bs/default-biosequence-genes
-    :genes
-    (fn [this] (->> (bs/get-list this :gene)
-                    (map #(->uniprotGene (node %))))))
+         :genes
+         (fn [this] (->> (bs/get-list this :gene)
+                         (map #(->uniprotGene (node %))))))
   bs/biosequenceComments
   (assoc bs/default-biosequence-comments
-    :comments
-    (fn [this]
-      (->> (bs/get-list this :comment)
-           (map #(->uniprotComment (node %))))))
+         :comments
+         (fn [this]
+           (->> (bs/get-list this :comment)
+                (map #(->uniprotComment (node %))))))
   bs/biosequenceSubCellLocs
   (assoc bs/default-biosequence-subcells
-    :subcell-locations
-    (fn [this]
-      (->> (bs/comments this)
-           (filter #(= (bs/obj-type %) "subcellular location")))))
+         :subcell-locations
+         (fn [this]
+           (->> (bs/comments this)
+                (filter #(= (bs/obj-type %) "subcellular location")))))
   bs/biosequenceDbRefs
   (assoc bs/default-biosequence-dbrefs
-    :get-db-refs
-    (fn [this]
-      (->> (bs/get-list this :dbReference)
-           (map #(->uniprotDbRef (node %))))))
+         :get-db-refs
+         (fn [this]
+           (->> (bs/get-list this :dbReference)
+                (map #(->uniprotDbRef (node %))))))
   bs/biosequenceGoTerms
   (assoc bs/default-biosequence-goterms
-    :gos (fn [this]
-           (filter #(= (bs/database-name %) "GO")
-                   (bs/get-db-refs this))))
+         :gos (fn [this]
+                (filter #(= (bs/database-name %) "GO")
+                        (bs/get-db-refs this))))
   bs/biosequenceEvidence
   (assoc bs/default-biosequence-evidence
-    :evidence
-    (fn [this]
-      (bs/get-list this :proteinExistence (zf/attr :type))))
+         :evidence
+         (fn [this]
+           (bs/get-list this :proteinExistence (zf/attr :type))))
   bs/biosequenceProtein
   (assoc bs/default-biosequence-protein
-    :calc-mol-wt
-    (fn [this]
-      (Float/parseFloat
-       (bs/get-one this :sequence (zf/attr :mass))))
-    :ecs
-    (fn [this]
-      (mapcat #(bs/get-text {:src (node this)} :ecNumber)
-              (concat (bs/get-list this :protein :recommendedName)
-                      (bs/get-list this :protein :alternativeName)
-                      (bs/get-list this :protein :submittedName))))))
+         :calc-mol-wt
+         (fn [this]
+           (Float/parseFloat
+            (bs/get-one this :sequence (zf/attr :mass))))
+         :ecs
+         (fn [this]
+           (mapcat #(bs/get-text {:src (node this)} :ecNumber)
+                   (concat (bs/get-list this :protein :recommendedName)
+                           (bs/get-list this :protein :alternativeName)
+                           (bs/get-list this :protein :submittedName))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; IO
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord uniprotReader [strm]
+(defrecord uniprotReader [strm alphabet]
   bs/biosequenceReader
   (bs/biosequence-seq [this]
     (let [xml (parse (:strm this))]
-      (map (fn [x]
-             (vec x) ;; realizing all laziness
-             (->uniprotProtein x))
-           (filter #(= (:tag %) :entry)
-                   (:content xml)))))
+      (->> (map (fn [x]
+                  (vec x) ;; realizing all laziness
+                  (->uniprotProtein x (:alphabet this)))
+                (filter #(= (:tag %) :entry)
+                        (:content xml)))
+           (map #(assoc % :sequence
+                        (bs/get-text % :sequence)))
+           (bs/clean-sequences (:alphabet this)))))
   java.io.Closeable
   (close [this]
     (.close ^java.io.BufferedReader (:strm this))))
@@ -414,22 +418,24 @@
 ;; file
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord uniprotFile [file opts])
+(defrecord uniprotFile [file opts alphabet])
 
 (extend uniprotFile
   bs/biosequenceIO
   {:bs-reader
    (fn [this]
      (->uniprotReader (apply bs/bioreader (bs/bs-path this)
-                             (:opts this))))}
+                             (:opts this))
+                      (:alphabet this)))}
   bs/biosequenceFile
   bs/default-biosequence-file)
 
 (defn init-uniprot-file
   "Initialises a uniprotXmlFile object for use with bs-reader."
-  [path & opts]
+  [path & {:keys [alphabet opts] :or {alphabet :iupacAminoAcids
+                                      opts ()}}]
   (if (file? path)
-    (->uniprotFile path opts)
+    (->uniprotFile path opts alphabet)
     (throw (Throwable. (str "File not found: " path)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -484,22 +490,22 @@
           f))
         (finally (delete f))))))
 
-(defrecord uniprotConnection [acc-list retype email]
+(defrecord uniprotConnection [acc-list retype email alphabet]
   bs/biosequenceIO
   (bs-reader [this]
     (let [s (get-uniprot-stream (:acc-list this)
                                 (:retype this) (:email this))]
       (condp = (:retype this)
-        :xml (->uniprotReader (bs/bioreader s))
-        :fasta (bs/init-fasta-reader (reader s) :iupacAminoAcids)))))
+        :xml (->uniprotReader (bs/bioreader s) (:alphabet this))
+        :fasta (bs/init-fasta-reader (bs/bioreader s) (:alphabet this))))))
 
 (defn init-uniprot-connection
   "Initialises a connection which can be used with bs-reader to open a
   lazy list of uniprotProteins from the Uniprot servers."
-  [accessions retype email]
+  [accessions retype email & {:keys [alphabet] :or {alphabet :iupacAminoAcids}}]
   {:pre [(#{:xml :fasta} retype)]}
   (let [l (if (coll? accessions) accessions (list accessions))]
-    (->uniprotConnection l retype email)))
+    (->uniprotConnection l retype email alphabet)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; web search

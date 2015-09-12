@@ -11,7 +11,7 @@
   respectively."
   [p & {:keys [ph disulfides] :or {ph 7 disulfides 0}}]
   {:pre [(protein? p)]}
-  (let [a (ala/get-alphabet :signalpAminoAcids)
+  (let [a (ala/data (ala/get-alphabet :signalpAminoAcids))
         ncalc (fn [x n]
                 (* n
                    (/ (Math/pow 10 x)

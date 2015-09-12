@@ -9,19 +9,20 @@
 (extend fastaSequence
   biosequenceID
   (assoc default-biosequence-id
-    :accession (fn [this] (:acc this))
-    :accessions (fn [this] (list (accession this))))
+         :accession (fn [this] (:acc this))
+         :accessions (fn [this] (list (accession this))))
   biosequenceDescription
   (assoc default-biosequence-description
-    :description (fn [this] (:description this)))
+         :description (fn [this] (:description this)))
   Biosequence
   (assoc default-biosequence-biosequence
-    :bs-seq (fn [this] (:sequence this))
-    :protein? (fn [this]
-                (ala/alphabet-is-protein? (:alphabet this)))
-    :alphabet (fn [this] (:alphabet this))
-    :moltype
-    (fn [this] (if (protein? this) "AA" "Nucleic acid"))))
+         :bs-seq (fn [this] (vec (:sequence this)))
+         :protein? (fn [this]
+                     (if (ala/alphabet-is-protein? (:alphabet this))
+                       true false))
+         :alphabet (fn [this] (:alphabet this))
+         :moltype
+         (fn [this] (if (protein? this) "AA" "Nucleic acid"))))
 
 (defn init-fasta-sequence
   "Returns a new fastaSequence. Currently :iupacNucleicAcids
@@ -29,10 +30,7 @@
   ([accession description alphabet sequence]
    (init-fasta-sequence accession description alphabet sequence false))
   ([accession description alphabet sequence check-seq]
-   (if check-seq
-     (->fastaSequence accession description alphabet
-                      (clean-sequences alphabet sequence))
-     (->fastaSequence accession description alphabet sequence))))
+   (->fastaSequence accession description alphabet sequence)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; IO
@@ -58,14 +56,14 @@
                     (second (re-find #"^>([^\s]+)" (first d)))
                     (second (re-find #">[^\s]+\s+(.+)" (first d)))
                     (:alphabet this)
-                    (vec (apply concat seqs))))))
+                    (apply str seqs)))))
          (partition 2 (partition-by #(re-find #"^>" %) l)))))
 
 (defrecord fastaReader [strm alphabet]
   biosequenceReader
   (biosequence-seq [this]
-    (let [l (parse-fasta this)]
-      (clean-sequences (:alphabet this) l)))
+    (->> (parse-fasta this)
+         (clean-sequences (:alphabet this))))
   java.io.Closeable
   (close [this] (.close ^java.io.BufferedReader (:strm this))))
 

@@ -12,16 +12,16 @@
 (extend fastqSequence
   bs/biosequenceID
   (assoc bs/default-biosequence-id
-    :accession (fn [this] (:description this))
-    :accessions (fn [this] (list (bs/accession this))))
+         :accession (fn [this] (:description this))
+         :accessions (fn [this] (list (bs/accession this))))
   bs/biosequenceDescription
   (assoc bs/default-biosequence-description
-    :description (fn [this] (bs/accession this)))
+         :description (fn [this] (bs/accession this)))
   bs/Biosequence
   (assoc bs/default-biosequence-biosequence
-    :bs-seq (fn [this] (vec (:sequence this)))
-    :protein? (fn [this] false)
-    :alphabet (fn [this] :iupacNucleicAcids)))
+         :bs-seq (fn [this] (vec (:sequence this)))
+         :protein? (fn [this] false)
+         :alphabet (fn [this] :iupacNucleicAcids)))
 
 (defn qualities
   "Returns the quality string from a fastq sequence record."

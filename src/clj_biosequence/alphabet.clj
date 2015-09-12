@@ -4,60 +4,51 @@
 
 ;; alphabets
 
-(defprotocol biosequenceAlphabet
-  (alphabet-is-protein? [this]
-    "Returns true if alphabet is a protein alphabet.")
-  (allowed-character? [this char]
-    "True if character argument is permitted in alphabet.")
-  (checked? [this]
-    "Specifies if sequence alphabet restrictions should be enforced.")
-  (data [this char]
-    "Returns meta data for corresponding characters."))
+(def iupacAminoAcids
+  {:protein? true
+   :checked? true
+   :alphabet (edn/read-string (slurp (resource "aa-iupacAA.clj")))})
 
-(def ^{:doc "Default alphabet parameters."}
-  default-biosequence-alphabet
-  {:allowed-character? (fn [this char]
-                         (contains? (.alphabet this) char))
-   :checked? (fn [_] true)
-   :data (fn [this char] (get (.alphabet this) char))})
+(def iupacNucleicAcids
+  {:protein? false
+   :checked? true
+   :alphabet (edn/read-string (slurp (resource "dna-iupacdna.clj")))})
 
-(deftype iupacAminoAcids [alphabet])
-(deftype iupacNucleicAcids [alphabet])
-(deftype signalpAminoAcids [alphabet])
-(deftype uncheckedDNA [alphabet])
+(def signalpAminoAcids
+  {:protein? true
+   :checked? true
+   :alphabet (edn/read-string (slurp (resource "aa-signalp.clj")))})
 
-(extend iupacAminoAcids
-  biosequenceAlphabet
-  (assoc default-biosequence-alphabet
-    :alphabet-is-protein? (fn [this] true)))
+(def uncheckedDNA
+  {:protein? false
+   :checked? false})
 
-(extend iupacNucleicAcids
-  biosequenceAlphabet
-  (assoc default-biosequence-alphabet
-         :alphabet-is-protein? (fn [_] false)))
+(def uncheckedProtein
+  {:protein? true
+   :checked? false})
 
-(extend signalpAminoAcids
-  biosequenceAlphabet
-  (assoc default-biosequence-alphabet
-         :alphabet-is-protein? (fn [_] true)))
+(def alphabets
+  {:iupacAminoAcids iupacAminoAcids
+   :iupacNucleicAcids iupacNucleicAcids
+   :signalpAminoAcids signalpAminoAcids
+   :uncheckedDNA uncheckedDNA
+   :uncheckedProtein uncheckedProtein})
 
-(extend uncheckedDNA
-  biosequenceAlphabet
-  (assoc default-biosequence-alphabet
-         :alphabet-is-protein? (fn [_] false)
-         :checked? (fn [_] false)))
+(defn alphabet-is-protein?
+  [ala]
+  (:protein ala))
 
-(def alphabets {:iupacAminoAcids
-                (iupacAminoAcids.
-                 (edn/read-string (slurp (resource "aa-iupacAA.clj"))))
-                :iupacNucleicAcids
-                (iupacNucleicAcids.
-                 (edn/read-string (slurp (resource "dna-iupacdna.clj"))))
-                :signalpAminoAcids
-                (signalpAminoAcids.
-                 (edn/read-string (slurp (resource "aa-signalp.clj"))))
-                :uncheckedDNA
-                (uncheckedDNA. {})})
+(defn allowed-character?
+  [ala char]
+  (contains? (:alphabet ala) char))
+
+(defn data
+  [ala char]
+  ((:alphabet ala) char))
+
+(defn checked?
+  [ala]
+  (ala :checked?))
 
 ;; codon tables
 
@@ -67,22 +58,14 @@
 ;; functions
 
 (defn get-alphabet
-  "If a keyword corresponding to a defined alphabet or, if an object
-  that satisifies biosequenceAlphabet protocol, the object. Throws an
-  exception otherwise."
   [k]
-  (or (alphabets k)
-      (if (satisfies? biosequenceAlphabet k) k)
-      (throw (Throwable. "Argument does not correspond to a keyword for a defined alphabet or does not satisfy biosequenceAlphabet protocol."))))
+  (alphabets k))
 
 (defn alphabet?
   [k]
   "Returns true if argument is a keyword naming a defined alphabet or
   an object that satisifies biosequencealphabet protocol."
-  (if (or (alphabets k)
-          (satisfies? biosequenceAlphabet k))
-    true
-    false))
+  (contains? alphabets k))
 
 (defn codon->aa
   "Takes a seq of three chars representing nucleic acid residues and
@@ -101,9 +84,6 @@
   "Takes a seq of chars representing nucleic acids and returns a
   vector of the reverse complement."
   [v]
-  (let [a (get-alphabet :iupacNucleicAcids)]
-    (if true
-      nil
-      (->> (map #(or ((a %) :complement) \X) v)
-           reverse
-           vec))))
+  (let [a (:alphabet (get-alphabet :iupacNucleicAcids))]
+    (->> (map #(or ((a %) :complement) \X) v)
+         reverse)))
