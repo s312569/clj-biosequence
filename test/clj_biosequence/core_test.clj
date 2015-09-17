@@ -21,7 +21,7 @@
 (def fasta-lower-aa (with-open [f (bs-reader
                               (init-fasta-file
                                (io/resource "test-files/lowercase-AA.fasta")
-                               :iupacAminoAcids))]
+                               :uncheckedProtein))]
                  (first (biosequence-seq f))))
 
 (def fasta-nuc (with-open [f (bs-reader
@@ -50,16 +50,17 @@
     (is (= :iupacNucleicAcids (alphabet fasta-nuc)))
     (is (= [\G \T \A \C \A \A \A]
            (bs-seq (sub-bioseq fasta-nuc 1 7))))
-    ;; lower-case tests
-    (is (= :iupacNucleicAcids (alphabet fasta-lower-nuc)))
-    (is (= [\G \T \A \C \A \A \A]
-           (bs-seq (sub-bioseq fasta-lower-nuc 1 7))))
     (is (= [\G \T \A]
            (first (partition-all 3 (bs-seq fasta-nuc)))))
     (is (= [\T \A \A \T]
            (bs-seq (sub-bioseq (reverse-comp fasta-nuc) 1 4))))
     (is (= [\A \T \T \A]
            (bs-seq (sub-bioseq (reverse-seq fasta-nuc) 1 4))))
+    ;; lower-case tests
+    (is (= [\G \T \A \C \A \A \A]
+           (bs-seq (sub-bioseq fasta-lower-nuc 1 7))))
+    (is (= "anact"
+           (subs (:sequence fasta-lower-aa) 0 5)))
     (is (= "accession"
            (with-open [s
                        (bs-reader (init-fasta-string
