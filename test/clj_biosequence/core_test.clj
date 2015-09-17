@@ -59,6 +59,8 @@
     ;; lower-case tests
     (is (= [\G \T \A \C \A \A \A]
            (bs-seq (sub-bioseq fasta-lower-nuc 1 7))))
+    (is (= "GTACAAA"
+           (subs (:sequence fasta-lower-nuc) 0 7)))
     (is (= "anact"
            (subs (:sequence fasta-lower-aa) 0 5)))
     (is (= "accession"
