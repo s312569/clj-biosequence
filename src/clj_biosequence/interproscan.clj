@@ -150,6 +150,26 @@
   (assoc bs/default-biosequence-description
          :description (fn [this] (:desc (:attrs (:src this))))))
 
+;; locations
+
+(defrecord interproscanInterval [src])
+
+(extend interproscanInterval
+  bs/biosequenceInterval
+  (assoc bs/default-biosequence-interval
+         :start (fn [this] (Integer/parseInt
+                            (:start (:attrs (:src this)))))
+         :end (fn [this] (Integer/parseInt
+                          (:end (:attrs (:src this)))))))
+
+(defn interval-score
+  [int]
+  (Float/parseFloat (:score (:attrs (:src int)))))
+
+(defn interval-evalue
+  [int]
+  (Float/parseFloat (:evalue (:attrs (:src int)))))
+
 ;; matches
 
 (defrecord interproscanHmmThree [src]
@@ -165,6 +185,15 @@
   (signature [this]
     (->interproscanSignature
      (zip/node (zf/xml1-> (zip/xml-zip (:src this)) :signature)))))
+
+(extend interproscanHmmThree
+  bs/biosequenceIntervals
+  (assoc bs/default-biosequence-intervals
+         :intervals (fn [this]
+                      (map #(->interproscanInterval (zip/node %))
+                           (zf/xml-> (zip/xml-zip (:src this))
+                                     :locations
+                                     :hmmer3-location)))))
 
 ;; ips protein
 
