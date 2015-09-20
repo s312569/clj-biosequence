@@ -82,19 +82,26 @@
 ;; functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn- bioseq->string
+(defn bioseq->string
   "Returns the sequence of a biosequence as a string with newlines
   every 80 chars."
   [bs]
-  (apply str (interpose "\n"
-                        (map #(apply str %)
-                             (partition-all 80 (bs-seq bs))))))
+  (->> (:sequence bs)
+       (partition-all 80)
+       (map #(apply str %))
+       (interpose "\n")
+       (apply str)))
 
 (defn fasta-string
-  [bioseq]
-  "Returns the biosequence as a fasta formatted string."
-  (str ">" (accession bioseq) " "
-       (description bioseq) "\n" (bioseq->string bioseq) "\n"))
+  "Returns the biosequence as a fasta formatted string. If newlines?
+  is true then the sequence is formatted into 80 character rows."
+  ([bioseq] (fasta-string bioseq true))
+  ([bioseq newlines?]
+   (str ">" (accession bioseq) " "
+        (description bioseq) "\n"
+        (if newlines?
+          (bioseq->string bioseq)
+          (:sequence bioseq)))))
 
 (defn sub-bioseq
   "Returns a new fasta sequence object with the sequence corresponding
@@ -109,9 +116,10 @@
                                " [" beg " - "
                                (if end end "End") "]")
                           (alphabet bs)
-                          (if end
-                            (apply str (subvec (bs-seq bs) (- beg 1) end))
-                            (apply str (subvec (bs-seq bs) (- beg 1)))))))
+                          (->> (if end
+                                 (subvec (bs-seq bs) (- beg 1) end)
+                                 (subvec (bs-seq bs) (- beg 1)))
+                               (apply str)))))
 
 (defn interval-complete?
   "Returns the interval if it has a start and end value or a point
@@ -130,7 +138,7 @@
          (not (comp? interval)))
     (let [o (sub-bioseq bs (start interval))
           t (sub-bioseq bs 0 (end interval))]
-      (assoc o :sequence (vec (concat (bs-seq o) (bs-seq t)))
+      (assoc o :sequence (apply str (concat (bs-seq o) (bs-seq t)))
              :description (str (second (re-find #"^(.+)\s[^\[]+\]$"))
                                " [" (start interval) " - " (end interval) "]")))
     ;; circular DNA spanning origin comp direction
@@ -138,7 +146,7 @@
          (> (end interval) (start interval)))
     (let [o (sub-bioseq bs (end interval))
           t (sub-bioseq bs 0 (start interval))]
-      (assoc o :sequence (vec (concat (bs-seq o) (bs-seq t)))
+      (assoc o :sequence (apply str (concat (bs-seq o) (bs-seq t)))
              :description (str (second (re-find #"^(.+)\s[^\[]+\]$"))
                                " [" (end interval) " - " (start interval) "]")))
     ;; otherwise as usual
@@ -169,22 +177,28 @@
                 bs)))
   file)
 
-(defn clean-sequence
-  "Removes spaces and newlines and checks that all characters are
-   legal characters for the supplied alphabet. Replaces non-valid
-   characters with \\X. If `a' is not a defined alphabet throws an
-   exception."
-  [s a]
-  (let [k (ala/get-alphabet a)
-        w #{\space \newline}
-        t (if (string? s) (upper-case s) s)]
-    (loop [l t a []]
+(defn- clean-sequence
+  [s ala]
+  (let [w #{\space \newline}]
+    (loop [l s a []]
       (if-not (seq l)
-        a
+        (apply str a)
         (let [c (first l)]
           (if (not (w c))
-            (recur (rest l) (conj a (if (k c) c \X)))
+            (recur (rest l) (conj a (if (ala/allowed-character? ala c) c \X)))
             (recur (rest l) a)))))))
+
+(defn clean-sequences
+  "Removes spaces and newlines and checks that all characters are
+  legal characters for the supplied alphabet. Replaces non-valid
+  characters with \\X. Only performs cleaning if supplied alphabet is
+  a checked alphabet."
+  [alphabet coll]
+  (let [a (ala/get-alphabet alphabet)]
+    (if (ala/checked? a)
+      (map #(assoc % :sequence
+                   (clean-sequence (:sequence %) a)) coll)
+      coll)))
 
 (defn object->file
   "Spits an object to file after making sure *print-length* is

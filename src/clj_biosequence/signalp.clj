@@ -88,12 +88,8 @@
 
 (defn- remove-stops
   [bs]
-  (-> (bs/init-fasta-sequence (bs/accession bs)
-                              (bs/description bs)
-                              :iupacAminoAcids
-                              (replace {\* \X}
-                                       (bs/bs-seq bs)))
-      bs/fasta-string))
+  (->> (bs/clean-sequences :signalpAminoAcids bs)
+       (map bs/fasta-string)))
 
 (defn signalp
   "Runs signalp on a collection of biosequences and returns a signalp

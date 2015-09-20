@@ -9,26 +9,28 @@
 (extend fastaSequence
   biosequenceID
   (assoc default-biosequence-id
-    :accession (fn [this] (:acc this))
-    :accessions (fn [this] (list (accession this))))
+         :accession (fn [this] (:acc this))
+         :accessions (fn [this] (list (accession this))))
   biosequenceDescription
   (assoc default-biosequence-description
-    :description (fn [this] (:description this)))
+         :description (fn [this] (:description this)))
   Biosequence
   (assoc default-biosequence-biosequence
-    :bs-seq (fn [this] (:sequence this))
-    :protein? (fn [this]
-                (ala/alphabet-is-protein (:alphabet this)))
-    :alphabet (fn [this] (:alphabet this))
-    :moltype
-    (fn [this] (if (protein? this) "AA" "Nucleic acid"))))
+         :bs-seq (fn [this] (vec (:sequence this)))
+         :protein? (fn [this]
+                     (if (ala/alphabet-is-protein? (:alphabet this))
+                       true false))
+         :alphabet (fn [this] (:alphabet this))
+         :moltype
+         (fn [this] (if (protein? this) "AA" "Nucleic acid"))))
 
 (defn init-fasta-sequence
   "Returns a new fastaSequence. Currently :iupacNucleicAcids
   and :iupacAminoAcids are supported alphabets."
-  [accession description alphabet sequence]
-  (->fastaSequence accession description alphabet
-                   (clean-sequence sequence alphabet)))
+  ([accession description alphabet sequence]
+   (init-fasta-sequence accession description alphabet sequence false))
+  ([accession description alphabet sequence check-seq]
+   (->fastaSequence accession description alphabet sequence)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; IO
@@ -40,7 +42,7 @@
             (drop-while #(not (= \> (first %))) (line-seq (:strm this)))
             (line-seq (:strm this)))]
     (map (fn [[d s]]
-           (let [seqs (apply str (map trim s))]
+           (let [seqs (map trim s)]
              (cond (not (re-find #"^>" (first d)))
                    (throw
                     (Throwable. (str "Data corrupted at "
@@ -50,16 +52,18 @@
                     (Throwable. (str "No sequence for entry "
                                      (first d))))
                    :else
-                   (init-fasta-sequence
+                   (->fastaSequence
                     (second (re-find #"^>([^\s]+)" (first d)))
                     (second (re-find #">[^\s]+\s+(.+)" (first d)))
                     (:alphabet this)
-                    seqs))))
+                    (apply str seqs)))))
          (partition 2 (partition-by #(re-find #"^>" %) l)))))
 
 (defrecord fastaReader [strm alphabet]
   biosequenceReader
-  (biosequence-seq [this] (parse-fasta this))
+  (biosequence-seq [this]
+    (->> (parse-fasta this)
+         (clean-sequences (:alphabet this))))
   java.io.Closeable
   (close [this] (.close ^java.io.BufferedReader (:strm this))))
 
@@ -88,7 +92,7 @@
    (fn [this func fold]
      (->> (iot/seq (:file this))
           (r/filter #(not (= \> (first %))))
-          (r/map #(clean-sequence % (:alphabet this)))
+          (clean-sequences (:alphabet this))
           (r/map func)
           (r/fold fold)))})
 

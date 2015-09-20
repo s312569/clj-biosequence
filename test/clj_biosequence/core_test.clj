@@ -37,13 +37,13 @@
     (is (= false (protein? fasta-nuc)))
     (is (= :iupacNucleicAcids (alphabet fasta-nuc)))
     (is (= [\G \T \A \C \A \A \A]
-           (bs-seq (sub-bioseq fasta-nuc 0 7))))
+           (bs-seq (sub-bioseq fasta-nuc 1 7))))
     (is (= [\G \T \A]
            (first (partition-all 3 (bs-seq fasta-nuc)))))
     (is (= [\T \A \A \T]
-           (bs-seq (sub-bioseq (reverse-comp fasta-nuc) 0 4))))
+           (bs-seq (sub-bioseq (reverse-comp fasta-nuc) 1 4))))
     (is (= [\A \T \T \A]
-           (bs-seq (sub-bioseq (reverse-seq fasta-nuc) 0 4))))
+           (bs-seq (sub-bioseq (reverse-seq fasta-nuc) 1 4))))
     (is (= "accession"
            (with-open [s
                        (bs-reader (init-fasta-string
@@ -57,7 +57,7 @@
               :iupacNucleicAcids))]
       (try
         (with-open [r (bs-reader i)]
-          (is (= "gi|116025203|gb|EG339215.1|EG339215"
+          (is (= "gi|114311762|gb|EE738912.1|EE738912"
                  (accession (first (biosequence-seq r)))))
           (is (= "gi|114314166|gb|EE741316.1|EE741316"
                  (accession
@@ -68,7 +68,7 @@
                   (fs/absolute-path
                    (io/resource "test-files/nuc-sequence.fasta")))]
           (with-open [rr (bs-reader ii)]
-            (is (= "gi|116025203|gb|EG339215.1|EG339215"
+            (is (= "gi|114311762|gb|EE738912.1|EE738912"
                    (accession (first (biosequence-seq rr)))))
             (is (= "gi|114314166|gb|EE741316.1|EE741316"
                    (accession
@@ -88,7 +88,7 @@
            (subvec (bs-seq un-seq) 0 6)))
     (is (= true (protein? un-seq)))
     (is (= :iupacAminoAcids (alphabet un-seq)))
-    (is (= [\M \E \Q \C \V \A] (bs-seq (sub-bioseq un-seq 0 6))))
+    (is (= [\M \E \Q \C \V \A] (bs-seq (sub-bioseq un-seq 1 6))))
     (is (= [\M \E \Q] (first (partition-all 3 (bs-seq un-seq)))))
     (is (= "Schistosoma mansoni" (-> (tax-refs un-seq)
                                      first tax-name)))
@@ -126,7 +126,7 @@
                "test-files/uniprot-s-mansoni-20121217.xml")))]
       (try
         (with-open [r (bs-reader i)]
-          (is (= "C4PYP8"
+          (is (= "P35661"
                  (accession (first (biosequence-seq r)))))
           (is (= "P35661"
                  (accession (get-biosequence r "P35661")))))
@@ -135,7 +135,7 @@
                      fs/absolute-path
                      load-biosequence-index)]
           (with-open [rr (bs-reader ii)]
-            (is (= "C4PYP8"
+            (is (= "P35661"
                    (accession (first (biosequence-seq rr)))))
             (is (= "P35661"
                    (accession (get-biosequence rr "P35661"))))))
@@ -304,7 +304,8 @@
   (testing "Genbank"
     (let [gsn (with-open [r (bs-reader
                              (init-genbank-file
-                              (io/resource "test-files/nucleotide-gb.xml")))]
+                              (io/resource "test-files/nucleotide-gb.xml")
+                              :iupacNucleicAcids))]
                 (second (biosequence-seq r)))]
       (is (= "GAAZ01003035" (accession gsn)))
       (is (= "TSA: Crotalus horridus Chorr_CTL-10 mRNA sequence")
@@ -333,7 +334,8 @@
       (is (= "GAAZ01003035"
              (with-open [r (bs-reader
                             (init-genbank-connection '("GAAZ01003035")
-                                                     :nucest :xml))]
+                                                     :nucest :xml
+                                                     :iupacNucleicAcids))]
                (accession (first (biosequence-seq r))))))
       (is (= "Crotalus horridus" (-> (tax-refs gsn)
                                      first
@@ -344,10 +346,11 @@
   (testing "Genbank indexing"
     (let [i (index-biosequence-file
              (init-genbank-file
-              (io/resource "test-files/nucleotide-gb.xml")))]
+              (io/resource "test-files/nucleotide-gb.xml")
+              :iupacNucleicAcids))]
       (try
         (with-open [r (bs-reader i)]
-          (is (= "KE373594"
+          (is (= "GAAZ01003041"
                  (accession (first (biosequence-seq r)))))
           (is (= "GAAZ01003035"
                  (accession (get-biosequence r "GAAZ01003035")))))
@@ -355,7 +358,7 @@
                   (fs/absolute-path
                    (io/resource "test-files/nucleotide-gb.xml")))]
           (with-open [rr (bs-reader ii)]
-            (is (= "KE373594"
+            (is (= "GAAZ01003041"
                    (accession (first (biosequence-seq rr)))))
             (is (= "GAAZ01003035"
                    (accession (get-biosequence rr "GAAZ01003035"))))))
