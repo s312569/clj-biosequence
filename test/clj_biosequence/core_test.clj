@@ -57,9 +57,9 @@
     (is (= [\A \T \T \A]
            (bs-seq (sub-bioseq (reverse-seq fasta-nuc) 1 4))))
     ;; lower-case tests
-    (is (= [\G \T \A \C \A \A \A]
+    (is (= [\g \t \a \c \a \a \a]
            (bs-seq (sub-bioseq fasta-lower-nuc 1 7))))
-    (is (= "GTACAAA"
+    (is (= "gtacaaa"
            (subs (:sequence fasta-lower-nuc) 0 7)))
     (is (= "anact"
            (subs (:sequence fasta-lower-aa) 0 5)))
@@ -68,7 +68,9 @@
                        (bs-reader (init-fasta-string
                                    ">accession desc\n sequence"
                                    :iupacNucleicAcids))]
-             (accession (first (biosequence-seq s)))))))
+             (accession (first (biosequence-seq s))))))
+    (is (= "VQKSWPR"
+           (subs (:sequence (translate fasta-lower-nuc 1)) 0 7))))
   (testing "Fasta indexing"
     (let [i (index-biosequence-file
              (init-fasta-file
