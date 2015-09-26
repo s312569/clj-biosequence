@@ -285,7 +285,7 @@
   (vec
    (remove nil? (-> (list
                      "interproscan.sh" "-i" infile "-o" outfile "-seqtype" "p" "-f" "XML"
-                     (if appl (str "-appl" (apply str (interpose "," appl))))
+                     (if appl (str "-appl " (apply str (interpose "," appl))))
                      (if (not precalc) "-dp")
                      (if (not pathways) "-pa")
                      (if (or lookup goterms) "-iprlookup")
