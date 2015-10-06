@@ -63,16 +63,16 @@
 
 (defn alphabet?
   [k]
-  "Returns true if argument is a keyword naming a defined alphabet or
-  an object that satisifies biosequencealphabet protocol."
+  "Returns true if argument is a keyword naming a defined alphabet."
   (contains? alphabets k))
 
 (defn codon->aa
   "Takes a seq of three chars representing nucleic acid residues and
   returns a char representing the encoded amino acid."
-  [lst table]
+  [chars table]
   (let [v {\T 0 \U 0 \C 1 \A 2 \G 3}
-        t (:ncbieaa table)]
+        t (:ncbieaa table)
+        lst (map #(Character/toUpperCase %) chars)]
     (if (or (not (empty? (remove (set (keys v)) lst)))
             (< (count lst) 3))
       \X
@@ -85,5 +85,5 @@
   vector of the reverse complement."
   [v]
   (let [a (:alphabet (get-alphabet :iupacNucleicAcids))]
-    (->> (map #(or ((a %) :complement) \X) v)
+    (->> (map #(or ((a (Character/toUpperCase %)) :complement) \X) v)
          reverse)))

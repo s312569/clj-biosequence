@@ -183,9 +183,11 @@
     (loop [l s a []]
       (if-not (seq l)
         (apply str a)
-        (let [c (first l)]
+        (let [c (Character/toUpperCase (first l))]
           (if (not (w c))
-            (recur (rest l) (conj a (if (ala/allowed-character? ala c) c \X)))
+            (recur (rest l) (conj a (if (ala/allowed-character? ala c)
+                                      (first l)
+                                      \X)))
             (recur (rest l) a)))))))
 
 (defn clean-sequences

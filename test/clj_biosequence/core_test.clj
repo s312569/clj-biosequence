@@ -12,6 +12,18 @@
         clj-biosequence.fastq
         clj-biosequence.entrezgene))
 
+(def fasta-lower-nuc (with-open [f (bs-reader
+                              (init-fasta-file
+                               (io/resource "test-files/lowercase-nuc.fasta")
+                               :iupacNucleicAcids))]
+                 (first (biosequence-seq f))))
+
+(def fasta-lower-aa (with-open [f (bs-reader
+                              (init-fasta-file
+                               (io/resource "test-files/lowercase-AA.fasta")
+                               :uncheckedProtein))]
+                 (first (biosequence-seq f))))
+
 (def fasta-nuc (with-open [f (bs-reader
                               (init-fasta-file
                                (io/resource "test-files/nuc-sequence.fasta")
@@ -44,12 +56,21 @@
            (bs-seq (sub-bioseq (reverse-comp fasta-nuc) 1 4))))
     (is (= [\A \T \T \A]
            (bs-seq (sub-bioseq (reverse-seq fasta-nuc) 1 4))))
+    ;; lower-case tests
+    (is (= [\g \t \a \c \a \a \a]
+           (bs-seq (sub-bioseq fasta-lower-nuc 1 7))))
+    (is (= "gtacaaa"
+           (subs (:sequence fasta-lower-nuc) 0 7)))
+    (is (= "anact"
+           (subs (:sequence fasta-lower-aa) 0 5)))
     (is (= "accession"
            (with-open [s
                        (bs-reader (init-fasta-string
                                    ">accession desc\n sequence"
                                    :iupacNucleicAcids))]
-             (accession (first (biosequence-seq s)))))))
+             (accession (first (biosequence-seq s))))))
+    (is (= "VQKSWPR"
+           (subs (:sequence (translate fasta-lower-nuc 1)) 0 7))))
   (testing "Fasta indexing"
     (let [i (index-biosequence-file
              (init-fasta-file
