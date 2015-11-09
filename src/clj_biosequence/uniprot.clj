@@ -219,10 +219,10 @@
 
 (defn- get-subcell
   [this tag]
-  (interleave
-   (bs/get-list this :subcellularLocation tag zf/text)
-   (bs/get-list this :subcellularLocation tag
-                (zf/attr :status))))
+  (let [ls (bs/get-list this :subcellularLocation)]
+    (map #(vector (zf/xml1-> % tag zf/text)
+                  (zf/xml1-> % tag (zf/attr :evidence)))
+         ls)))
 
 (defrecord uniprotComment [src])
 
