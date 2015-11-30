@@ -55,7 +55,7 @@
   bs/biosequenceID
   (assoc bs/default-biosequence-id
          :accession (fn [this] (:id (:attrs (:src this))))
-         :accessios (fn [this] (list (bs/accession this)))))
+         :accessions (fn [this] (list (bs/accession this)))))
 
 ;; go terms
 
@@ -138,8 +138,7 @@
   (entry [this]
     (let [r (zf/xml1-> (zip/xml-zip (:src this)) :entry)]
       (if (not (nil? r))
-        (->interproscanEntry (zip/node r))
-        (->interproscanEntry ())))))
+        (->interproscanEntry (zip/node r))))))
 
 (extend interproscanSignature
   bs/biosequenceID
