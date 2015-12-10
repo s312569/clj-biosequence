@@ -122,7 +122,8 @@
          :accessions (fn [this] (list (bs/accession this))))
   bs/biosequenceDescription
   (assoc bs/default-biosequence-description
-         :description (fn [this] (:desc (:attrs (:src this))))))
+         :description (fn [this]
+                        (:desc (:attrs (:src this))))))
 
 ;; signature
 
@@ -147,7 +148,9 @@
          :accessions (fn [this] (list (bs/accession this))))
   bs/biosequenceDescription
   (assoc bs/default-biosequence-description
-         :description (fn [this] (:desc (:attrs (:src this))))))
+         :description (fn [this]
+                        (or (:desc (:attrs (:src this)))
+                            (:name (:attrs (:src this)))))))
 
 ;; locations
 
@@ -211,8 +214,8 @@
 
 (defrecord interproscanProfile [src]
   ipsMatch
-  (score [this] (mscore this))
-  (evalue [this] (mevalue this))
+  (score [this] nil)
+  (evalue [this] nil)
   (signature [this] (msignature this)))
 
 (extend interproscanProfile
@@ -222,7 +225,7 @@
 
 (defrecord interproscanSuperFamily [src]
   ipsMatch
-  (score [this] (mscore this))
+  (score [this] nil)
   (evalue [this] (mevalue this))
   (signature [this] (msignature this)))
 
