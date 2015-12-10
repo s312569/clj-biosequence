@@ -171,28 +171,76 @@
 
 ;; matches
 
+(defn- mscore [this]
+  (Float/parseFloat (:score (:attrs (:src this)))))
+
+(defn- mevalue [this]
+  (Float/parseFloat (:evalue (:attrs (:src this)))))
+
+(defn msignature [this]
+  (->interproscanSignature
+   (zip/node (zf/xml1-> (zip/xml-zip (:src this)) :signature))))
+
+(defn- mintervals [this tag]
+  (map #(->interproscanInterval (zip/node %))
+       (zf/xml-> (zip/xml-zip (:src this))
+                 :locations
+                 tag)))
+
 (defrecord interproscanHmmThree [src]
-
   ipsMatch
-
-  (score [this]
-    (Float/parseFloat (:score (:attrs (:src this)))))
-
-  (evalue [this]
-    (Float/parseFloat (:evalue (:attrs (:src this)))))
-
-  (signature [this]
-    (->interproscanSignature
-     (zip/node (zf/xml1-> (zip/xml-zip (:src this)) :signature)))))
+  (score [this] (mscore this))
+  (evalue [this] (mevalue this))
+  (signature [this] (msignature this)))
 
 (extend interproscanHmmThree
   bs/biosequenceIntervals
   (assoc bs/default-biosequence-intervals
-         :intervals (fn [this]
-                      (map #(->interproscanInterval (zip/node %))
-                           (zf/xml-> (zip/xml-zip (:src this))
-                                     :locations
-                                     :hmmer3-location)))))
+         :intervals (fn [x] (mintervals x :hmmer3-location))))
+
+(defrecord interproscanPanther [src]
+  ipsMatch
+  (score [this] (mscore this))
+  (evalue [this] (mevalue this))
+  (signature [this] (msignature this)))
+
+(extend interproscanPanther
+  bs/biosequenceIntervals
+  (assoc bs/default-biosequence-intervals
+         :intervals (fn [x] (mintervals x :panther-location))))
+
+(defrecord interproscanProfile [src]
+  ipsMatch
+  (score [this] (mscore this))
+  (evalue [this] (mevalue this))
+  (signature [this] (msignature this)))
+
+(extend interproscanProfile
+  bs/biosequenceIntervals
+  (assoc bs/default-biosequence-intervals
+         :intervals #(mintervals % :profilescan-location)))
+
+(defrecord interproscanSuperFamily [src]
+  ipsMatch
+  (score [this] (mscore this))
+  (evalue [this] (mevalue this))
+  (signature [this] (msignature this)))
+
+(extend interproscanSuperFamily
+  bs/biosequenceIntervals
+  (assoc bs/default-biosequence-intervals
+         :intervals #(mintervals % :superfamilyhmmer3-location)))
+
+(defrecord interproscanTmhmm [src]
+  ipsMatch
+  (score [this] nil)
+  (evalue [this] nil)
+  (signature [this] (msignature this)))
+
+(extend interproscanTmhmm
+  bs/biosequenceIntervals
+  (assoc bs/default-biosequence-intervals
+         :intervals #(mintervals % :tmhmm-location)))
 
 ;; ips protein
 
@@ -204,12 +252,37 @@
          :accession (fn [this] (:accession this))
          :accessions (fn [this] (list (bs/accession this)))))
 
+(defn- program-seq [this tag]
+  (let [t (zf/xml-> (zip/xml-zip (:src this))
+                    :matches
+                    tag)]
+    (condp = tag
+      :hmmer3-match (map #(->interproscanHmmThree (zip/node %)) t)
+      :panther-match(map #(->interproscanPanther (zip/node %)) t)
+      :profilescan-match (map #(->interproscanProfile (zip/node %)) t)
+      :superfamilyhmmer3-match
+      (map #(->interproscanSuperFamily (zip/node %)) t)
+      :tmhmm-match (map #(->interproscanTmhmm (zip/node %)) t))))
+
 (defn hmmer-3-seq
   [protein]
-  (map #(->interproscanHmmThree (zip/node %))
-       (zf/xml-> (zip/xml-zip (:src protein))
-                 :matches
-                 :hmmer3-match)))
+  (program-seq protein :hmmer3-match))
+
+(defn panther-seq
+  [protein]
+  (program-seq protein :panther-match))
+
+(defn profile-seq
+  [protein]
+  (program-seq protein :profilescan-match))
+
+(defn superfamily-seq
+  [protein]
+  (program-seq protein :superfamilyhmmer3-match))
+
+(defn tmhmm-seq
+  [protein]
+  (program-seq protein :tmhmm-match))
 
 (defn get-gos
   [ips]
