@@ -370,17 +370,23 @@
 
 (defn- blast-default-params
   [params in-file out-file db]
-  (doall
-   (remove #(nil? %)
-           (flatten (seq (merge {"-evalue" "10"
-                                 "-outfmt" "5"
-                                 "-max_target_seqs" "3"
-                                 "-query"
-                                 in-file
-                                 "-out"
-                                 out-file
-                                 "-db" db}
-                                params))))))
+  (let [p (dissoc params "-ungapped")
+        ungapped? (if (get params "-ungapped")
+                    "-ungapped")]
+    (doall
+     (->> (merge {"-evalue" "10"
+                  "-outfmt" "5"
+                  "-max_target_seqs" "3"
+                  "-query"
+                  in-file
+                  "-out"
+                  out-file
+                  "-db" db}
+                 p)
+          seq
+          flatten
+          (cons ungapped?)
+          (remove nil?)))))
 
 (defn- run-blast 
   [prog db in out params]
