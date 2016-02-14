@@ -19,7 +19,7 @@ Available from [Clojars](https://clojars.org/clj-biosequence). For the
 current version add the following to your project.clj file:
 
 ```clojure
-[clj-biosequence "0.5.1"]
+[clj-biosequence "0.5.2"]
 ```
 
 To use in your namespace:
