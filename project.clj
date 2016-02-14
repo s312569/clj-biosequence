@@ -17,8 +17,7 @@
                  [org.clojars.hozumi/clj-commons-exec "1.1.0"]
                  [org.clojure/tools.nrepl "0.2.12"]]
   :resource-paths ["shared" "resources"]
-  :plugins [[codox "0.8.10"]
-            [cider/cider-nrepl "0.11.0-SNAPSHOT"]]
+  :plugins [[codox "0.8.10"]]
   :codox {:src-dir-uri "https://github.com/s312569/clj-biosequence/blob/master/"
           :src-linenum-anchor-prefix "L"}
   :repl-options {:init (set! *print-length* 100)}
